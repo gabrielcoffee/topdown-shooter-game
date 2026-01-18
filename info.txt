@@ -1,0 +1,40 @@
+AIMING MECHANIC 
+aiming mechanic: if player doesn't aim the shot can move to much to the sides, 
+but clicking right button on mouse player slows down and the shot has more precision
+player can have items (first gun, second gun, knife)
+
+SHIFT/WALK mechanic
+player can press shift to walk slowly, making no noise when walking and having more precision
+
+GAME ITEMS THAT PLAYER CAN PICKUP:
+- GUNS
+- KNIFE (always equiped)
+- GRENADES 
+
+IDEAS:
+- Add items to change the barricade like barrades, keys to doors
+
+ETAPAS PARA IMPLEMENTAR:
+[ ] FACA
+[x] PISTOLA
+[x] RIFLE
+[ ] SHOTGUN
+[ ] TILEMAP 
+[ ] CRIAR UM MODELO PARA FASES
+- Criar editor ou ogmo editor 3
+
+[x] EFEITOS SONOROS
+- Armas
+- Movimentação
+
+[ ] PARTICULAS
+[ ] INIMIGOS INTELIGENTES
+
+
+
+GRAFICOS:
+[ ] TERRORISTA
+[X] POLICIAL
+[X] ITENS INICIAIS (ARMAS, GRANADA E FACA)  
+[X] GRAFICOS MAPA DUST
+[ ] MAPA BASICO PARA TESTES
