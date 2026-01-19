@@ -46,12 +46,6 @@ function Bullet:update(dt, world)
     end
 
     self.animMuzzle:update(dt)
-
-    --[[
-    if self.x > SCREENWIDTH/SCALE or self.x < 0 or self.y > SCREENHEIGHT/2 or self.y < 0 then
-        world:removeEntity(self)
-    end
-    ]]
 end
 
 function Bullet:draw()

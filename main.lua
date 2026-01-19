@@ -13,6 +13,7 @@ _G.world = nil
 
 function love.load()
     love.mouse.setVisible(true)
+    love.math.setRandomSeed(os.time())
 
     world = World:new()
 end

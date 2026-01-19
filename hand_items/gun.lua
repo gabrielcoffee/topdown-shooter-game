@@ -88,6 +88,8 @@ function Gun:newShotgun()
     obj.ox = 12
     obj.oy = 16
 
+    obj.spread = 0.05
+
     setmetatable(obj, Gun)
     return obj
 end
@@ -126,14 +128,30 @@ function Gun:fire(leftReleased)
         gw = gw - self.ox
 
         self.canShoot = false
-        world:addEntity(
-            Bullet:new(
-                self.x, self.y,
-                self.angle, self.damage,
-                gw,
-                self.bulletLifeTime
+        if self.type == GUNTYPE.shotgun then
+            for i = 1, 7 do
+                local finalSpread = love.math.random(-self.spread, self.spread)
+
+                print(finalSpread)
+                world:addEntity(
+                    Bullet:new(
+                        self.x, self.y,
+                        self.angle + finalSpread, self.damage,
+                        gw,
+                        self.bulletLifeTime
+                    )
+                )
+            end
+        else
+            world:addEntity(
+                Bullet:new(
+                    self.x, self.y,
+                    self.angle, self.damage,
+                    gw,
+                    self.bulletLifeTime
+                )
             )
-        )
+        end
         self.curClip = self.curClip - 1
     end
 end

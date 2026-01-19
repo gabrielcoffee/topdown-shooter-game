@@ -1,4 +1,4 @@
-local Entity = require('entity')
+local Entity = require('entities.entity')
 local Color = require('core.color')
 local Assets = require('core.assets')
 local Gun = require('hand_items.gun')
