@@ -8,11 +8,13 @@ local offsetY = 16
 
 function HandItem:newKnife()
     local obj = {
+        name = 'M9 Bayonet',
         x = 0, y = 0,
         ox = 4, oy = 15,
         angle = 0,
         sprite = Assets.quads.knife[1],
-        static = true
+        static = true,
+        walkSpeed = 130 -- TUNE: knife = fastest
     }
 
     setmetatable(obj, HandItem)
@@ -21,12 +23,14 @@ end
 
 function HandItem:newGrenade(type)
     local obj = {
+        name = 'M67 Frag',
         x = 0, y = 0,
         ox = 4, oy = 15,
         angle = 0,
         sprite = Assets.quads.grenade[1],
         static = true,
         type = type or 'he',
+        walkSpeed = 120 -- TUNE
     }
 
     setmetatable(obj, HandItem)
@@ -50,7 +54,7 @@ function HandItem:draw(facingLeft)
 end
 
 function HandItem:drawHud()
-
+    love.graphics.print(self.name, 20, 20)
 end
 
 return HandItem

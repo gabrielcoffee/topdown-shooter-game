@@ -4,6 +4,12 @@ One entry per completed PLAN.md step. Newest on top. Format: date — step — w
 
 ## [Unreleased]
 
+### 2026-07-20 — Walk speed per weapon, real gun names, zombie speed bump
+- Held weapon sets walk speed (knife 130 … AK-47 90)
+- Real names in HUD: USP-45, AK-47, M4A1, Lupara, M9 Bayonet, M67 Frag
+- Zombie speeds: slow 40, fast 70, runner 110
+- SEQUEL.md created (machinegun, alien gun — cut)
+
 ### 2026-07-20 — Cleanup, hi-res HUD, zombie type test
 - Deleted dead files: menu.lua, core/background.lua, entities/grenade.lua, core/sound.lua
 - HUD now drawn at native resolution with clean 18px font (world stays pixelated)

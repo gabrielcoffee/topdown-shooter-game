@@ -23,7 +23,7 @@ end
 -- TUNE: all stats below (speed / health / damage / size)
 function Enemy:newSlow(x, y)
     local obj = Enemy:new(x, y, 48, 48) -- 1.5x base size
-    obj.speed = 30
+    obj.speed = 40
     obj.health = 100
     obj.damage = 10
     obj.color = Color.red
@@ -32,7 +32,7 @@ end
 
 function Enemy:newFast(x, y)
     local obj = Enemy:new(x, y, 32, 32) -- base size
-    obj.speed = 60
+    obj.speed = 70
     obj.health = 60
     obj.damage = 10
     obj.color = Color.magenta
@@ -41,7 +41,7 @@ end
 
 function Enemy:newRunner(x, y)
     local obj = Enemy:new(x, y, 21, 21) -- 1.5x smaller
-    obj.speed = 100 -- slightly above player (90)
+    obj.speed = 110
     obj.health = 30
     obj.damage = 15
     obj.color = Color.yellow

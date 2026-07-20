@@ -36,15 +36,16 @@ All zombies: move straight toward player, deal contact damage on touch (with per
 
 | Type   | Speed      | HP          | Contact damage | Size (px)             |
 |--------|------------|-------------|----------------|-----------------------|
-| Slow   | TUNE: `30`  | TUNE: `100` | TUNE: `10`     | TUNE: `48` (1.5x)     |
-| Fast   | TUNE: `60`  | TUNE: `60`  | TUNE: `10`     | TUNE: `32` (base)     |
-| Runner | TUNE: `100` | TUNE: `30`  | TUNE: `15`     | TUNE: `21` (1/1.5x)   |
+| Slow   | TUNE: `40`  | TUNE: `100` | TUNE: `10`     | TUNE: `48` (1.5x)     |
+| Fast   | TUNE: `70`  | TUNE: `60`  | TUNE: `10`     | TUNE: `32` (base)     |
+| Runner | TUNE: `110` | TUNE: `30`  | TUNE: `15`     | TUNE: `21` (1/1.5x)   |
 
 - TUNE: contact damage cooldown per zombie = `1.0` sec
 
 ## Player
 
 - WASD move, mouse aim/shoot (already working).
+- Walk speed depends on held item (each weapon's `walkSpeed`, all TUNE): knife 130 > USP 120 > grenade 120 > Lupara 105 > M4A1 95 > AK-47 90.
 - HP; death at 0 → score screen → restart.
   - TUNE: player max HP = `100`
 - Armor (bought at item shop): absorbs damage before HP.
@@ -70,14 +71,14 @@ Walk up + interact key opens shop menu. Game keeps running or pauses — TUNE: s
 
 ### Gun shop NPC — the existing 6 weapons only
 
-| Weapon  | Price          |
-|---------|----------------|
-| Pistol  | TUNE: `0` (starting weapon) |
-| AK      | TUNE: `1500`   |
-| M4      | TUNE: `1200`   |
-| Shotgun | TUNE: `1800`   |
-| Knife   | TUNE: `0` (starting weapon) |
-| Grenade | TUNE: `300` (per grenade)   |
+| Weapon  | Display name | Price          |
+|---------|--------------|----------------|
+| Pistol  | USP-45       | TUNE: `0` (starting weapon) |
+| AK      | AK-47        | TUNE: `1500`   |
+| M4      | M4A1         | TUNE: `1200`   |
+| Shotgun | Lupara (sawed-off double barrel) | TUNE: `1800` |
+| Knife   | M9 Bayonet   | TUNE: `0` (starting weapon) |
+| Grenade | M67 Frag     | TUNE: `300` (per grenade)   |
 
 - Buying a gun you own refills its ammo. TUNE: ammo refill price = `250`
 - Reload: `r` key refills clip from reserve; reserve refills only via shop.

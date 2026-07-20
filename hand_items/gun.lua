@@ -27,9 +27,10 @@ end
 function Gun:newUSP()
     local obj = GunStateVariables(15)
     
+    obj.name = 'USP-45'
     obj.sprite = Assets.quads.pistol[1]
     obj.type = GUNTYPE.semi
-    obj.walkSpeed = 120 -- APPLY TO PLAYER
+    obj.walkSpeed = 120 -- TUNE
     obj.damage = 18
     obj.bulletLifeTime = 0.5
     obj.reloadingTime = 2
@@ -44,9 +45,10 @@ end
 function Gun:newAk47()
     local obj = GunStateVariables(30)
     
+    obj.name = 'AK-47'
     obj.sprite = Assets.quads.ak47[1]
     obj.type = GUNTYPE.auto
-    obj.walkSpeed = 90 -- APPLY TO PLAYER
+    obj.walkSpeed = 90 -- TUNE
     obj.damage = 25
     obj.bulletLifeTime = 0.7
     obj.reloadingTime = 2.7
@@ -61,9 +63,10 @@ end
 function Gun:newM4A1()
     local obj = GunStateVariables(30)
     
+    obj.name = 'M4A1'
     obj.sprite = Assets.quads.m4a1[1]
     obj.type = GUNTYPE.auto
-    obj.walkSpeed = 90 -- APPLY TO PLAYER
+    obj.walkSpeed = 95 -- TUNE
     obj.damage = 23
     obj.bulletLifeTime = 0.7
     obj.reloadingTime = 2.7
@@ -78,9 +81,10 @@ end
 function Gun:newShotgun()
     local obj = GunStateVariables(7)
     
+    obj.name = 'Lupara'
     obj.sprite = Assets.quads.shotgun[1]
     obj.type = GUNTYPE.shotgun
-    obj.walkSpeed = 90 -- APPLY TO PLAYER
+    obj.walkSpeed = 105 -- TUNE: sawed-off is light
     obj.damage = 23
     obj.bulletLifeTime = 0.7
     obj.reloadingTime = 1
@@ -112,7 +116,7 @@ function Gun:draw(facingLeft)
 end
 
 function Gun:drawHud()
-    love.graphics.print('Ammo: '..self.curClip, 20, 20)
+    love.graphics.print(self.name..'  Ammo: '..self.curClip, 20, 20)
 end
 
 function Gun:fire(leftReleased)
