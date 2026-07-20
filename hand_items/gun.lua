@@ -19,8 +19,12 @@ local function GunStateVariables(maxClip)
         angle = 0,
         timer = 0,
         canShoot = false,
+        isGun = true,
+        maxClip = maxClip,
         curClip = maxClip,
-        bulletsLeft = maxClip * 3
+        bulletsLeft = maxClip * 3,
+        reloading = false,
+        reloadTimer = 0
     }
 end
 
@@ -109,6 +113,30 @@ function Gun:update(dt, px, py, mx, my)
         self.canShoot = true
         self.timer = 0
     end
+
+    if self.reloading then
+        self.reloadTimer = self.reloadTimer + dt
+        if self.reloadTimer >= self.reloadingTime then
+            local moved = math.min(self.maxClip - self.curClip, self.bulletsLeft)
+            self.curClip = self.curClip + moved
+            self.bulletsLeft = self.bulletsLeft - moved
+            self.reloading = false
+            self.reloadTimer = 0
+        end
+    end
+end
+
+function Gun:reload()
+    if self.reloading or self.curClip >= self.maxClip or self.bulletsLeft <= 0 then
+        return
+    end
+    self.reloading = true
+    self.reloadTimer = 0
+end
+
+function Gun:cancelReload()
+    self.reloading = false
+    self.reloadTimer = 0
 end
 
 function Gun:draw(facingLeft)
@@ -116,12 +144,25 @@ function Gun:draw(facingLeft)
 end
 
 function Gun:drawHud()
-    love.graphics.print(self.name..'  Ammo: '..self.curClip, 20, 20)
+    if self.reloading then
+        love.graphics.print(self.name..'  RELOADING...', 20, 20)
+    else
+        love.graphics.print(self.name..'  Ammo: '..self.curClip..'/'..self.bulletsLeft, 20, 20)
+    end
 end
 
 function Gun:fire(leftReleased)
 
-    if not self.canShoot or self.curClip <= 0 then
+    if self.reloading then
+        return
+    end
+
+    if self.curClip <= 0 then
+        self:reload()
+        return
+    end
+
+    if not self.canShoot then
         return
     end
 

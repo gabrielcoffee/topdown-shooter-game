@@ -28,6 +28,7 @@ function Player:new(x, y, width, height)
 
     obj.speed = 90
     obj.leftReleased = true
+    obj.rReleased = true
 
     obj.animState = 'idle'
     obj.animRun = Animation:new(Assets.quads.player, 2, 4, 0.1)
@@ -54,17 +55,30 @@ function Player:update(dt, world)
 
     -- Change imtem in hand
     for i = 1, #self.items do
-        self.itemIndex = love.keyboard.isDown(tostring(i)) and i or self.itemIndex
+        if love.keyboard.isDown(tostring(i)) and i ~= self.itemIndex then
+            if self.items[self.itemIndex].isGun then
+                self.items[self.itemIndex]:cancelReload()
+            end
+            self.itemIndex = i
+        end
     end
 
     -- INTERACTIONS
     local leftPressed = love.mouse.isDown(1)
+    local heldItem = self.items[self.itemIndex]
 
-    if leftPressed and (self.itemIndex == 1 or self.itemIndex == 2 or self.itemIndex == 3 or self.itemIndex == 4) then
-        self.items[self.itemIndex]:fire(self.leftReleased)
+    if leftPressed and heldItem.isGun then
+        heldItem:fire(self.leftReleased)
     end
 
     self.leftReleased = not leftPressed
+
+    -- Reload
+    local rPressed = love.keyboard.isDown('r')
+    if rPressed and self.rReleased and heldItem.isGun then
+        heldItem:reload()
+    end
+    self.rReleased = not rPressed
     
     -- Drop item
 
