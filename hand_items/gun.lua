@@ -65,13 +65,13 @@ function Gun:newAk47()
 end
 
 function Gun:newM4A1()
-    local obj = GunStateVariables(30)
-    
+    local obj = GunStateVariables(25)
+
     obj.name = 'M4A1'
     obj.sprite = Assets.quads.m4a1[1]
     obj.type = GUNTYPE.auto
     obj.walkSpeed = 90 -- TUNE
-    obj.damage = 40 -- TUNE
+    obj.damage = 35 -- TUNE
     obj.bulletLifeTime = 0.7
     obj.reloadingTime = 2.7
     obj.bulletDelay = 0.1
@@ -89,7 +89,7 @@ function Gun:newShotgun()
     obj.sprite = Assets.quads.shotgun[1]
     obj.type = GUNTYPE.shotgun
     obj.walkSpeed = 100 -- TUNE: sawed-off is light
-    obj.damage = 10 -- TUNE: per pellet, 7 pellets
+    obj.damage = 10 -- TUNE: per pellet
     obj.bulletLifeTime = 0.7
     obj.reloadingTime = 1
     obj.bulletDelay = 0.5

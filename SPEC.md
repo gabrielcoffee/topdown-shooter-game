@@ -80,9 +80,9 @@ Damage on the "×10 simple scale": one significant digit each, room to nudge wit
 | Weapon  | Display name | Damage | Price          |
 |---------|--------------|--------|----------------|
 | Pistol  | USP-45       | TUNE: `20` | TUNE: `0` (starting weapon) |
-| AK      | AK-47        | TUNE: `40` | TUNE: `1500`   |
-| M4      | M4A1         | TUNE: `40` | TUNE: `1200`   |
-| Shotgun | Lupara (sawed-off double barrel) | TUNE: `10` per pellet ×7 | TUNE: `1800` |
+| AK      | AK-47        | TUNE: `40` | TUNE: `1200`   |
+| M4      | M4A1 (silenced, 25-rd clip) | TUNE: `35` | TUNE: `1500` |
+| Shotgun | Lupara (sawed-off double barrel) | TUNE: `10` per pellet ×14 | TUNE: `1800` |
 | Knife   | M9 Bayonet   | TUNE: `60` | TUNE: `0` (starting weapon) |
 | Grenade | M67 Frag     | TUNE: `120` (flat inside radius) | TUNE: `300` (per grenade) |
 
