@@ -13,6 +13,9 @@ function World:new()
         secsForSpawn = 5,
         camX = 0,
         camY = 0,
+        -- playable area = the bg image drawn at (0,0), in world units
+        mapW = SCREENWIDTH,
+        mapH = SCREENHEIGHT,
         wave = 1,
         gameOver = false
     }
@@ -93,9 +96,12 @@ function World:update(dt)
         end
     end
 
-    -- updates the camera position
-    self.camX = self.player.x - SCREENWIDTH/2/SCALE + self.player.width/2
-    self.camY = self.player.y - SCREENHEIGHT/2/SCALE + self.player.height/2
+    -- camera follows the player, clamped to the map edges
+    local viewW, viewH = SCREENWIDTH/SCALE, SCREENHEIGHT/SCALE
+    self.camX = self.player.x + self.player.width/2 - viewW/2
+    self.camY = self.player.y + self.player.height/2 - viewH/2
+    self.camX = math.max(0, math.min(self.camX, self.mapW - viewW))
+    self.camY = math.max(0, math.min(self.camY, self.mapH - viewH))
 
     -- player death ends the run
     if self.player.health <= 0 then

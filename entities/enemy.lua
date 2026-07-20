@@ -12,45 +12,33 @@ function Enemy:new(x, y, width, height)
     obj.speed = 20
     obj.type = 'enemy'
 
-    obj.damage = 10 -- TUNE
-    obj.attackCooldown = 1.0 -- TUNE: secs between contact hits
+    obj.damage = TUNE.zombies.contactDamage
+    obj.attackCooldown = TUNE.zombies.contactCooldown
     obj.attackTimer = obj.attackCooldown
 
     setmetatable(obj, Enemy)
     return obj
 end
 
--- TUNE: all stats below (speed / life multiplier / damage / size)
--- Life: base = 20 * wave, then slow x2 / fast x1 / runner x0.5
-local function baseLife(wave)
-    return 20 * (wave or 1) -- TUNE: +20 per wave
+-- All numbers come from tune.lua. Life = baseLifePerWave * wave * type mult.
+local function newTyped(x, y, wave, t, color)
+    local obj = Enemy:new(x, y, t.size, t.size)
+    obj.speed = t.speed
+    obj.health = TUNE.zombies.baseLifePerWave * (wave or 1) * t.lifeMult
+    obj.color = color
+    return obj
 end
 
 function Enemy:newSlow(x, y, wave)
-    local obj = Enemy:new(x, y, 48, 48) -- 1.5x base size
-    obj.speed = 30
-    obj.health = baseLife(wave) * 2
-    obj.damage = 10
-    obj.color = Color.red
-    return obj
+    return newTyped(x, y, wave, TUNE.zombies.slow, Color.red)
 end
 
 function Enemy:newFast(x, y, wave)
-    local obj = Enemy:new(x, y, 32, 32) -- base size
-    obj.speed = 60
-    obj.health = baseLife(wave)
-    obj.damage = 10
-    obj.color = Color.magenta
-    return obj
+    return newTyped(x, y, wave, TUNE.zombies.fast, Color.magenta)
 end
 
 function Enemy:newRunner(x, y, wave)
-    local obj = Enemy:new(x, y, 21, 21) -- 1.5x smaller
-    obj.speed = 90
-    obj.health = baseLife(wave) * 0.5
-    obj.damage = 10
-    obj.color = Color.yellow
-    return obj
+    return newTyped(x, y, wave, TUNE.zombies.runner, Color.yellow)
 end
 
 function Enemy:followPlayer(dt, world)

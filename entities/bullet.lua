@@ -7,12 +7,12 @@ local Bullet = {}
 Bullet.__index = Bullet
 setmetatable(Bullet, Entity)
 
-Bullet.speed = 360
 
 function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime)
     local obj = Entity:new(x, y, 2, 4)
 
     obj.color = Color.white
+    obj.speed = TUNE.bullet.speed
     obj.angle = angle
     obj.sprite = Assets.quads.bullet[1]
     obj.damage = damage

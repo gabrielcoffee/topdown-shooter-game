@@ -1,3 +1,4 @@
+_G.TUNE = require('tune')
 local World = require('core.world')
 
 _G.SCALE = 2
@@ -43,6 +44,11 @@ function love.keypressed(key)
         world:spawnTestZombies()
     elseif key == 'h' then
         showHitboxes = not showHitboxes
+    elseif key == 'u' then
+        -- reload tune.lua and restart the run with the new values
+        package.loaded['tune'] = nil
+        TUNE = require('tune')
+        world = World:new()
     end
 end
 

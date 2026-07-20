@@ -4,6 +4,8 @@
 
 Progress is tracked in PROGRESS.md. Build order is in PLAN.md. Cut ideas go to SEQUEL.md, never into the codebase.
 
+**All live gameplay numbers are in `tune.lua`** — edit it with any text editor, press U in game to reload + restart the run. TUNE values in this spec are design intent; `tune.lua` is the live truth.
+
 ---
 
 ## Core Loop

@@ -9,4 +9,4 @@ Top-down zombie shooter in LÖVE (Lua). Plan in PLAN.md, progress tracking in PR
   - pistol reload time: 2s
 - **Commit only when a feature feels finished** — not every prompt. Commits authored as gabrielcoffee, never any Claude attribution or Co-Authored-By trailer. Push after committing.
 - Design/plan discussions stay at macro level (which class owns what, how pieces talk). No function-by-function detail unless asked.
-- **Code is the source of truth for tune values.** Gabriel edits values directly (sometimes in other sessions) — always re-read/grep current values from code before reporting or changing them, never from conversation memory. SPEC.md mirrors code and gets updated when values change.
+- **`tune.lua` is the source of truth for all gameplay numbers.** Gabriel edits it directly (sometimes in other sessions) — always re-read it before reporting or changing values, never trust conversation memory. New tunable values go in tune.lua, not hardcoded. U key in game reloads it + restarts run.

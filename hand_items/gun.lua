@@ -28,17 +28,27 @@ local function GunStateVariables(maxClip)
     }
 end
 
+-- All numbers come from tune.lua (t = one entry of TUNE.guns)
+local function applyTune(obj, t)
+    obj.maxClip = t.clip
+    obj.curClip = t.clip
+    obj.bulletsLeft = t.clip * 3
+    obj.walkSpeed = t.walkSpeed
+    obj.damage = t.damage
+    obj.bulletLifeTime = t.bulletLife
+    obj.reloadingTime = t.reloadTime
+    obj.bulletDelay = t.bulletDelay
+    obj.spread = t.spread
+    obj.pellets = t.pellets
+end
+
 function Gun:newUSP()
-    local obj = GunStateVariables(15)
-    
+    local obj = GunStateVariables(TUNE.guns.usp.clip)
+    applyTune(obj, TUNE.guns.usp)
+
     obj.name = 'USP-45'
     obj.sprite = Assets.quads.pistol[1]
     obj.type = GUNTYPE.semi
-    obj.walkSpeed = 120 -- TUNE
-    obj.damage = 20 -- TUNE
-    obj.bulletLifeTime = 0.5
-    obj.reloadingTime = 2
-    obj.bulletDelay = 0.15
     obj.ox = 4
     obj.oy = 16
 
@@ -47,16 +57,12 @@ function Gun:newUSP()
 end
 
 function Gun:newAk47()
-    local obj = GunStateVariables(30)
-    
+    local obj = GunStateVariables(TUNE.guns.ak47.clip)
+    applyTune(obj, TUNE.guns.ak47)
+
     obj.name = 'AK-47'
     obj.sprite = Assets.quads.ak47[1]
     obj.type = GUNTYPE.auto
-    obj.walkSpeed = 90 -- TUNE
-    obj.damage = 40 -- TUNE
-    obj.bulletLifeTime = 0.7
-    obj.reloadingTime = 2.7
-    obj.bulletDelay = 0.1
     obj.ox = 12
     obj.oy = 16
 
@@ -65,16 +71,12 @@ function Gun:newAk47()
 end
 
 function Gun:newM4A1()
-    local obj = GunStateVariables(25)
+    local obj = GunStateVariables(TUNE.guns.m4a1.clip)
+    applyTune(obj, TUNE.guns.m4a1)
 
     obj.name = 'M4A1'
     obj.sprite = Assets.quads.m4a1[1]
     obj.type = GUNTYPE.auto
-    obj.walkSpeed = 90 -- TUNE
-    obj.damage = 35 -- TUNE
-    obj.bulletLifeTime = 0.7
-    obj.reloadingTime = 2.7
-    obj.bulletDelay = 0.1
     obj.ox = 12
     obj.oy = 16
 
@@ -83,21 +85,14 @@ function Gun:newM4A1()
 end
 
 function Gun:newShotgun()
-    local obj = GunStateVariables(7)
-    
+    local obj = GunStateVariables(TUNE.guns.lupara.clip)
+    applyTune(obj, TUNE.guns.lupara)
+
     obj.name = 'Lupara'
     obj.sprite = Assets.quads.shotgun[1]
     obj.type = GUNTYPE.shotgun
-    obj.walkSpeed = 100 -- TUNE: sawed-off is light
-    obj.damage = 10 -- TUNE: per pellet
-    obj.bulletLifeTime = 0.7
-    obj.reloadingTime = 1
-    obj.bulletDelay = 0.5
     obj.ox = 12
     obj.oy = 16
-
-    obj.spread = 0.15 -- TUNE
-    obj.pellets = 14 -- TUNE
 
     setmetatable(obj, Gun)
     return obj

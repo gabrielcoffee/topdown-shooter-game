@@ -23,10 +23,10 @@ function Player:new(x, y, width, height)
     }
     obj.itemIndex = 1
 
-    obj.maxHealth = 100 -- TUNE
+    obj.maxHealth = TUNE.player.maxHealth
     obj.health = obj.maxHealth
 
-    obj.speed = 90
+    obj.speed = TUNE.player.baseSpeed
     obj.leftReleased = true
     obj.rReleased = true
 
@@ -58,6 +58,10 @@ function Player:update(dt, world)
     local speed = self.items[self.itemIndex].walkSpeed or self.speed
     self.x = self.x + (moveX * speed * dt)
     self.y = self.y + (moveY * speed * dt)
+
+    -- can't walk past the map edges
+    self.x = math.max(0, math.min(self.x, world.mapW - self.width))
+    self.y = math.max(0, math.min(self.y, world.mapH - self.height))
 
     -- Change imtem in hand
     for i = 1, #self.items do
@@ -107,11 +111,12 @@ function Player:update(dt, world)
     local mx, my = love.mouse.getPosition()
     mx, my = mx / SCALE, my / SCALE
 
-    local camX = self.x - SCREENWIDTH/2/SCALE + 32/2
-    local camY = self.y - SCREENHEIGHT/2/SCALE + 32/2
+    -- world's camera is clamped at map edges, so use it instead of
+    -- assuming the player is centered on screen
+    local worldMx = mx + world.camX
+    local worldMy = my + world.camY
 
-    local worldMx = mx + camX
-    local worldMy = my + camY
+    self.facingLeft = worldMx < self.x + self.width/2
 
     self.items[self.itemIndex]:update(dt, self.x, self.y, worldMx, worldMy)
 
@@ -119,7 +124,7 @@ end
 
 
 function Player:draw()
-    local facingLeft = love.mouse.getX()/SCALE < ((SCREENWIDTH/2 - self.width/2) / SCALE) + 6
+    local facingLeft = self.facingLeft
 
     if self.animState == 'idle' then
         love.graphics.draw(

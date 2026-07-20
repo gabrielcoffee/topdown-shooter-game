@@ -4,6 +4,10 @@ One entry per completed PLAN.md step. Newest on top. Format: date — step — w
 
 ## [Unreleased]
 
+### 2026-07-20 — tune.lua: all gameplay numbers in one file
+- Every tunable value (guns, zombies, player, bullet) moved to tune.lua
+- U key reloads tune.lua and restarts the run — edit/save/U tuning loop, no IDE needed
+
 ### 2026-07-20 — Uniform contact damage + diagonal speed fix
 - All zombie types deal 10 contact damage (runner was 15), 1s cooldown per zombie unchanged
 - Fixed diagonal movement being 1.41x faster (vector normalized)
