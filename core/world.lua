@@ -89,7 +89,6 @@ function World:update(dt)
     for i = #self.entities, 1, -1 do
         if self.entities[i].toRemove == true then
             table.remove(self.entities, i)
-            return
         end
     end
 
@@ -117,6 +116,13 @@ function World:draw()
     -- Draws all the entities
     for _, entity in ipairs(self.entities) do
         entity:draw()
+    end
+
+    -- Debug: collision circles on top of everything (H key)
+    if showHitboxes then
+        for _, entity in ipairs(self.entities) do
+            entity:drawHitbox()
+        end
     end
 
     love.graphics.pop()

@@ -49,6 +49,12 @@ function Entity:collidesWith(e1)
     return dx*dx + dy*dy < r*r
 end
 
+-- AABB kept for future rectangular colliders (walls etc.)
+function Entity:collidesWithBox(e1)
+    return e1.x + e1.width > self.x and e1.y + e1.height > self.y
+        and e1.x < self.x + self.width and e1.y < self.y + self.height
+end
+
 function Entity:draw()
     love.graphics.setColor(self.color())
 
@@ -56,10 +62,19 @@ function Entity:draw()
         love.graphics.setColor(Color.white())
     end
 
-    love.graphics.rectangle('fill', math.floor(self.x), math.floor(self.y), self.width, self.height)
+    local cx, cy = self:getCenter()
+    love.graphics.circle('line', math.floor(cx), math.floor(cy), self.radius)
     love.graphics.setColor(Color.white())
 
     self.flash = false
+end
+
+-- Debug overlay (H key): collision circle on top of any sprite
+function Entity:drawHitbox()
+    love.graphics.setColor(0, 1, 0, 0.8)
+    local cx, cy = self:getCenter()
+    love.graphics.circle('line', cx, cy, self.radius)
+    love.graphics.setColor(Color.white())
 end
 
 function Entity:drawHud()

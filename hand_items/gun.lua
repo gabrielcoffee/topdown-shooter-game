@@ -174,9 +174,7 @@ function Gun:fire(leftReleased)
         self.canShoot = false
         if self.type == GUNTYPE.shotgun then
             for i = 1, 7 do
-                local finalSpread = love.math.random(-self.spread, self.spread)
-
-                print(finalSpread)
+                local finalSpread = (love.math.random() * 2 - 1) * self.spread
                 world:addEntity(
                     Bullet:new(
                         self.x, self.y,

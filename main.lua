@@ -36,9 +36,13 @@ function love.update(dt)
     end
 end
 
+_G.showHitboxes = false
+
 function love.keypressed(key)
     if key == 'z' and not world.gameOver then
         world:spawnTestZombies()
+    elseif key == 'h' then
+        showHitboxes = not showHitboxes
     end
 end
 

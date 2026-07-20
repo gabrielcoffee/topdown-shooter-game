@@ -5,6 +5,9 @@ One entry per completed PLAN.md step. Newest on top. Format: date — step — w
 ## [Unreleased]
 
 ### 2026-07-20 — Circle hitboxes + zombie separation
+- Placeholder entities draw as outline circles (not filled boxes)
+- H key toggles green collision-circle overlay on all entities (works over sprites)
+- AABB check kept as collidesWithBox for future rectangular colliders
 - All entity collision now circle-based (radius = half sprite width), no library
 - Zombies push apart each frame — no more stacking into one blob
 - (user-built) Reload system: R key, clip/reserve, reload cancel on weapon switch
