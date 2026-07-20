@@ -10,6 +10,9 @@ function Entity:new(x, y, width, height)
         width = width or 16,
         height = height or 16,
         color = Color.blue,
+        type = 'default',
+        toRemove = false,
+        flash = false
     }
 
     setmetatable(obj, Entity)
@@ -33,13 +36,28 @@ function Entity:update(dt, world)
 end
 
 function Entity:collidesWith(e1)
-
+    if e1.x + e1.width > self.x and e1.y + e1.height > self.y 
+        and e1.x < self.x + self.width and e1.y < self.y + self.height then
+        return true
+    end
+    return false
 end
 
 function Entity:draw()
     love.graphics.setColor(self.color())
+
+    if self.flash then
+        love.graphics.setColor(Color.white())
+    end
+
     love.graphics.rectangle('fill', math.floor(self.x), math.floor(self.y), self.width, self.height)
     love.graphics.setColor(Color.white())
+
+    self.flash = false
+end
+
+function Entity:drawHud()
+    
 end
 
 return Entity

@@ -7,6 +7,7 @@ _G.GAMESTATES = {
     menu = 2,
 }
 
+_G.font = love.graphics.getFont()
 local gameState = GAMESTATES.menu
 
 _G.world = nil
@@ -23,11 +24,10 @@ function love.update(dt)
     world:update(dt)
 
     if love.keyboard.isDown('escape') then
-        gameState = gameState == GAMESTATES.gameplay and GAMESTATES.menu or GAMESTATES.gameplay        
+        print('oi')
     end
 end
 
 function love.draw()
-
     world:draw()
 end

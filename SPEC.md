@@ -1,0 +1,123 @@
+# SPEC — Wave-Survival Zombie Game
+
+**Ship date: August 2, 2026. Price: $1 on itch.io. This scope is CLOSED.**
+
+Progress is tracked in PROGRESS.md. Build order is in PLAN.md. Cut ideas go to SEQUEL.md, never into the codebase.
+
+---
+
+## Core Loop
+
+**kill → earn → spend → survive**
+
+Player fights endless waves of zombies in one arena, earns points per hit and per kill, spends points at two in-level shop NPCs, survives as long as possible. Death → score screen → restart.
+
+## Arena
+
+- Exactly **1 arena**. The existing dust background + camera.
+- Arena has fixed bounds (player and zombies cannot leave).
+  - TUNE: arena width = `1280` (world px)
+  - TUNE: arena height = `960` (world px)
+
+## Waves
+
+- Endless. Wave N ends when all its zombies are dead; short breather, then wave N+1.
+- Zombie count and mix scale with wave number.
+  - TUNE: zombies in wave 1 = `5`
+  - TUNE: zombies added per wave = `2`
+  - TUNE: seconds between waves = `5`
+  - TUNE: wave number when fast zombies start appearing = `3`
+  - TUNE: wave number when runner zombies start appearing = `6`
+  - TUNE: spawn distance from player (min) = `300`
+
+## Zombies — 3 types, same behavior
+
+All zombies: move straight toward player, deal contact damage on touch (with per-zombie damage cooldown so contact doesn't insta-kill). No other AI.
+
+| Type   | Speed              | HP                | Contact damage      |
+|--------|--------------------|-------------------|---------------------|
+| Slow   | TUNE: `20`         | TUNE: `100`       | TUNE: `10`          |
+| Fast   | TUNE: `45`         | TUNE: `60`        | TUNE: `10`          |
+| Runner | TUNE: `75`         | TUNE: `30`        | TUNE: `15`          |
+
+- TUNE: contact damage cooldown per zombie = `1.0` sec
+
+## Player
+
+- WASD move, mouse aim/shoot (already working).
+- HP; death at 0 → score screen → restart.
+  - TUNE: player max HP = `100`
+- Armor (bought at item shop): absorbs damage before HP.
+  - TUNE: armor points per purchase = `50`
+  - TUNE: armor max = `100`
+- Starting loadout: pistol + knife.
+  - TUNE: starting points = `0`
+
+## Economy
+
+- Points per bullet hit and per kill. Points are both currency and score.
+  - TUNE: points per hit = `10`
+  - TUNE: points per kill (slow) = `50`
+  - TUNE: points per kill (fast) = `75`
+  - TUNE: points per kill (runner) = `100`
+
+## Shops — 2 NPCs standing in the arena
+
+Walk up + interact key opens shop menu. Game keeps running or pauses — TUNE: shop pauses game = `yes`.
+
+- TUNE: shop interact key = `e`
+- TUNE: shop interact radius = `48`
+
+### Gun shop NPC — the existing 6 weapons only
+
+| Weapon  | Price          |
+|---------|----------------|
+| Pistol  | TUNE: `0` (starting weapon) |
+| AK      | TUNE: `1500`   |
+| M4      | TUNE: `1200`   |
+| Shotgun | TUNE: `1800`   |
+| Knife   | TUNE: `0` (starting weapon) |
+| Grenade | TUNE: `300` (per grenade)   |
+
+- Buying a gun you own refills its ammo. TUNE: ammo refill price = `250`
+- Reload: `r` key refills clip from reserve; reserve refills only via shop.
+
+### Item shop NPC — armor + health only
+
+| Item   | Price        | Effect                          |
+|--------|--------------|---------------------------------|
+| Health | TUNE: `500`  | TUNE: heal amount = `50` HP     |
+| Armor  | TUNE: `750`  | +armor (see Player section)     |
+
+## Screens — exactly 3
+
+1. **Title** — game name, Play button, Quit button. Nothing else.
+2. **Run** — the game. HUD: HP, armor, points, wave number, ammo.
+3. **Death/score** — final score (points earned total), waves survived, Restart button.
+
+No pause menu, no settings screen, no win screen (game is endless).
+
+## Flavor text
+
+Allowed: shop NPC one-liners, title tagline, death screen quip. That is the entire story budget.
+
+---
+
+## Existing-code notes (do not "fix" unless it blocks a feature)
+
+- `menu.lua` is broken (undefined variables, bad `setmetatable`). Repaired only as far as the title/death screens need.
+- `core/background.lua` and `entities/grenade.lua` are stubs; grenade stub gets filled when grenades are built (step in PLAN.md).
+
+---
+
+## ❌ CUT LIST — out of scope, do not implement, suggest, or scaffold for
+
+If any of these come up mid-build, the answer is no. They go to SEQUEL.md if they survive the cut.
+
+- Building systems
+- Movable crates (incl. the "push crate" comment in `player.lua` — dead comment, ignore it)
+- Ladders / vertical traversal
+- Multiplayer
+- Story content beyond flavor text
+- Additional maps / arenas
+- Additional weapons beyond the existing 6

@@ -17,11 +17,30 @@ local function loadQuads(startX, startY, width, height, totalFrames)
     return quads
 end
 
+local function loadBgQuads(startX, startY, width, height, totalFrames, sprite)
+    local quads = {}
+
+    for i = 0, totalFrames-1 do
+        table.insert(
+            quads,
+            love.graphics.newQuad(
+                startX + (i * width),
+                startY,
+                width, height, sprite
+            )
+        )
+    end
+
+    return quads
+end
+
 -- Save pixelated graphics
 love.graphics.setDefaultFilter('nearest', 'nearest')
 
 -- Load the images
-Assets.spritesheet = love.graphics.newImage('assets/spritesheet.png')
+Assets.spritesheet = love.graphics.newImage('assets/images/spritesheet.png')
+Assets.bg_dust = love.graphics.newImage('assets/images/bg_dust.png')
+Assets.bg_dust:setWrap("repeat", "repeat")
 
 -- Quads for the images
 Assets.quads = {
@@ -37,7 +56,9 @@ Assets.quads = {
 
     aim = loadQuads(80, 32, 16, 16, 1),
     bullet = loadQuads(96, 32, 4, 2, 1),
-    muzzle = loadQuads(112, 32, 12, 12, 3)
+    muzzle = loadQuads(112, 32, 12, 12, 3),
+
+    bg_dust = loadBgQuads(0, 0, SCREENWIDTH, SCREENHEIGHT, 1, Assets.bg_dust)
 }
 
 return Assets 

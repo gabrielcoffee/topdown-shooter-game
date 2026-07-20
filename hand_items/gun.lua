@@ -107,13 +107,12 @@ function Gun:update(dt, px, py, mx, my)
     end
 end
 
-function Gun:drawInfo()
-    love.graphics.print('Ammo: '..self.curClip, 20, 20)
-end
-
 function Gun:draw(facingLeft)
     HandItem.draw(self, facingLeft)
-    self:drawInfo()
+end
+
+function Gun:drawHud()
+    love.graphics.print('Ammo: '..self.curClip, 20, 20)
 end
 
 function Gun:fire(leftReleased)

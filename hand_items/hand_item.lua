@@ -49,4 +49,8 @@ function HandItem:draw(facingLeft)
     )
 end
 
+function HandItem:drawHud()
+
+end
+
 return HandItem

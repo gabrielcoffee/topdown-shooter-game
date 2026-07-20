@@ -79,13 +79,22 @@ function Player:update(dt, world)
     end
 
     -- ITEMS
-    local mx, my = love.mouse.getX() / SCALE, love.mouse.getY() / SCALE
-    self.items[self.itemIndex]:update(dt, self.x, self.y, mx, my)
+    local mx, my = love.mouse.getPosition()
+    mx, my = mx / SCALE, my / SCALE
+
+    local camX = self.x - SCREENWIDTH/2/SCALE + 32/2
+    local camY = self.y - SCREENHEIGHT/2/SCALE + 32/2
+
+    local worldMx = mx + camX
+    local worldMy = my + camY
+
+    self.items[self.itemIndex]:update(dt, self.x, self.y, worldMx, worldMy)
+
 end
 
 
 function Player:draw()
-    local facingLeft = love.mouse.getX()/SCALE < (self.x + self.width/2)
+    local facingLeft = love.mouse.getX()/SCALE < ((SCREENWIDTH/2 - self.width/2) / SCALE) + 6
 
     if self.animState == 'idle' then
         love.graphics.draw(
@@ -107,5 +116,8 @@ function Player:draw()
     self.items[self.itemIndex]:draw(facingLeft)
 end
 
+function Player:drawHud()
+    self.items[self.itemIndex]:drawHud()
+end
 
 return Player

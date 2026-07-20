@@ -46,6 +46,13 @@ function Bullet:update(dt, world)
     end
 
     self.animMuzzle:update(dt)
+
+    local enemyCollided =  world:getEntityCollision(self, 'enemy')
+    if enemyCollided ~= nil then
+        world:removeEntity(self)
+        enemyCollided.health = enemyCollided.health - self.damage
+        enemyCollided.flash = true
+    end
 end
 
 function Bullet:draw()
