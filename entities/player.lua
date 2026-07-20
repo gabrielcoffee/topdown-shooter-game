@@ -23,6 +23,9 @@ function Player:new(x, y, width, height)
     }
     obj.itemIndex = 1
 
+    obj.maxHealth = 100 -- TUNE
+    obj.health = obj.maxHealth
+
     obj.speed = 90
     obj.leftReleased = true
 
@@ -118,6 +121,8 @@ end
 
 function Player:drawHud()
     self.items[self.itemIndex]:drawHud()
+
+    love.graphics.print('HP: '..math.max(0, math.floor(self.health)), 20, 50)
 end
 
 return Player

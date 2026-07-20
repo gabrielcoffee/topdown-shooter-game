@@ -1,5 +1,4 @@
 local World = require('core.world')
-local Menu = require('menu')
 
 _G.SCALE = 2
 _G.GAMESTATES = {
@@ -7,7 +6,9 @@ _G.GAMESTATES = {
     menu = 2,
 }
 
-_G.font = love.graphics.getFont()
+_G.font = love.graphics.newFont(18)
+_G.smallFont = love.graphics.newFont(8) -- for labels drawn in scaled world space
+love.graphics.setFont(font)
 local gameState = GAMESTATES.menu
 
 _G.world = nil
@@ -21,6 +22,13 @@ end
 
 function love.update(dt)
 
+    if world.gameOver then
+        if love.keyboard.isDown('r') then
+            world = World:new()
+        end
+        return
+    end
+
     world:update(dt)
 
     if love.keyboard.isDown('escape') then
@@ -30,4 +38,15 @@ end
 
 function love.draw()
     world:draw()
+
+    if world.gameOver then
+        love.graphics.setColor(0, 0, 0, 0.7)
+        love.graphics.rectangle('fill', 0, 0, SCREENWIDTH, SCREENHEIGHT)
+        love.graphics.setColor(1, 1, 1)
+
+        local title = 'YOU DIED'
+        local hint = 'press R to restart'
+        love.graphics.print(title, SCREENWIDTH/2 - font:getWidth(title)/2, SCREENHEIGHT/2 - 20)
+        love.graphics.print(hint, SCREENWIDTH/2 - font:getWidth(hint)/2, SCREENHEIGHT/2 + 10)
+    end
 end

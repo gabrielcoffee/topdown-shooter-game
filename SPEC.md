@@ -34,11 +34,11 @@ Player fights endless waves of zombies in one arena, earns points per hit and pe
 
 All zombies: move straight toward player, deal contact damage on touch (with per-zombie damage cooldown so contact doesn't insta-kill). No other AI.
 
-| Type   | Speed              | HP                | Contact damage      |
-|--------|--------------------|-------------------|---------------------|
-| Slow   | TUNE: `20`         | TUNE: `100`       | TUNE: `10`          |
-| Fast   | TUNE: `45`         | TUNE: `60`        | TUNE: `10`          |
-| Runner | TUNE: `75`         | TUNE: `30`        | TUNE: `15`          |
+| Type   | Speed      | HP          | Contact damage | Size (px)             |
+|--------|------------|-------------|----------------|-----------------------|
+| Slow   | TUNE: `30`  | TUNE: `100` | TUNE: `10`     | TUNE: `48` (1.5x)     |
+| Fast   | TUNE: `60`  | TUNE: `60`  | TUNE: `10`     | TUNE: `32` (base)     |
+| Runner | TUNE: `100` | TUNE: `30`  | TUNE: `15`     | TUNE: `21` (1/1.5x)   |
 
 - TUNE: contact damage cooldown per zombie = `1.0` sec
 
@@ -105,8 +105,8 @@ Allowed: shop NPC one-liners, title tagline, death screen quip. That is the enti
 
 ## Existing-code notes (do not "fix" unless it blocks a feature)
 
-- `menu.lua` is broken (undefined variables, bad `setmetatable`). Repaired only as far as the title/death screens need.
-- `core/background.lua` and `entities/grenade.lua` are stubs; grenade stub gets filled when grenades are built (step in PLAN.md).
+- Dead files deleted 2026-07-20: `menu.lua` (was broken), `core/background.lua`, `entities/grenade.lua`, `core/sound.lua` (all stubs/unused). Title/death menus (step 11) and grenade (step 9) get built fresh.
+- HUD draws at native resolution (not pixel-scaled); world sprites stay pixel-scaled at `SCALE`.
 
 ---
 

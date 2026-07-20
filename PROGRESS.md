@@ -3,7 +3,7 @@
 Ship date: **August 2, 2026**. A step is done only when built **and** playtested (note goes in the Playtest column). Details per step in PLAN.md.
 
 ## Phase 1 — Close the loop
-- [ ] Step 1: Player HP, contact damage, death, restart — playtested: _no_
+- [ ] Step 1: Player HP, contact damage, death, restart — **built 2026-07-20**, playtested: _no_
 - [ ] Step 2: Wave spawner — playtested: _no_
 - [ ] Step 3: Points on hit/kill — playtested: _no_
 

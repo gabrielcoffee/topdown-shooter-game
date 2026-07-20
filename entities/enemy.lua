@@ -12,7 +12,39 @@ function Enemy:new(x, y, width, height)
     obj.speed = 20
     obj.type = 'enemy'
 
+    obj.damage = 10 -- TUNE
+    obj.attackCooldown = 1.0 -- TUNE: secs between contact hits
+    obj.attackTimer = obj.attackCooldown
+
     setmetatable(obj, Enemy)
+    return obj
+end
+
+-- TUNE: all stats below (speed / health / damage / size)
+function Enemy:newSlow(x, y)
+    local obj = Enemy:new(x, y, 48, 48) -- 1.5x base size
+    obj.speed = 30
+    obj.health = 100
+    obj.damage = 10
+    obj.color = Color.red
+    return obj
+end
+
+function Enemy:newFast(x, y)
+    local obj = Enemy:new(x, y, 32, 32) -- base size
+    obj.speed = 60
+    obj.health = 60
+    obj.damage = 10
+    obj.color = Color.magenta
+    return obj
+end
+
+function Enemy:newRunner(x, y)
+    local obj = Enemy:new(x, y, 21, 21) -- 1.5x smaller
+    obj.speed = 100 -- slightly above player (90)
+    obj.health = 30
+    obj.damage = 15
+    obj.color = Color.yellow
     return obj
 end
 
@@ -31,6 +63,13 @@ end
 function Enemy:update(dt, world)
     self:followPlayer(dt, world)
 
+    -- Contact damage on the player
+    self.attackTimer = self.attackTimer + dt
+    if self.attackTimer >= self.attackCooldown and self:collidesWith(world.player) then
+        world.player.health = world.player.health - self.damage
+        self.attackTimer = 0
+    end
+
     if self.health < 1 then
         self.toRemove = true
     end
@@ -40,12 +79,14 @@ function Enemy:draw()
     Entity.draw(self)
 
     -- Shows the enemy health
-    local fontWidth = font:getWidth(self.health)
-    local fontHeight = font:getHeight()
+    local fontWidth = smallFont:getWidth(self.health)
+    local fontHeight = smallFont:getHeight()
 
+    love.graphics.setFont(smallFont)
     love.graphics.setColor(Color.red())
     love.graphics.print(self.health, self.x + self.width/2 - fontWidth/2, self.y - fontHeight)
     love.graphics.setColor(Color.white())
+    love.graphics.setFont(font)
 end
 
 return Enemy

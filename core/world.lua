@@ -12,11 +12,17 @@ function World:new()
         player = Player:new((SCREENWIDTH/2)/SCALE, (SCREENHEIGHT/2)/SCALE, 32, 32),
         secsForSpawn = 5,
         camX = 0,
-        camY = 0
+        camY = 0,
+        gameOver = false
     }
 
     table.insert(obj.entities, obj.player)
-    table.insert(obj.entities, Enemy:new(0, 0, 32, 32))
+
+    -- Type test spawn: one of each around the player
+    local px, py = obj.player.x, obj.player.y
+    table.insert(obj.entities, Enemy:newSlow(px - 250, py))
+    table.insert(obj.entities, Enemy:newFast(px + 250, py))
+    table.insert(obj.entities, Enemy:newRunner(px, py - 200))
 
     setmetatable(obj, World)
     return obj
@@ -57,6 +63,11 @@ function World:update(dt)
     -- updates the camera position
     self.camX = self.player.x - SCREENWIDTH/2/SCALE + self.player.width/2
     self.camY = self.player.y - SCREENHEIGHT/2/SCALE + self.player.height/2
+
+    -- player death ends the run
+    if self.player.health <= 0 then
+        self.gameOver = true
+    end
 end
 
 function World:draw()
@@ -77,19 +88,14 @@ function World:draw()
 
     love.graphics.pop()
 
-    -- HUD DRAWING
-    love.graphics.push()
-    love.graphics.scale(SCALE, SCALE)
-
-    -- Draws all the HUD INFO
+    -- HUD DRAWING (native resolution, not pixel-scaled)
     for _, entity in ipairs(self.entities) do
         entity:drawHud()
     end
 
-    -- Draws the mouse 
+    -- Draws the mouse (crosshair is pixel art, keeps SCALE)
     local mx, my = love.mouse.getPosition()
-    love.graphics.draw(Assets.spritesheet, Assets.quads.aim[1], (mx/SCALE) - 8, (my/SCALE) - 8)
-    love.graphics.pop()
+    love.graphics.draw(Assets.spritesheet, Assets.quads.aim[1], mx - 8*SCALE, my - 8*SCALE, 0, SCALE, SCALE)
 end
 
 return World
