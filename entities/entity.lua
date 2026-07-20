@@ -9,6 +9,7 @@ function Entity:new(x, y, width, height)
         y = y or 0,
         width = width or 16,
         height = height or 16,
+        radius = (width or 16) / 2,
         color = Color.blue,
         type = 'default',
         toRemove = false,
@@ -35,12 +36,17 @@ function Entity:update(dt, world)
 
 end
 
+function Entity:getCenter()
+    return self.x + self.width/2, self.y + self.height/2
+end
+
+-- Circle hitbox: colliding when center distance < sum of radii
 function Entity:collidesWith(e1)
-    if e1.x + e1.width > self.x and e1.y + e1.height > self.y 
-        and e1.x < self.x + self.width and e1.y < self.y + self.height then
-        return true
-    end
-    return false
+    local ax, ay = self:getCenter()
+    local bx, by = e1:getCenter()
+    local dx, dy = ax - bx, ay - by
+    local r = self.radius + e1.radius
+    return dx*dx + dy*dy < r*r
 end
 
 function Entity:draw()

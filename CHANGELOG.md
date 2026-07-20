@@ -4,6 +4,11 @@ One entry per completed PLAN.md step. Newest on top. Format: date — step — w
 
 ## [Unreleased]
 
+### 2026-07-20 — Circle hitboxes + zombie separation
+- All entity collision now circle-based (radius = half sprite width), no library
+- Zombies push apart each frame — no more stacking into one blob
+- (user-built) Reload system: R key, clip/reserve, reload cancel on weapon switch
+
 ### 2026-07-20 — Speed tweak + test spawn key
 - Rifles both 90 walk speed, Lupara 100
 - Z key spawns one of each zombie type around player (debug)

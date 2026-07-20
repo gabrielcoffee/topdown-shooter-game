@@ -50,9 +50,39 @@ function World:getEntityCollision(e, type)
     end
 end
 
+-- Pushes two overlapping circle entities half the overlap apart each
+local function pushApart(a, b)
+    local ax, ay = a:getCenter()
+    local bx, by = b:getCenter()
+    local dx, dy = bx - ax, by - ay
+    local dist = math.sqrt(dx*dx + dy*dy)
+    local overlap = a.radius + b.radius - dist
+
+    if overlap > 0 then
+        local nx, ny = 1, 0
+        if dist > 0 then nx, ny = dx/dist, dy/dist end
+        local half = overlap / 2
+        a.x, a.y = a.x - nx*half, a.y - ny*half
+        b.x, b.y = b.x + nx*half, b.y + ny*half
+    end
+end
+
 function World:update(dt)
     for _, entity in ipairs(self.entities) do
         entity:update(dt, self)
+    end
+
+    -- Zombies never overlap each other
+    for i = 1, #self.entities do
+        local a = self.entities[i]
+        if a.type == 'enemy' then
+            for j = i + 1, #self.entities do
+                local b = self.entities[j]
+                if b.type == 'enemy' then
+                    pushApart(a, b)
+                end
+            end
+        end
     end
 
     -- Remove the entities marked toRemove
