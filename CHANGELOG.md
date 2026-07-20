@@ -4,6 +4,11 @@ One entry per completed PLAN.md step. Newest on top. Format: date — step — w
 
 ## [Unreleased]
 
+### 2026-07-20 — Simple-scale damage rework + wave-scaling zombie life
+- Weapon damage on x10 scale: shotgun 10/pellet, pistol 20, rifles 40, knife 60, grenade 120
+- Zombie life = 20 x wave, with multipliers: slow x2, fast x1, runner x0.5
+- Zombie speeds: 30 / 60 / 90
+
 ### 2026-07-20 — Circle hitboxes + zombie separation
 - Placeholder entities draw as outline circles (not filled boxes)
 - H key toggles green collision-circle overlay on all entities (works over sprites)

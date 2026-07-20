@@ -20,29 +20,34 @@ function Enemy:new(x, y, width, height)
     return obj
 end
 
--- TUNE: all stats below (speed / health / damage / size)
-function Enemy:newSlow(x, y)
+-- TUNE: all stats below (speed / life multiplier / damage / size)
+-- Life: base = 20 * wave, then slow x2 / fast x1 / runner x0.5
+local function baseLife(wave)
+    return 20 * (wave or 1) -- TUNE: +20 per wave
+end
+
+function Enemy:newSlow(x, y, wave)
     local obj = Enemy:new(x, y, 48, 48) -- 1.5x base size
-    obj.speed = 40
-    obj.health = 100
+    obj.speed = 30
+    obj.health = baseLife(wave) * 2
     obj.damage = 10
     obj.color = Color.red
     return obj
 end
 
-function Enemy:newFast(x, y)
+function Enemy:newFast(x, y, wave)
     local obj = Enemy:new(x, y, 32, 32) -- base size
-    obj.speed = 70
-    obj.health = 60
+    obj.speed = 60
+    obj.health = baseLife(wave)
     obj.damage = 10
     obj.color = Color.magenta
     return obj
 end
 
-function Enemy:newRunner(x, y)
+function Enemy:newRunner(x, y, wave)
     local obj = Enemy:new(x, y, 21, 21) -- 1.5x smaller
-    obj.speed = 110
-    obj.health = 30
+    obj.speed = 90
+    obj.health = baseLife(wave) * 0.5
     obj.damage = 15
     obj.color = Color.yellow
     return obj

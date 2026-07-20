@@ -13,6 +13,7 @@ function World:new()
         secsForSpawn = 5,
         camX = 0,
         camY = 0,
+        wave = 1,
         gameOver = false
     }
 
@@ -26,9 +27,9 @@ end
 -- Debug/test: one of each zombie type around the player (Z key)
 function World:spawnTestZombies()
     local px, py = self.player.x, self.player.y
-    self:addEntity(Enemy:newSlow(px - 250, py))
-    self:addEntity(Enemy:newFast(px + 250, py))
-    self:addEntity(Enemy:newRunner(px, py - 200))
+    self:addEntity(Enemy:newSlow(px - 250, py, self.wave))
+    self:addEntity(Enemy:newFast(px + 250, py, self.wave))
+    self:addEntity(Enemy:newRunner(px, py - 200, self.wave))
 end
 
 function World:addEntity(e)

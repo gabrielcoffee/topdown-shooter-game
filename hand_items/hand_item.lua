@@ -14,7 +14,8 @@ function HandItem:newKnife()
         angle = 0,
         sprite = Assets.quads.knife[1],
         static = true,
-        walkSpeed = 130 -- TUNE: knife = fastest
+        walkSpeed = 130, -- TUNE: knife = fastest
+        damage = 60 -- TUNE: used when melee lands (step 8)
     }
 
     setmetatable(obj, HandItem)
@@ -30,7 +31,8 @@ function HandItem:newGrenade(type)
         sprite = Assets.quads.grenade[1],
         static = true,
         type = type or 'he',
-        walkSpeed = 120 -- TUNE
+        walkSpeed = 120, -- TUNE
+        damage = 120 -- TUNE: full damage anywhere inside blast radius (step 9)
     }
 
     setmetatable(obj, HandItem)

@@ -35,7 +35,7 @@ function Gun:newUSP()
     obj.sprite = Assets.quads.pistol[1]
     obj.type = GUNTYPE.semi
     obj.walkSpeed = 120 -- TUNE
-    obj.damage = 18
+    obj.damage = 20 -- TUNE
     obj.bulletLifeTime = 0.5
     obj.reloadingTime = 2
     obj.bulletDelay = 0.15
@@ -53,7 +53,7 @@ function Gun:newAk47()
     obj.sprite = Assets.quads.ak47[1]
     obj.type = GUNTYPE.auto
     obj.walkSpeed = 90 -- TUNE
-    obj.damage = 25
+    obj.damage = 40 -- TUNE
     obj.bulletLifeTime = 0.7
     obj.reloadingTime = 2.7
     obj.bulletDelay = 0.1
@@ -71,7 +71,7 @@ function Gun:newM4A1()
     obj.sprite = Assets.quads.m4a1[1]
     obj.type = GUNTYPE.auto
     obj.walkSpeed = 90 -- TUNE
-    obj.damage = 23
+    obj.damage = 40 -- TUNE
     obj.bulletLifeTime = 0.7
     obj.reloadingTime = 2.7
     obj.bulletDelay = 0.1
@@ -89,14 +89,15 @@ function Gun:newShotgun()
     obj.sprite = Assets.quads.shotgun[1]
     obj.type = GUNTYPE.shotgun
     obj.walkSpeed = 100 -- TUNE: sawed-off is light
-    obj.damage = 23
+    obj.damage = 10 -- TUNE: per pellet, 7 pellets
     obj.bulletLifeTime = 0.7
     obj.reloadingTime = 1
     obj.bulletDelay = 0.5
     obj.ox = 12
     obj.oy = 16
 
-    obj.spread = 0.05
+    obj.spread = 0.15 -- TUNE
+    obj.pellets = 14 -- TUNE
 
     setmetatable(obj, Gun)
     return obj
@@ -173,7 +174,7 @@ function Gun:fire(leftReleased)
 
         self.canShoot = false
         if self.type == GUNTYPE.shotgun then
-            for i = 1, 7 do
+            for i = 1, self.pellets do
                 local finalSpread = (love.math.random() * 2 - 1) * self.spread
                 world:addEntity(
                     Bullet:new(

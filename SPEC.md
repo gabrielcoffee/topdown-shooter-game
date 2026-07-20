@@ -34,11 +34,15 @@ Player fights endless waves of zombies in one arena, earns points per hit and pe
 
 All zombies: move straight toward player, deal contact damage on touch (with per-zombie damage cooldown so contact doesn't insta-kill). No other AI.
 
-| Type   | Speed      | HP          | Contact damage | Size (px)             |
-|--------|------------|-------------|----------------|-----------------------|
-| Slow   | TUNE: `40`  | TUNE: `100` | TUNE: `10`     | TUNE: `48` (1.5x)     |
-| Fast   | TUNE: `70`  | TUNE: `60`  | TUNE: `10`     | TUNE: `32` (base)     |
-| Runner | TUNE: `110` | TUNE: `30`  | TUNE: `15`     | TUNE: `21` (1/1.5x)   |
+Life scales with wave: **base life = 20 × wave** (TUNE: +20 per wave), then per-type multiplier.
+
+| Type   | Speed      | Life mult        | Contact damage | Size (px)             |
+|--------|------------|------------------|----------------|-----------------------|
+| Slow   | TUNE: `30` | TUNE: `×2`       | TUNE: `10`     | TUNE: `48` (1.5x)     |
+| Fast   | TUNE: `60` | TUNE: `×1`       | TUNE: `10`     | TUNE: `32` (base)     |
+| Runner | TUNE: `90` | TUNE: `×0.5`     | TUNE: `15`     | TUNE: `21` (1/1.5x)   |
+
+Wave 1 life: slow 40, fast 20, runner 10.
 
 - TUNE: contact damage cooldown per zombie = `1.0` sec
 
@@ -71,14 +75,16 @@ Walk up + interact key opens shop menu. Game keeps running or pauses — TUNE: s
 
 ### Gun shop NPC — the existing 6 weapons only
 
-| Weapon  | Display name | Price          |
-|---------|--------------|----------------|
-| Pistol  | USP-45       | TUNE: `0` (starting weapon) |
-| AK      | AK-47        | TUNE: `1500`   |
-| M4      | M4A1         | TUNE: `1200`   |
-| Shotgun | Lupara (sawed-off double barrel) | TUNE: `1800` |
-| Knife   | M9 Bayonet   | TUNE: `0` (starting weapon) |
-| Grenade | M67 Frag     | TUNE: `300` (per grenade)   |
+Damage on the "×10 simple scale": one significant digit each, room to nudge without decimals.
+
+| Weapon  | Display name | Damage | Price          |
+|---------|--------------|--------|----------------|
+| Pistol  | USP-45       | TUNE: `20` | TUNE: `0` (starting weapon) |
+| AK      | AK-47        | TUNE: `40` | TUNE: `1500`   |
+| M4      | M4A1         | TUNE: `40` | TUNE: `1200`   |
+| Shotgun | Lupara (sawed-off double barrel) | TUNE: `10` per pellet ×7 | TUNE: `1800` |
+| Knife   | M9 Bayonet   | TUNE: `60` | TUNE: `0` (starting weapon) |
+| Grenade | M67 Frag     | TUNE: `120` (flat inside radius) | TUNE: `300` (per grenade) |
 
 - Buying a gun you own refills its ammo. TUNE: ammo refill price = `250`
 - Reload: `r` key refills clip from reserve; reserve refills only via shop.
