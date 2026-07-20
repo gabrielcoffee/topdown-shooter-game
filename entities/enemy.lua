@@ -48,7 +48,7 @@ function Enemy:newRunner(x, y, wave)
     local obj = Enemy:new(x, y, 21, 21) -- 1.5x smaller
     obj.speed = 90
     obj.health = baseLife(wave) * 0.5
-    obj.damage = 15
+    obj.damage = 10
     obj.color = Color.yellow
     return obj
 end

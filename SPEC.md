@@ -36,11 +36,13 @@ All zombies: move straight toward player, deal contact damage on touch (with per
 
 Life scales with wave: **base life = 20 × wave** (TUNE: +20 per wave), then per-type multiplier.
 
-| Type   | Speed      | Life mult        | Contact damage | Size (px)             |
-|--------|------------|------------------|----------------|-----------------------|
-| Slow   | TUNE: `30` | TUNE: `×2`       | TUNE: `10`     | TUNE: `48` (1.5x)     |
-| Fast   | TUNE: `60` | TUNE: `×1`       | TUNE: `10`     | TUNE: `32` (base)     |
-| Runner | TUNE: `90` | TUNE: `×0.5`     | TUNE: `15`     | TUNE: `21` (1/1.5x)   |
+All types deal the same contact damage: TUNE: `10`, at most once per second per zombie (TUNE: cooldown `1.0`).
+
+| Type   | Speed      | Life mult        | Size (px)             |
+|--------|------------|------------------|-----------------------|
+| Slow   | TUNE: `30` | TUNE: `×2`       | TUNE: `48` (1.5x)     |
+| Fast   | TUNE: `60` | TUNE: `×1`       | TUNE: `32` (base)     |
+| Runner | TUNE: `90` | TUNE: `×0.5`     | TUNE: `21` (1/1.5x)   |
 
 Wave 1 life: slow 40, fast 20, runner 10.
 

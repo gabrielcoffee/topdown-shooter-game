@@ -48,6 +48,12 @@ function Player:update(dt, world)
     local moveY = down - up
     local moveX = right - left
 
+    -- normalize so diagonal isn't faster
+    if moveX ~= 0 and moveY ~= 0 then
+        local inv = 1 / math.sqrt(2)
+        moveX, moveY = moveX * inv, moveY * inv
+    end
+
     -- walk speed depends on held item
     local speed = self.items[self.itemIndex].walkSpeed or self.speed
     self.x = self.x + (moveX * speed * dt)

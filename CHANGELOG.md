@@ -4,6 +4,10 @@ One entry per completed PLAN.md step. Newest on top. Format: date — step — w
 
 ## [Unreleased]
 
+### 2026-07-20 — Uniform contact damage + diagonal speed fix
+- All zombie types deal 10 contact damage (runner was 15), 1s cooldown per zombie unchanged
+- Fixed diagonal movement being 1.41x faster (vector normalized)
+
 ### 2026-07-20 — Simple-scale damage rework + wave-scaling zombie life
 - Weapon damage on x10 scale: shotgun 10/pellet, pistol 20, rifles 40, knife 60, grenade 120
 - Zombie life = 20 x wave, with multipliers: slow x2, fast x1, runner x0.5
