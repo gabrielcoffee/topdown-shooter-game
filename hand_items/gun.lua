@@ -66,7 +66,7 @@ function Gun:newM4A1()
     obj.name = 'M4A1'
     obj.sprite = Assets.quads.m4a1[1]
     obj.type = GUNTYPE.auto
-    obj.walkSpeed = 95 -- TUNE
+    obj.walkSpeed = 90 -- TUNE
     obj.damage = 23
     obj.bulletLifeTime = 0.7
     obj.reloadingTime = 2.7
@@ -84,7 +84,7 @@ function Gun:newShotgun()
     obj.name = 'Lupara'
     obj.sprite = Assets.quads.shotgun[1]
     obj.type = GUNTYPE.shotgun
-    obj.walkSpeed = 105 -- TUNE: sawed-off is light
+    obj.walkSpeed = 100 -- TUNE: sawed-off is light
     obj.damage = 23
     obj.bulletLifeTime = 0.7
     obj.reloadingTime = 1

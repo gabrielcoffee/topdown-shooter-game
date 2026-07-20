@@ -4,6 +4,10 @@ One entry per completed PLAN.md step. Newest on top. Format: date — step — w
 
 ## [Unreleased]
 
+### 2026-07-20 — Speed tweak + test spawn key
+- Rifles both 90 walk speed, Lupara 100
+- Z key spawns one of each zombie type around player (debug)
+
 ### 2026-07-20 — Walk speed per weapon, real gun names, zombie speed bump
 - Held weapon sets walk speed (knife 130 … AK-47 90)
 - Real names in HUD: USP-45, AK-47, M4A1, Lupara, M9 Bayonet, M67 Frag

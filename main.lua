@@ -36,6 +36,12 @@ function love.update(dt)
     end
 end
 
+function love.keypressed(key)
+    if key == 'z' and not world.gameOver then
+        world:spawnTestZombies()
+    end
+end
+
 function love.draw()
     world:draw()
 

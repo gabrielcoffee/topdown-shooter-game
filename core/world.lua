@@ -18,14 +18,17 @@ function World:new()
 
     table.insert(obj.entities, obj.player)
 
-    -- Type test spawn: one of each around the player
-    local px, py = obj.player.x, obj.player.y
-    table.insert(obj.entities, Enemy:newSlow(px - 250, py))
-    table.insert(obj.entities, Enemy:newFast(px + 250, py))
-    table.insert(obj.entities, Enemy:newRunner(px, py - 200))
-
     setmetatable(obj, World)
+    obj:spawnTestZombies()
     return obj
+end
+
+-- Debug/test: one of each zombie type around the player (Z key)
+function World:spawnTestZombies()
+    local px, py = self.player.x, self.player.y
+    self:addEntity(Enemy:newSlow(px - 250, py))
+    self:addEntity(Enemy:newFast(px + 250, py))
+    self:addEntity(Enemy:newRunner(px, py - 200))
 end
 
 function World:addEntity(e)

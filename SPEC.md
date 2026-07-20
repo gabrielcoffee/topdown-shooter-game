@@ -45,7 +45,7 @@ All zombies: move straight toward player, deal contact damage on touch (with per
 ## Player
 
 - WASD move, mouse aim/shoot (already working).
-- Walk speed depends on held item (each weapon's `walkSpeed`, all TUNE): knife 130 > USP 120 > grenade 120 > Lupara 105 > M4A1 95 > AK-47 90.
+- Walk speed depends on held item (each weapon's `walkSpeed`, all TUNE): knife 130 > USP 120 = grenade 120 > Lupara 100 > M4A1 90 = AK-47 90.
 - HP; death at 0 → score screen → restart.
   - TUNE: player max HP = `100`
 - Armor (bought at item shop): absorbs damage before HP.
