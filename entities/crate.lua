@@ -9,6 +9,7 @@ function Crate:new(x, y)
     local obj = Entity:new(x, y, TUNE.crate.size, TUNE.crate.size)
     obj.type = 'crate'
     obj.isObstacle = true
+    obj.health = TUNE.crate.health
     obj.maxSpeed = 0
     obj.pushTimer = 0
     setmetatable(obj, Crate)
@@ -29,7 +30,7 @@ function Crate:notifyPush(axis, sign, speed)
 
     self.lastDir = dir
     self.pushDir = dir
-    self.maxSpeed = speed
+    self.maxSpeed = speed * TUNE.crate.pushSpeedMult
 end
 
 function Crate:update(dt, world)
@@ -66,10 +67,22 @@ function Crate:update(dt, world)
 end
 
 function Crate:draw()
-    love.graphics.setColor(0.55, 0.38, 0.18)
+    if self.flash then
+        love.graphics.setColor(Color.white())
+    else
+        love.graphics.setColor(0.55, 0.38, 0.18)
+    end
     love.graphics.rectangle('fill', math.floor(self.x), math.floor(self.y), self.width, self.height)
     love.graphics.setColor(0.35, 0.23, 0.10)
     love.graphics.rectangle('line', math.floor(self.x), math.floor(self.y), self.width, self.height)
+    self.flash = false
+
+    -- crate health, same style as zombies
+    local hp = math.ceil(self.health)
+    love.graphics.setFont(smallFont)
+    love.graphics.setColor(0.35, 0.23, 0.10)
+    love.graphics.print(hp, self.x + self.width/2 - smallFont:getWidth(hp)/2, self.y - smallFont:getHeight())
+    love.graphics.setFont(font)
     love.graphics.setColor(Color.white())
 end
 

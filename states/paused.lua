@@ -7,6 +7,7 @@ local Save = require('core.save')
 
 local paused = {}
 paused.overlay = true
+paused.fxMode = 'overlay'
 
 function paused:enter()
     self.list = MenuList:new({
@@ -22,12 +23,12 @@ function paused:enter()
             label = 'pause.save_quit', type = 'action',
             activate = function()
                 Save.saveRun(world:serialize())
-                State.switch('menu')
+                State.fadeTo('menu')
             end,
         },
         {
             label = 'pause.quit', type = 'action',
-            activate = function() State.switch('menu') end,
+            activate = function() State.fadeTo('menu') end,
         },
     }, 440)
 end
@@ -40,7 +41,6 @@ function paused:draw()
     Theme.drawDim(0.72)
     Theme.drawTitle(T('pause.title'), 280)
     self.list:draw()
-    Theme.drawScanlines()
 end
 
 function paused:keypressed(key)

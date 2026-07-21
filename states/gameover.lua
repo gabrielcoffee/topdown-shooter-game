@@ -1,31 +1,44 @@
--- Gameover overlay: the death scene stays frozen underneath, tinted red.
--- Entering deletes the run save — no continuing a dead run.
+-- Gameover overlay: red flash + shake on death, the death scene stays
+-- frozen underneath, embers drift over. Entering deletes the run save.
 
 local State = require('core.state')
 local Theme = require('ui.theme')
 local MenuList = require('ui.menu_list')
 local Save = require('core.save')
+local Fx = require('ui.fx')
+local Particles = require('ui.particles')
+local flux = require('lib.flux')
 
 local gameover = {}
 gameover.overlay = true
+gameover.fxMode = 'overlay'
 
 function gameover:enter()
     Save.deleteRun()
 
+    Fx.flash(0.55, 0.02, 0.02, 0.35)
+    Fx.addShake(TUNE.fx.gameoverShake)
+
+    self.titleY = -160
+    flux.to(self, TUNE.fx.titleSlamTime, { titleY = 320 })
+        :ease('quartin')
+        :oncomplete(function() Fx.addShake(TUNE.fx.titleShake) end)
+
     self.list = MenuList:new({
         {
             label = 'gameover.restart', type = 'action',
-            activate = function() State.switch('playing') end,
+            activate = function() State.fadeTo('playing') end,
         },
         {
             label = 'gameover.quit', type = 'action',
-            activate = function() State.switch('menu') end,
+            activate = function() State.fadeTo('menu') end,
         },
     }, 560)
 end
 
 function gameover:update(dt)
     self.list:update(dt)
+    Particles.update(dt)
 end
 
 function gameover:draw()
@@ -34,10 +47,15 @@ function gameover:draw()
     love.graphics.rectangle('fill', 0, 0, SCREENWIDTH, SCREENHEIGHT)
     love.graphics.setColor(1, 1, 1)
 
-    Theme.drawVignette()
-    Theme.drawTitle(T('gameover.title'), 320)
+    local sx, sy = Fx.shakeOffset()
+    love.graphics.push()
+    love.graphics.translate(sx, sy)
+
+    Theme.drawTitle(T('gameover.title'), self.titleY)
     self.list:draw()
-    Theme.drawScanlines()
+    Particles.drawEmbers()
+
+    love.graphics.pop()
 end
 
 function gameover:keypressed(key)

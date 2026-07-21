@@ -3,8 +3,10 @@
 
 local State = require('core.state')
 local World = require('core.world')
+local Fx = require('ui.fx')
 
 local playing = {}
+playing.fxMode = 'game'
 
 function playing:enter(opts)
     opts = opts or {}
@@ -37,6 +39,7 @@ function playing:keypressed(key)
         -- reload tune.lua and restart the run with the new values
         package.loaded['tune'] = nil
         TUNE = require('tune')
+        Fx.refresh()
         world = World:new()
     end
 end

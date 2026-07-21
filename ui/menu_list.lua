@@ -23,6 +23,7 @@ function MenuList:new(items, y, spacing)
         spacing = spacing or TUNE.menu.itemSpacing,
         selected = 1,
         dragging = false,
+        animT = 0, -- staggered slide-in progress since the list appeared
     }
     setmetatable(obj, MenuList)
     return obj
@@ -121,6 +122,7 @@ function MenuList:mousereleased(_, _, btn)
 end
 
 function MenuList:update(dt)
+    self.animT = self.animT + dt
     if self.dragging then
         if love.mouse.isDown(1) then
             local item = self.items[self.selected]
@@ -143,22 +145,32 @@ function MenuList:draw()
         local isSel = (i == self.selected)
         local c = isSel and Theme.colors.blood or Theme.colors.text
 
+        -- staggered slide-in: each row eases in from the left, delayed by index
+        local p = math.min(1, math.max(0,
+            (self.animT - (i - 1) * TUNE.fx.itemStagger) / TUNE.fx.itemInTime))
+        local ease = 1 - (1 - p) ^ 3
+        local a = ease
+        local slide = (1 - ease) * -70
+
+        love.graphics.push()
+        love.graphics.translate(slide, 0)
+
         if item.type == 'slider' then
             -- label on the left, bar on the right
-            love.graphics.setColor(c[1], c[2], c[3])
+            love.graphics.setColor(c[1], c[2], c[3], a)
             local label = T(item.label)
             love.graphics.print(label, cx - 40 - f:getWidth(label), yy)
 
             local x, y, w, h = sliderRect(self, i)
             local bb = Theme.colors.barBack
-            love.graphics.setColor(bb[1], bb[2], bb[3])
+            love.graphics.setColor(bb[1], bb[2], bb[3], a)
             love.graphics.rectangle('fill', x, y, w, h)
             local fillC = isSel and Theme.colors.blood or Theme.colors.textDim
-            love.graphics.setColor(fillC[1], fillC[2], fillC[3])
+            love.graphics.setColor(fillC[1], fillC[2], fillC[3], a)
             love.graphics.rectangle('fill', x, y, w * item.get(), h)
 
             love.graphics.setFont(Theme.fonts.hint)
-            love.graphics.setColor(c[1], c[2], c[3])
+            love.graphics.setColor(c[1], c[2], c[3], a)
             love.graphics.print(math.floor(item.get() * 100 + 0.5) .. '%', x + w + 16, yy + 4)
             love.graphics.setFont(f)
         else
@@ -167,17 +179,19 @@ function MenuList:draw()
                 text = text .. ': ' .. item.value()
             end
             local x = cx - f:getWidth(text) / 2
-            love.graphics.setColor(c[1], c[2], c[3])
+            love.graphics.setColor(c[1], c[2], c[3], a)
             love.graphics.print(text, x, yy)
         end
 
         -- pulsing selector chevron
         if isSel then
             local pulse = math.sin(love.timer.getTime() * TUNE.menu.pulseSpeed) * 6
-            love.graphics.setColor(c[1], c[2], c[3])
+            love.graphics.setColor(c[1], c[2], c[3], a)
             love.graphics.print('>', cx - 380 + pulse, yy)
             love.graphics.print('<', cx + 380 - f:getWidth('<') + -pulse, yy)
         end
+
+        love.graphics.pop()
     end
     love.graphics.setColor(1, 1, 1)
 end

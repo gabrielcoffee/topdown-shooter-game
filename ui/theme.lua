@@ -60,16 +60,17 @@ function Theme.drawBackground()
 end
 
 -- Big blood-red title with a hard drop shadow, centered at y
-function Theme.drawTitle(text, y, color)
+function Theme.drawTitle(text, y, color, alpha)
     local f = Theme.fonts.title
     love.graphics.setFont(f)
     local x = SCREENWIDTH / 2 - f:getWidth(text) / 2
+    alpha = alpha or 1
 
-    love.graphics.setColor(0, 0, 0, 0.9)
+    love.graphics.setColor(0, 0, 0, 0.9 * alpha)
     love.graphics.print(text, x + 5, y + 5)
 
     local c = color or Theme.colors.blood
-    love.graphics.setColor(c[1], c[2], c[3])
+    love.graphics.setColor(c[1], c[2], c[3], alpha)
     love.graphics.print(text, x, y)
     love.graphics.setColor(1, 1, 1)
 end

@@ -7,9 +7,11 @@ local MenuList = require('ui.menu_list')
 local Save = require('core.save')
 local Audio = require('core.audio')
 local i18n = require('core.i18n')
+local Particles = require('ui.particles')
 
 local options = {}
 options.overlay = true
+options.fxMode = 'overlay'
 
 local function apply()
     Audio.setVolumes(SETTINGS.master, SETTINGS.sfx, SETTINGS.music)
@@ -51,13 +53,13 @@ end
 
 function options:update(dt)
     self.list:update(dt)
+    Particles.update(dt) -- keeps the menu background alive underneath
 end
 
 function options:draw()
     Theme.drawDim(0.85)
     Theme.drawTitle(T('options.title'), 240)
     self.list:draw()
-    Theme.drawScanlines()
 end
 
 function options:keypressed(key)

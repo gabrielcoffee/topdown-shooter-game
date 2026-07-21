@@ -49,10 +49,31 @@ function Bullet:update(dt, world)
 
     self.animMuzzle:update(dt)
 
-    -- walls stop bullets
+    -- walls stop bullets (bullet_hit samples are wall-impact sounds)
     if world.map:isSolidAt(self.x, self.y) then
         world:removeEntity(self)
+        Audio.play(love.math.random() < 0.5 and 'bullet_hit1' or 'bullet_hit2')
     end
+
+    -- crates take damage, doors just stop bullets (sfx for both come later)
+    for _, e in ipairs(world.entities) do
+        if e.isObstacle and not e.toRemove
+            and self.x > e.x and self.x < e.x + e.width
+            and self.y > e.y and self.y < e.y + e.height then
+            world:removeEntity(self)
+            if e.type == 'crate' then
+                e.health = e.health - self.damage
+                e.flash = true
+                if e.health <= 0 then
+                    world:removeEntity(e)
+                end
+            end
+            break
+        end
+    end
+
+    -- already stopped by a wall/crate/door this frame
+    if self.toRemove then return end
 
     -- health > 0 guard: an already-dead enemy can't pay twice (shotgun pellets)
     local enemyCollided =  world:getEntityCollision(self, 'enemy')
@@ -60,7 +81,7 @@ function Bullet:update(dt, world)
         world:removeEntity(self)
         enemyCollided.health = enemyCollided.health - self.damage
         enemyCollided.flash = true
-        Audio.play(love.math.random() < 0.5 and 'bullet_hit1' or 'bullet_hit2')
+        world.vfx:bloodSplatter(self.x, self.y, self.angle)
 
         if enemyCollided.health <= 0 then
             world.player.money = world.player.money + self.killReward

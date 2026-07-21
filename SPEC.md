@@ -29,20 +29,20 @@ Player fights endless waves of zombies in one arena, earns money per kill (by we
 | ground | Walkable. Player's last ground position = hole respawn point.           |
 | solid  | Blocks player, zombies, crates. Stops bullets.                          |
 | spikes | TUNE: `20` damage/sec to player AND zombies while standing on.          |
-| water  | Max speed × TUNE: `0.75` for anything in it.                            |
+| water  | Max speed × TUNE: `0.65` for anything in it.                            |
 | mud    | Acceleration and deceleration × TUNE: `0.25`.                           |
-| hole   | Player falls → respawn at last ground spot, −TUNE: `50` HP. Zombie falls → dies (no kill money). Crate falls → plugs the hole (tile becomes ground). |
+| hole   | Player falls → TUNE: `0.5`s fall anim → respawn at last ground spot, −TUNE: `50` HP, TUNE: `2`s invincible (blinking; buttons held when falling must be released to work again). Zombie falls → dies (no kill money). Crate falls → plugs the hole (tile becomes ground). |
 
 ### Movement (player, zombies, crates)
 
 Velocity-based with acceleration/deceleration (new — was instant):
-- TUNE: accel time = `0.15` sec to max speed
+- TUNE: accel time = `0.45` sec to max speed
 - TUNE: decel time = `0.10` sec to stop
 - TUNE: collision inset = `4` px (AABB shaved per side so 32px bodies fit 32px gaps)
 
 ### Map entities (interactive, free-positioned, in `maps/level1.lua` objects list)
 
-- **Crate** — solid 32×32. Player pushing against it for TUNE: `0.5` sec starts it moving freely with the push (not grid-snapped). Blocked by solids/doors/other crates; affected by water/mud; plugs holes.
+- **Crate** — solid 32×32, TUNE: `100` HP (bullets break it, HP shown above). Player pushing against it for TUNE: `0.5` sec starts it moving at TUNE: `50%` of the pusher's speed (free, not grid-snapped). Blocked by solids/doors/other crates; affected by water/mud; plugs holes. Stops bullets; doors stop bullets too.
 - **Locked door** — solid 32×32 with per-door price (fallback TUNE: `250`). Touch + `E` with enough money → pay, door opens (removed).
 
 ## Waves
@@ -58,7 +58,7 @@ Velocity-based with acceleration/deceleration (new — was instant):
 
 ## Zombies — 3 types, same behavior
 
-All zombies: move straight toward player, deal contact damage on touch (with per-zombie damage cooldown so contact doesn't insta-kill). No other AI.
+All zombies: A* pathfind to the player every TUNE: `0.4`s (8-directional over the tile grid; walls = solid tiles + closed doors; straight chase when adjacent or no route), deal contact damage on touch (with per-zombie damage cooldown so contact doesn't insta-kill). No other AI.
 
 Life scales with wave: **base life = 20 × wave** (TUNE: +20 per wave), then per-type multiplier.
 
@@ -116,7 +116,7 @@ Damage on the "×10 simple scale": one significant digit each, room to nudge wit
 | Grenade | M67 Frag     | TUNE: `120` (flat inside radius) | TUNE: `300` (per grenade) |
 
 - Buying a gun you own refills its ammo. TUNE: ammo refill price = `250`
-- Reload: `r` key refills clip from reserve; reserve refills only via shop.
+- Reload: `r` key refills clip from reserve; reserve refills only via shop. Switching to a gun with an empty clip starts its reload immediately.
 
 ### Item shop NPC — armor + health only
 

@@ -93,9 +93,19 @@ local function resolveAxis(self, world, axis)
 
     -- obstacle entities (crates, doors)
     for _, e in ipairs(world.entities) do
+        -- expand the face we move toward by 0.5px so flush contact
+        -- (player riding a pushed crate) still counts as touching
+        local ex0, ex1 = e.x, e.x + e.width
+        local ey0, ey1 = e.y, e.y + e.height
+        if axis == 'x' then
+            if self.vx > 0 then ex0 = ex0 - 0.5 elseif self.vx < 0 then ex1 = ex1 + 0.5 end
+        else
+            if self.vy > 0 then ey0 = ey0 - 0.5 elseif self.vy < 0 then ey1 = ey1 + 0.5 end
+        end
+
         if e.isObstacle and e ~= self and not e.toRemove
-            and bx < e.x + e.width and bx + bw > e.x
-            and by < e.y + e.height and by + bh > e.y then
+            and bx < ex1 and bx + bw > ex0
+            and by < ey1 and by + bh > ey0 then
 
             local sign = (axis == 'x') and (self.vx > 0 and 1 or -1)
                                         or (self.vy > 0 and 1 or -1)
@@ -143,7 +153,9 @@ function Entity:applyTileEffects(dt, world)
     local tile = world.map:typeAt(self:getCenter())
 
     if tile == 'spikes' then
-        self.health = self.health - TUNE.tiles.spikeDps * dt
+        if not (self.invulnTimer and self.invulnTimer > 0) then
+            self.health = self.health - TUNE.tiles.spikeDps * dt
+        end
     elseif tile == 'ground' then
         self.lastGroundX, self.lastGroundY = self.x, self.y
     elseif tile == 'hole' then

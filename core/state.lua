@@ -40,10 +40,44 @@ function State.current()
     return State.stack[#State.stack]
 end
 
+-- Fade to black, switch, fade back in. Input is blocked while fading.
+local fade = nil
+
+function State.fadeTo(target, opts)
+    if fade then return end
+    fade = { phase = 'out', t = 0, target = target, opts = opts }
+end
+
+function State.fading()
+    return fade ~= nil
+end
+
+local function fadeAlpha()
+    local dur = TUNE.fx.fadeTime
+    local p = math.min(1, fade.t / dur)
+    if fade.phase == 'out' then return p end
+    return 1 - p
+end
+
+local function updateFade(dt)
+    if not fade then return end
+    fade.t = fade.t + dt
+    if fade.t >= TUNE.fx.fadeTime then
+        if fade.phase == 'out' then
+            State.switch(fade.target, fade.opts)
+            fade.phase = 'in'
+            fade.t = 0
+        else
+            fade = nil
+        end
+    end
+end
+
 -- Only the top state updates (pausing freezes the world for free)
 function State.update(dt)
     local s = State.current()
     if s and s.update then s:update(dt) end
+    updateFade(dt)
 end
 
 -- Overlays draw the states below them first
@@ -56,24 +90,34 @@ function State.draw()
         local s = State.stack[i]
         if s.draw then s:draw() end
     end
+
+    if fade then
+        love.graphics.setColor(0, 0, 0, fadeAlpha())
+        love.graphics.rectangle('fill', 0, 0, SCREENWIDTH, SCREENHEIGHT)
+        love.graphics.setColor(1, 1, 1)
+    end
 end
 
 function State.keypressed(key)
+    if fade then return end
     local s = State.current()
     if s and s.keypressed then s:keypressed(key) end
 end
 
 function State.mousepressed(x, y, btn)
+    if fade then return end
     local s = State.current()
     if s and s.mousepressed then s:mousepressed(x, y, btn) end
 end
 
 function State.mousemoved(x, y)
+    if fade then return end
     local s = State.current()
     if s and s.mousemoved then s:mousemoved(x, y) end
 end
 
 function State.mousereleased(x, y, btn)
+    if fade then return end
     local s = State.current()
     if s and s.mousereleased then s:mousereleased(x, y, btn) end
 end

@@ -35,6 +35,11 @@ function Player:new(x, y, width, height)
     obj.rReleased = true
     obj.eReleased = true
 
+    obj.falling = false
+    obj.fallTimer = 0
+    obj.invulnTimer = 0
+    obj.lockedInputs = {} -- buttons held when falling: dead until released
+
     obj.animState = 'idle'
     obj.animRun = Animation:new(Assets.quads.player, 2, 4, 0.1)
 
@@ -44,11 +49,45 @@ end
 
 function Player:update(dt, world)
 
+    -- FALLING INTO A HOLE: no input until back on ground
+    if self.falling then
+        self.fallTimer = self.fallTimer + dt
+        if self.fallTimer >= TUNE.player.fallTime then
+            self.falling = false
+            self.health = self.health - TUNE.tiles.holeDamage
+            self.x, self.y = self.lastGroundX, self.lastGroundY
+            self.vx, self.vy = 0, 0
+            self.invulnTimer = TUNE.player.holeInvulnTime
+
+            -- whatever was held going in must be released to work again
+            self.lockedInputs = {}
+            for _, k in ipairs({'w', 'a', 's', 'd'}) do
+                if love.keyboard.isDown(k) then self.lockedInputs[k] = true end
+            end
+            if love.mouse.isDown(1) then self.lockedInputs.mouse1 = true end
+        end
+        return
+    end
+
+    if self.invulnTimer > 0 then
+        self.invulnTimer = self.invulnTimer - dt
+    end
+
+    -- locked buttons free up once released
+    for k in pairs(self.lockedInputs) do
+        local held = (k == 'mouse1') and love.mouse.isDown(1) or love.keyboard.isDown(k)
+        if not held then self.lockedInputs[k] = nil end
+    end
+
+    local function keyDown(k)
+        return love.keyboard.isDown(k) and not self.lockedInputs[k]
+    end
+
     -- MOVEMENT
-    local left = love.keyboard.isDown('a') and 1 or 0
-    local right = love.keyboard.isDown('d') and 1 or 0
-    local down = love.keyboard.isDown('s') and 1 or 0
-    local up = love.keyboard.isDown('w') and 1 or 0
+    local left = keyDown('a') and 1 or 0
+    local right = keyDown('d') and 1 or 0
+    local down = keyDown('s') and 1 or 0
+    local up = keyDown('w') and 1 or 0
 
     local moveY = down - up
     local moveX = right - left
@@ -74,11 +113,17 @@ function Player:update(dt, world)
                 self.items[self.itemIndex]:cancelReload()
             end
             self.itemIndex = i
+
+            -- switching to an empty gun starts its reload right away
+            local newItem = self.items[i]
+            if newItem.isGun and newItem.curClip <= 0 then
+                newItem:reload()
+            end
         end
     end
 
     -- INTERACTIONS
-    local leftPressed = love.mouse.isDown(1)
+    local leftPressed = love.mouse.isDown(1) and not self.lockedInputs.mouse1
     local heldItem = self.items[self.itemIndex]
 
     if leftPressed and heldItem.isGun then
@@ -133,16 +178,37 @@ function Player:update(dt, world)
 
 end
 
--- Falling in a hole: back to the last ground tile, lose life
+-- Falling in a hole: fall anim, then respawn at last ground tile (see update)
 function Player:onFellInHole(world)
-    self.health = self.health - TUNE.tiles.holeDamage
-    self.x, self.y = self.lastGroundX, self.lastGroundY
+    if self.falling or self.invulnTimer > 0 then return end
+    self.falling = true
+    self.fallTimer = 0
     self.vx, self.vy = 0, 0
 end
 
 
 function Player:draw()
     local facingLeft = self.facingLeft
+
+    -- falling: sprite shrinks into the hole
+    if self.falling then
+        local s = math.max(0, 1 - self.fallTimer / TUNE.player.fallTime)
+        local cx, cy = self:getCenter()
+        love.graphics.draw(
+            Assets.spritesheet, Assets.quads.player[1],
+            math.floor(cx), math.floor(cy),
+            self.fallTimer * 6, -- spins as it goes down
+            s * (facingLeft and -1 or 1), s,
+            self.width/2, self.height/2
+        )
+        return
+    end
+
+    -- invincible: blink (skip draw on alternating intervals)
+    if self.invulnTimer > 0
+        and math.floor(self.invulnTimer / TUNE.player.blinkInterval) % 2 == 0 then
+        return
+    end
 
     if self.animState == 'idle' then
         love.graphics.draw(

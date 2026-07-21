@@ -5,6 +5,9 @@ local Enemy = require('entities.enemy')
 local Map = require('core.map')
 local Crate = require('entities.crate')
 local Door = require('entities.door')
+local Lighting = require('core.lighting')
+local Vfx = require('core.vfx')
+local Fx = require('ui.fx')
 
 local World = {}
 World.__index = World
@@ -27,6 +30,9 @@ function World:new()
     obj.mapW = obj.map.pixelW
     obj.mapH = obj.map.pixelH
 
+    obj.lighting = Lighting.new()
+    obj.vfx = Vfx.new()
+
     table.insert(obj.entities, obj.player)
 
     setmetatable(obj, World)
@@ -42,6 +48,24 @@ function World:new()
 
     obj:spawnTestZombies()
     return obj
+end
+
+-- Tiles blocked by unopened doors, keyed 'col,row' (for A*)
+function World:blockedTiles()
+    local ts = self.map.tileSize
+    local blocked = {}
+    for _, e in ipairs(self.entities) do
+        if e.type == 'door' and not e.toRemove then
+            local c0, c1 = math.floor(e.x / ts) + 1, math.floor((e.x + e.width - 1) / ts) + 1
+            local r0, r1 = math.floor(e.y / ts) + 1, math.floor((e.y + e.height - 1) / ts) + 1
+            for row = r0, r1 do
+                for col = c0, c1 do
+                    blocked[col .. ',' .. row] = true
+                end
+            end
+        end
+    end
+    return blocked
 end
 
 -- Door the player's box (padded) is touching, if any
@@ -132,6 +156,9 @@ function World:update(dt)
     self.camX = math.max(0, math.min(self.camX, self.mapW - viewW))
     self.camY = math.max(0, math.min(self.camY, self.mapH - viewH))
 
+    self.vfx:update(dt)
+    self.lighting:update(dt, self)
+
     -- player death ends the run
     if self.player.health <= 0 then
         self.gameOver = true
@@ -142,26 +169,45 @@ function World:draw()
 
     -- Draws background color
     love.graphics.clear(Color.skyblue())
-    love.graphics.push()
-    love.graphics.scale(SCALE, SCALE)
-    love.graphics.translate(-self.camX, -self.camY)
 
-    -- Draws the tile map
-    self.map:draw(self.camX, self.camY)
+    -- camera + screen shake, applied by the light world's transform
+    local shakeX, shakeY = Fx.shakeOffset()
+    local camX = self.camX + shakeX / SCALE
+    local camY = self.camY + shakeY / SCALE
+    self.lighting:setView(camX, camY, SCALE)
 
-    -- Draws all the entities
-    for _, entity in ipairs(self.entities) do
-        entity:draw()
+    -- dev switch: raw scene without the light pipeline
+    if World.noLighting then
+        love.graphics.push()
+        love.graphics.scale(SCALE, SCALE)
+        love.graphics.translate(-camX, -camY)
+        self.map:draw(camX, camY)
+        for _, entity in ipairs(self.entities) do entity:draw() end
+        self.vfx:draw()
+        love.graphics.pop()
+        for _, entity in ipairs(self.entities) do entity:drawHud() end
+        local mx, my = love.mouse.getPosition()
+        love.graphics.draw(Assets.spritesheet, Assets.quads.aim[1], mx - 8*SCALE, my - 8*SCALE, 0, SCALE, SCALE)
+        return
     end
 
-    -- Debug: collision circles on top of everything (H key)
-    if showHitboxes then
+    -- scene drawn in world coords; lighting darkens + applies lights on top
+    self.lighting:draw(function()
+        self.map:draw(camX, camY)
+
         for _, entity in ipairs(self.entities) do
-            entity:drawHitbox()
+            entity:draw()
         end
-    end
 
-    love.graphics.pop()
+        self.vfx:draw()
+
+        -- Debug: collision circles on top of everything (H key)
+        if showHitboxes then
+            for _, entity in ipairs(self.entities) do
+                entity:drawHitbox()
+            end
+        end
+    end)
 
     -- HUD DRAWING (native resolution, not pixel-scaled)
     for _, entity in ipairs(self.entities) do

@@ -1,5 +1,6 @@
 local Entity = require('entities.entity')
 local Color = require('core.color')
+local Path = require('core.path')
 
 local Enemy = {}
 Enemy.__index = Enemy
@@ -16,6 +17,11 @@ function Enemy:new(x, y, width, height)
     obj.damage = TUNE.zombies.contactDamage
     obj.attackCooldown = TUNE.zombies.contactCooldown
     obj.attackTimer = obj.attackCooldown
+
+    -- A* state; random start staggers the horde's repath frames
+    obj.path = nil
+    obj.pathIndex = 1
+    obj.repathTimer = love.math.random() * TUNE.zombies.repathTime
 
     setmetatable(obj, Enemy)
     return obj
@@ -42,15 +48,45 @@ function Enemy:newRunner(x, y, wave)
     return newTyped(x, y, wave, TUNE.zombies.runner, Color.yellow)
 end
 
-function Enemy:followPlayer(dt, world)
-    local ex, ey = self.x, self.y
-    local px, py = world.player.x, world.player.y
+-- Normalized direction toward a world point
+local function dirTo(fromX, fromY, toX, toY)
+    local dx, dy = toX - fromX, toY - fromY
+    local length = math.sqrt(dx*dx + dy*dy)
+    if length == 0 then return 0, 0, 0 end
+    return dx / length, dy / length, length
+end
 
-    local dx, dy = px - ex, py - ey         -- calcula comprimento dos outros lados
-    local length = math.sqrt(dx*dx + dy*dy) -- calcula comprimento hipotenusa // distancia entre player e inimigo
+function Enemy:followPlayer(dt, world)
+    local ts = world.map.tileSize
+    local cx, cy = self:getCenter()
+    local pcx, pcy = world.player:getCenter()
+
+    local myCol, myRow = math.floor(cx / ts) + 1, math.floor(cy / ts) + 1
+    local pCol, pRow = math.floor(pcx / ts) + 1, math.floor(pcy / ts) + 1
+
+    -- A*: recompute every repathTime; walls = solid tiles + closed doors
+    self.repathTimer = self.repathTimer - dt
+    if self.repathTimer <= 0 then
+        self.repathTimer = TUNE.zombies.repathTime
+        self.path = Path.find(world.map, world:blockedTiles(), myCol, myRow, pCol, pRow)
+        self.pathIndex = 1
+    end
+
     local nx, ny = 0, 0
-    if length > 0 then
-        nx, ny = dx / length, dy / length   -- normalização da distancia no x e y
+    local nearPlayer = math.abs(myCol - pCol) <= 1 and math.abs(myRow - pRow) <= 1
+
+    if nearPlayer or not self.path or self.pathIndex > #self.path then
+        -- same/adjacent tile, or no route found: head straight at the player
+        nx, ny = dirTo(cx, cy, pcx, pcy)
+    else
+        -- walk waypoint tile centers
+        local wp = self.path[self.pathIndex]
+        local wx, wy = (wp.col - 0.5) * ts, (wp.row - 0.5) * ts
+        local dist
+        nx, ny, dist = dirTo(cx, cy, wx, wy)
+        if dist < 4 then
+            self.pathIndex = self.pathIndex + 1
+        end
     end
 
     self.maxSpeed = self.speed
@@ -64,9 +100,10 @@ function Enemy:update(dt, world)
     -- spikes hurt, water/mud slow, holes kill
     self:applyTileEffects(dt, world)
 
-    -- Contact damage on the player
+    -- Contact damage on the player (not while falling/invincible)
     self.attackTimer = self.attackTimer + dt
-    if self.attackTimer >= self.attackCooldown and self:collidesWith(world.player) then
+    if self.attackTimer >= self.attackCooldown and self:collidesWith(world.player)
+        and not world.player.falling and world.player.invulnTimer <= 0 then
         world.player.health = world.player.health - self.damage
         self.attackTimer = 0
     end

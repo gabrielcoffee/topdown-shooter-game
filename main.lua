@@ -6,6 +6,9 @@ local Audio = require('core.audio')
 local i18n = require('core.i18n')
 local Save = require('core.save')
 local Theme = require('ui.theme')
+local Fx = require('ui.fx')
+local Particles = require('ui.particles')
+local flux = require('lib.flux')
 
 _G.SCALE = 2
 
@@ -21,6 +24,8 @@ function love.load()
     love.math.setRandomSeed(os.time())
 
     Audio.load()
+    Fx.load()
+    Particles.load()
     _G.SETTINGS = Save.loadSettings()
     Audio.setVolumes(SETTINGS.master, SETTINGS.sfx, SETTINGS.music)
     i18n.setLanguage(SETTINGS.language)
@@ -28,12 +33,19 @@ function love.load()
     State.switch('menu')
 end
 
+local autotest = os.getenv('AUTOTEST') and require('autotest')
+
 function love.update(dt)
+    flux.update(dt)
+    Fx.update(dt)
     State.update(dt)
+    if autotest then autotest.update(dt) end
 end
 
 function love.draw()
-    State.draw()
+    Fx.setMode(State.current().fxMode or 'game')
+    Fx.draw(State.draw)
+    Fx.drawOverlays()
 end
 
 function love.keypressed(key)
@@ -50,4 +62,9 @@ end
 
 function love.mousereleased(x, y, btn)
     State.mousereleased(x, y, btn)
+end
+
+-- scripted test runs: the physical cursor must not steer the menus
+if autotest then
+    love.mousemoved, love.mousepressed, love.mousereleased = nil, nil, nil
 end
