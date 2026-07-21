@@ -30,6 +30,13 @@ return {
     ['hud.door_open']    = 'Pulsa E para abrir - $%d',
     ['hud.door_locked']  = 'Cerrado - necesitas $%d',
 
+    ['hud.chest_spin']    = 'Pulsa E para girar - $%d',
+    ['hud.chest_poor']    = 'Necesitas $%d',
+    ['hud.chest_take']    = 'E tomar %s - %ds',
+    ['hud.chest_refill']  = '%s MUNICIÓN LLENA',
+    ['hud.chest_grenade'] = '+1 GRANADA',
+    ['hud.chest_health']  = '+BOTIQUÍN',
+
     ['hud.wave']          = 'OLEADA %d',
     ['hud.wave_complete'] = 'OLEADA COMPLETADA',
 }

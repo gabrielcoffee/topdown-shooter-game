@@ -49,6 +49,7 @@ function Gun:newUSP()
     applyTune(obj, TUNE.guns.usp)
 
     obj.name = 'USP-45'
+    obj.id = 'usp'
     obj.sprite = Assets.quads.pistol[1]
     obj.type = GUNTYPE.semi
     obj.shotSfx = 'mac10_shot' -- closest pistol-ish sample on disk
@@ -64,6 +65,7 @@ function Gun:newAk47()
     applyTune(obj, TUNE.guns.ak47)
 
     obj.name = 'AK-47'
+    obj.id = 'ak47'
     obj.sprite = Assets.quads.ak47[1]
     obj.type = GUNTYPE.auto
     obj.shotSfx = 'ak47_shot'
@@ -79,6 +81,7 @@ function Gun:newM4A1()
     applyTune(obj, TUNE.guns.m4a1)
 
     obj.name = 'M4A1'
+    obj.id = 'm4a1'
     obj.sprite = Assets.quads.m4a1[1]
     obj.type = GUNTYPE.auto
     obj.shotSfx = 'm4a1_shot'
@@ -94,6 +97,7 @@ function Gun:newShotgun()
     applyTune(obj, TUNE.guns.lupara)
 
     obj.name = 'Lupara'
+    obj.id = 'lupara'
     obj.sprite = Assets.quads.shotgun[1]
     obj.type = GUNTYPE.shotgun
     obj.shotSfx = 'shotgun_shot'

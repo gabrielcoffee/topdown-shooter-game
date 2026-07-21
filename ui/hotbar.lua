@@ -1,0 +1,82 @@
+-- Minecraft-style hotbar: 5 squares bottom-center at native resolution.
+-- [1] gun A, [2] gun B, [3] knife, [4] grenades (count), [5] med kit.
+-- Drawn from Player:drawHud, so it's outside the lighting pass.
+
+local Assets = require('core.assets')
+local HandItem = require('hand_items.hand_item')
+
+local Hotbar = {}
+
+local function drawItemIcon(item, x, y, size)
+    if item.isHealthPack then
+        local s = size * 0.55
+        HandItem.drawMedkitIcon(x + (size - s)/2, y + (size - s)/2, s)
+        return
+    end
+
+    local _, _, qw, qh = item.sprite:getViewport()
+    local scale = math.min((size - 12) / qw, (size - 12) / qh)
+    love.graphics.draw(
+        Assets.spritesheet, item.sprite,
+        math.floor(x + size/2), math.floor(y + size/2),
+        0, scale, scale, qw/2, qh/2
+    )
+end
+
+function Hotbar.draw(player)
+    local t = TUNE.hotbar
+    local size, gap = t.slotSize, t.gap
+    local totalW = 5 * size + 4 * gap
+    local x0 = math.floor((SCREENWIDTH - totalW) / 2)
+    local y0 = SCREENHEIGHT - t.bottomMargin - size
+
+    love.graphics.setFont(smallFont)
+
+    for i = 1, 5 do
+        local x = x0 + (i - 1) * (size + gap)
+        local item = player.items[i]
+        local valid = player:slotValid(i)
+        local selected = (i == player.itemIndex)
+
+        -- slot background + border
+        love.graphics.setColor(0, 0, 0, 0.55)
+        love.graphics.rectangle('fill', x, y0, size, size, 3, 3)
+        if selected then
+            love.graphics.setColor(1, 1, 1, 0.95)
+            love.graphics.setLineWidth(3)
+        else
+            love.graphics.setColor(1, 1, 1, 0.25)
+            love.graphics.setLineWidth(1)
+        end
+        love.graphics.rectangle('line', x, y0, size, size, 3, 3)
+        love.graphics.setLineWidth(1)
+
+        if item then
+            -- greyed out when unusable (no grenades left)
+            local a = valid and 1 or 0.25
+            love.graphics.setColor(1, 1, 1, a)
+            drawItemIcon(item, x, y0, size)
+
+            -- corner counters: clip for guns, count for grenades
+            love.graphics.setColor(1, 1, 1, math.max(a, 0.5))
+            if item.isGun then
+                local txt = tostring(item.curClip)
+                love.graphics.print(txt,
+                    x + size - smallFont:getWidth(txt) - 4, y0 + size - 12)
+            elseif item.isThrowable then
+                local txt = 'x' .. player.grenades
+                love.graphics.print(txt,
+                    x + size - smallFont:getWidth(txt) - 4, y0 + size - 12)
+            end
+        end
+
+        -- slot number
+        love.graphics.setColor(1, 1, 1, 0.4)
+        love.graphics.print(tostring(i), x + 4, y0 + 3)
+    end
+
+    love.graphics.setFont(font)
+    love.graphics.setColor(1, 1, 1)
+end
+
+return Hotbar

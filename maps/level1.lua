@@ -19,6 +19,7 @@ return {
         { type = 'crate', x = 400, y = 400 },
         { type = 'crate', x = 500, y = 600 },
         { type = 'door',  x = 576, y = 224, price = 250, id = 'east' }, -- plugs the wall gap
+        { type = 'chest', x = 576, y = 736 }, -- mystery box, next to the south torch
 
         -- zombie spawn points; door = only active once that door is bought
         { type = 'spawn', x = 64,   y = 64 },

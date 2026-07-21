@@ -45,6 +45,19 @@ function Vfx.new()
         1, 0.6, 0.2, 0
     )
 
+    self.boom = love.graphics.newParticleSystem(dot, 300)
+    self.boom:setParticleLifetime(0.15, 0.5)
+    self.boom:setSpread(math.pi * 2)
+    self.boom:setSpeed(60, 260)
+    self.boom:setLinearDamping(3, 6)
+    self.boom:setSizes(1.6, 1.0, 0.3)
+    self.boom:setSizeVariation(1)
+    self.boom:setColors(
+        1, 0.95, 0.7, 1,
+        1, 0.55, 0.15, 0.9,
+        0.35, 0.3, 0.28, 0
+    )
+
     return self
 end
 
@@ -61,9 +74,15 @@ function Vfx:muzzleSparks(x, y, angle)
     self.sparks:emit(6)
 end
 
+function Vfx:explosion(x, y)
+    self.boom:moveTo(x, y)
+    self.boom:emit(60)
+end
+
 function Vfx:update(dt)
     self.blood:update(dt)
     self.sparks:update(dt)
+    self.boom:update(dt)
 end
 
 -- Drawn in world space, after entities
@@ -71,6 +90,7 @@ function Vfx:draw()
     love.graphics.draw(self.blood)
     love.graphics.setBlendMode('add')
     love.graphics.draw(self.sparks)
+    love.graphics.draw(self.boom)
     love.graphics.setBlendMode('alpha')
     love.graphics.setColor(1, 1, 1)
 end

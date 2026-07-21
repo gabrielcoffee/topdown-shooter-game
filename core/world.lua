@@ -4,6 +4,7 @@ local Assets = require('core.assets')
 local Map = require('core.map')
 local Crate = require('entities.crate')
 local Door = require('entities.door')
+local Chest = require('entities.chest')
 local Lighting = require('core.lighting')
 local Vfx = require('core.vfx')
 local Waves = require('core.waves')
@@ -46,6 +47,10 @@ function World:new()
             local door = Door:new(o.x, o.y, o.price, o.id)
             obj:addEntity(door)
             obj.lighting:trackOccluder(door)
+        elseif o.type == 'chest' then
+            local chest = Chest:new(o.x, o.y)
+            obj:addEntity(chest)
+            obj.lighting:trackOccluder(chest)
         elseif o.type == 'spawn' then
             table.insert(spawnPoints, { x = o.x, y = o.y, door = o.door })
         end
@@ -79,6 +84,18 @@ function World:getTouchingDoor(player)
     local pad = TUNE.door.interactPad
     for _, e in ipairs(self.entities) do
         if e.type == 'door' and not e.toRemove
+            and player.x < e.x + e.width + pad and player.x + player.width > e.x - pad
+            and player.y < e.y + e.height + pad and player.y + player.height > e.y - pad then
+            return e
+        end
+    end
+end
+
+-- Chest the player's box (padded) is touching, if any
+function World:getTouchingChest(player)
+    local pad = TUNE.chest.interactPad
+    for _, e in ipairs(self.entities) do
+        if e.type == 'chest' and not e.toRemove
             and player.x < e.x + e.width + pad and player.x + player.width > e.x - pad
             and player.y < e.y + e.height + pad and player.y + player.height > e.y - pad then
             return e

@@ -7,15 +7,15 @@ Ship date: **August 2, 2026**. A step is done only when built **and** playtested
 - [ ] Step 2: Wave spawner — playtested: _no_
 - [ ] Step 3: Points on hit/kill — playtested: _no_
 
-## Phase 2 — Shops
-- [ ] Step 4: Starting loadout + reload — playtested: _no_
-- [ ] Step 5: Gun shop NPC — playtested: _no_
-- [ ] Step 6: Item shop NPC — playtested: _no_
+## Phase 2 — Mystery box (was: shops)
+- [ ] Step 4: Starting loadout + reload — **built 2026-07-21** (USP + knife only), playtested: _no_
+- [ ] Step 5: 5-slot inventory + hotbar UI — **built 2026-07-21**, playtested: _no_
+- [ ] Step 6: Mystery box chest — **built 2026-07-21**, playtested: _no_
 
 ## Phase 3 — Variety
 - [ ] Step 7: 3 zombie types — playtested: _no_
 - [ ] Step 8: Knife works — playtested: _no_
-- [ ] Step 9: Grenade works — playtested: _no_
+- [ ] Step 9: Grenade works — **built 2026-07-21** (throw + blast, part of the box feature), playtested: _no_
 - [ ] Step 10: Arena bounds — playtested: _no_
 
 ## Phase 4 — Ship

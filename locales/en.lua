@@ -30,6 +30,13 @@ return {
     ['hud.door_open']    = 'Press E to open - $%d',
     ['hud.door_locked']  = 'Locked - need $%d',
 
+    ['hud.chest_spin']    = 'Press E to spin - $%d',
+    ['hud.chest_poor']    = 'Need $%d',
+    ['hud.chest_take']    = 'E take %s - %ds',
+    ['hud.chest_refill']  = '%s AMMO REFILL',
+    ['hud.chest_grenade'] = '+1 GRENADE',
+    ['hud.chest_health']  = '+MED KIT',
+
     ['hud.wave']          = 'WAVE %d',
     ['hud.wave_complete'] = 'WAVE COMPLETE',
 }

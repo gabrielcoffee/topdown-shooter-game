@@ -38,7 +38,26 @@ return {
     },
 
     knife   = { damage = 60,  walkSpeed = 130, killReward = 50 },
-    grenade = { damage = 120, walkSpeed = 120, killReward = 10 },
+    grenade = { damage = 120, walkSpeed = 120, killReward = 10,
+                throwSpeed = 240,  -- px/sec toward the aim point
+                fuse = 1.2,        -- secs from throw to blast
+                blastRadius = 80,  -- world px; flat damage inside
+                maxCarry = 3 },
+
+    healthpack = { healAmount = 50, walkSpeed = 120 },
+
+    chest = {
+        cost = 150,           -- ~10 kills
+        spinTime = 2.0,       -- secs of sprite cycling after paying
+        spinCycleTime = 0.08, -- secs per sprite during the spin
+        takeWindow = 5.0,     -- secs to press E and take a rolled gun
+        interactPad = 4,
+        -- loot odds; invalid categories (grenades full, medkit held) are
+        -- dropped and the rest renormalized. Rolling an owned gun = ammo refill.
+        weights = { ak47 = 15, m4a1 = 15, lupara = 10, grenade = 30, healthpack = 30 },
+    },
+
+    hotbar = { slotSize = 56, gap = 8, bottomMargin = 16 },
 
     bullet = { speed = 360 },
 

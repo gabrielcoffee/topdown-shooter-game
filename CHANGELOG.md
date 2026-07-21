@@ -4,6 +4,17 @@ One entry per completed PLAN.md step. Newest on top. Format: date — step — w
 
 ## [Unreleased]
 
+### 2026-07-21 — Mystery box, 5-slot hotbar, grenade throw, med kit (steps 4/5/6/9)
+- Shops cut: loot now comes from a BO2-style mystery box chest ($150, reusable, 2s spin)
+- Gun rolls need a second E within 5s or they're lost; duplicate gun = full ammo refill
+- Loot odds: AK 15% / M4 15% / Lupara 10% / grenade 30% / med kit 30% (full categories reroll)
+- New inventory: [1] gun A, [2] gun B, [3] knife, [4] grenades x3 max, [5] med kit — keys 1-5
+- Minecraft-style hotbar bottom center: icons, selection highlight, clip/grenade counters
+- Start loadout is now USP + knife only (was: everything)
+- Grenades throw toward the cursor: 1.2s fuse, 80px blast, 120 flat damage, blast light + particles
+- Med kit heals 50 on click, consumed; auto-switch to knife when a slot empties
+- Run save carries the new inventory; old saves load with health/money kept
+
 ### 2026-07-20 — tune.lua: all gameplay numbers in one file
 - Every tunable value (guns, zombies, player, bullet) moved to tune.lua
 - U key reloads tune.lua and restarts the run — edit/save/U tuning loop, no IDE needed

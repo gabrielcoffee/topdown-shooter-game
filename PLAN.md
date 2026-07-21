@@ -9,10 +9,10 @@ Rule: game playable end-to-end as early as possible — Phase 1 closes the loop,
 
 **→ Loop exists here: spawn, fight, earn, die, restart.**
 
-## Phase 2 — Shops
+## Phase 2 — Mystery box (was: shops)
 4. Starting loadout (pistol + knife) + reload
-5. Gun shop NPC
-6. Item shop NPC (health + armor)
+5. 5-slot inventory + hotbar UI (keys 1-5)
+6. Mystery box chest (random loot: guns / grenades / med kit)
 
 ## Phase 3 — Variety
 7. 3 zombie types (slow / fast / runner)
@@ -26,4 +26,4 @@ Rule: game playable end-to-end as early as possible — Phase 1 closes the loop,
 13. Ship build on itch ($1)
 
 ## Not on this plan (see SPEC cut list)
-Building, crates, ladders, multiplayer, story, extra maps, extra weapons. New ideas → SEQUEL.md.
+Building, crates, ladders, multiplayer, story, extra maps, extra weapons, shop NPCs, armor. New ideas → SEQUEL.md.

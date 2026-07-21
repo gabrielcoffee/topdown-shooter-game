@@ -12,7 +12,7 @@ Progress is tracked in PROGRESS.md. Build order is in PLAN.md. Cut ideas go to S
 
 **kill → earn → spend → survive**
 
-Player fights endless waves of zombies in one arena, earns money per kill (by weapon used), spends it on doors and two in-level shop NPCs, survives as long as possible. Death → score screen → restart.
+Player fights endless waves of zombies in one arena, earns money per kill (by weapon used), spends it on doors and the mystery box, survives as long as possible. Death → score screen → restart.
 
 ## Arena
 
@@ -80,11 +80,22 @@ Wave 1 life: slow 40, fast 20, runner 10.
 - Walk speed depends on held item (each weapon's `walkSpeed`, all TUNE): knife 130 > USP 120 = grenade 120 > Lupara 100 > M4A1 90 = AK-47 90.
 - HP; death at 0 → score screen → restart.
   - TUNE: player max HP = `100`
-- Armor (bought at item shop): absorbs damage before HP.
-  - TUNE: armor points per purchase = `50`
-  - TUNE: armor max = `100`
 - Starting loadout: pistol + knife.
   - TUNE: starting money = `0`
+
+### Inventory — 5 fixed slots, Minecraft-style hotbar (bottom center)
+
+| Slot | Key | Holds                                        |
+|------|-----|----------------------------------------------|
+| 1    | `1` | Gun A (starts with USP-45)                    |
+| 2    | `2` | Gun B (empty until the box gives one)         |
+| 3    | `3` | Knife (permanent, never lost)                 |
+| 4    | `4` | Grenades — TUNE: max carry = `3` (count shown)|
+| 5    | `5` | One item: med kit                             |
+
+- Empty/invalid slots can't be selected; hotbar dims them. Gun slots show clip count, grenade slot shows `xN`.
+- Grenade (slot 4 + click): throws toward the cursor, TUNE: fuse = `1.2`s, TUNE: blast radius = `80`px, flat TUNE: `120` damage inside (zombies and crates), kills pay the grenade kill reward.
+- Med kit (slot 5 + click): heals TUNE: `50` HP (capped), consumed, no-op at full HP. Auto-falls back to knife when a held slot empties.
 
 ## Economy
 
@@ -95,40 +106,41 @@ Wave 1 life: slow 40, fast 20, runner 10.
   - TUNE: kill reward grenade = `10`
 - HUD shows money under HP. Doors (and later shops) spend it.
 
-## Shops — 2 NPCs standing in the arena
+## Mystery Box — BO2-style chest in the arena (replaces the shop NPCs)
 
-Walk up + interact key opens shop menu. Game keeps running or pauses — TUNE: shop pauses game = `yes`.
+A chest placed via the map's object layer. Touch + `E` with enough money → pay, ~2s of item sprites cycling above the box, then the reward. Reusable forever, no game pause.
 
-- TUNE: shop interact key = `e`
-- TUNE: shop interact radius = `48`
+- TUNE: box cost = `150` (~10 kills)
+- TUNE: spin time = `2.0`s, take window = `5.0`s, interact key = `e`
 
-### Gun shop NPC — the existing 6 weapons only
+**Loot table** (TUNE: chest weights; invalid categories dropped and the rest renormalized — grenades never roll at 3/3, med kit never rolls while slot 5 is full):
 
-Damage on the "×10 simple scale": one significant digit each, room to nudge without decimals.
+| Roll      | Weight | What happens                                                        |
+|-----------|--------|---------------------------------------------------------------------|
+| AK-47     | 15     | Gun floats above the box; press `E` within the take window to take it, else lost (money stays spent). Goes to the empty gun slot, else replaces the gun in hand / last-held gun slot. |
+| M4A1      | 15     | same                                                                |
+| Lupara    | 10     | same                                                                |
+| Grenade   | 30     | +1 grenade, auto-collected at spin end                              |
+| Med kit   | 30     | fills slot 5, auto-collected at spin end                            |
 
-| Weapon  | Display name | Damage | Price          |
-|---------|--------------|--------|----------------|
-| Pistol  | USP-45       | TUNE: `20` | TUNE: `0` (starting weapon) |
-| AK      | AK-47        | TUNE: `40` | TUNE: `1200`   |
-| M4      | M4A1 (silenced, 25-rd clip) | TUNE: `35` | TUNE: `1500` |
-| Shotgun | Lupara (sawed-off double barrel) | TUNE: `10` per pellet ×14 | TUNE: `1800` |
-| Knife   | M9 Bayonet   | TUNE: `60` | TUNE: `0` (starting weapon) |
-| Grenade | M67 Frag     | TUNE: `120` (flat inside radius) | TUNE: `300` (per grenade) |
+- Rolling a gun you already own = **full ammo refill** for it, auto-collected (no take window). USP never rolls.
+- Reload: `r` key refills clip from reserve; reserve refills only via duplicate-gun box rolls. Switching to a gun with an empty clip starts its reload immediately.
 
-- Buying a gun you own refills its ammo. TUNE: ammo refill price = `250`
-- Reload: `r` key refills clip from reserve; reserve refills only via shop. Switching to a gun with an empty clip starts its reload immediately.
+Weapon stats (unchanged, "×10 simple scale"):
 
-### Item shop NPC — armor + health only
-
-| Item   | Price        | Effect                          |
-|--------|--------------|---------------------------------|
-| Health | TUNE: `500`  | TUNE: heal amount = `50` HP     |
-| Armor  | TUNE: `750`  | +armor (see Player section)     |
+| Weapon  | Display name | Damage |
+|---------|--------------|--------|
+| Pistol  | USP-45       | TUNE: `20` |
+| AK      | AK-47        | TUNE: `40` |
+| M4      | M4A1 (silenced, 25-rd clip) | TUNE: `35` |
+| Shotgun | Lupara (sawed-off double barrel) | TUNE: `10` per pellet ×14 |
+| Knife   | M9 Bayonet   | TUNE: `60` |
+| Grenade | M67 Frag     | TUNE: `120` (flat inside radius) |
 
 ## Screens — exactly 3
 
 1. **Title** — game name, Play button, Quit button. Nothing else.
-2. **Run** — the game. HUD: HP, armor, points, wave number, ammo.
+2. **Run** — the game. HUD: HP, points, wave number, ammo, hotbar.
 3. **Death/score** — final score (points earned total), waves survived, Restart button.
 
 No pause menu, no settings screen, no win screen (game is endless).
@@ -156,3 +168,5 @@ If any of these come up mid-build, the answer is no. They go to SEQUEL.md if the
 - Story content beyond flavor text
 - Additional maps / arenas
 - Additional weapons beyond the existing 6
+- Shop NPCs / shop menus (replaced by the mystery box, 2026-07-21)
+- Armor (was item-shop only; no home after the shop cut)

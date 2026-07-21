@@ -4,6 +4,8 @@ local Assets = require('core.assets')
 local Gun = require('hand_items.gun')
 local Animation = require('core.animation')
 local HandItem = require('hand_items.hand_item')
+local ThrownGrenade = require('entities.thrown_grenade')
+local Hotbar = require('ui.hotbar')
 
 local Player = {}
 Player.__index = Player
@@ -13,15 +15,17 @@ function Player:new(x, y, width, height)
     local obj = Entity:new(x, y, width, height)
     obj.color = Color.green
 
+    -- Fixed 5 slots: [1] gun A, [2] gun B, [3] knife, [4] grenades, [5] med kit.
+    -- Slots 2 and 5 start empty; the slot-4 HandItem is the permanent held
+    -- representation, obj.grenades is the actual count.
     obj.items = {
         [1] = Gun:newUSP(),
-        [2] = Gun:newAk47(),
-        [3] = Gun:newM4A1(),
-        [4] = Gun:newShotgun(),
-        [5] = HandItem:newKnife(),
-        [6] = HandItem:newGrenade()
+        [3] = HandItem:newKnife(),
+        [4] = HandItem:newGrenade(),
     }
     obj.itemIndex = 1
+    obj.lastGunSlot = 1
+    obj.grenades = 0
 
     obj.maxHealth = TUNE.player.maxHealth
     obj.health = obj.maxHealth
@@ -45,6 +49,31 @@ function Player:new(x, y, width, height)
 
     setmetatable(obj, Player)
     return obj
+end
+
+-- Slots 1/2 need a gun in them, 4 needs grenades left, 5 needs a med kit.
+-- Knife (3) is the permanent fallback and is always valid.
+function Player:slotValid(i)
+    if i == 3 then return true end
+    if i == 4 then return self.grenades > 0 end
+    return self.items[i] ~= nil
+end
+
+function Player:selectSlot(i)
+    if i == self.itemIndex or not self:slotValid(i) then return end
+
+    local outgoing = self.items[self.itemIndex]
+    if outgoing and outgoing.isGun then
+        outgoing:cancelReload()
+    end
+    self.itemIndex = i
+    if i == 1 or i == 2 then self.lastGunSlot = i end
+
+    -- switching to an empty gun starts its reload right away
+    local newItem = self.items[i]
+    if newItem.isGun and newItem.curClip <= 0 then
+        newItem:reload()
+    end
 end
 
 function Player:update(dt, world)
@@ -106,21 +135,19 @@ function Player:update(dt, world)
     -- spikes / water / mud / hole
     self:applyTileEffects(dt, world)
 
-    -- Change imtem in hand
-    for i = 1, #self.items do
-        if love.keyboard.isDown(tostring(i)) and i ~= self.itemIndex then
-            if self.items[self.itemIndex].isGun then
-                self.items[self.itemIndex]:cancelReload()
-            end
-            self.itemIndex = i
-
-            -- switching to an empty gun starts its reload right away
-            local newItem = self.items[i]
-            if newItem.isGun and newItem.curClip <= 0 then
-                newItem:reload()
-            end
+    -- Change item in hand (hotbar slots 1-5)
+    for i = 1, 5 do
+        if love.keyboard.isDown(tostring(i)) then
+            self:selectSlot(i)
         end
     end
+
+    -- mouse in world coords; the camera is clamped at map edges, so use it
+    -- instead of assuming the player is centered on screen
+    local mx, my = love.mouse.getPosition()
+    mx, my = mx / SCALE, my / SCALE
+    local worldMx = mx + world.camX
+    local worldMy = my + world.camY
 
     -- INTERACTIONS
     local leftPressed = love.mouse.isDown(1) and not self.lockedInputs.mouse1
@@ -128,6 +155,17 @@ function Player:update(dt, world)
 
     if leftPressed and heldItem.isGun then
         heldItem:fire(self.leftReleased)
+    elseif leftPressed and self.leftReleased
+        and heldItem.isThrowable and self.grenades > 0 then
+        local cx, cy = self:getCenter()
+        world:addEntity(ThrownGrenade:new(cx, cy, worldMx, worldMy))
+        self.grenades = self.grenades - 1
+        if self.grenades <= 0 then self:selectSlot(3) end
+    elseif leftPressed and self.leftReleased and heldItem.isHealthPack
+        and self.health < self.maxHealth then
+        self.health = math.min(self.maxHealth, self.health + TUNE.healthpack.healAmount)
+        self.items[5] = nil
+        self:selectSlot(3)
     end
 
     self.leftReleased = not leftPressed
@@ -138,19 +176,19 @@ function Player:update(dt, world)
         heldItem:reload()
     end
     self.rReleased = not rPressed
-    
-    -- Drop item
 
-    -- Pick item?
-
-    -- Open Door (buy with money, E key)
-    self.touchingDoor = world:getTouchingDoor(self)
+    -- E interactions: chest wins over door when touching both
+    self.touchingChest = world:getTouchingChest(self)
+    self.touchingDoor = (not self.touchingChest) and world:getTouchingDoor(self) or nil
     local ePressed = love.keyboard.isDown('e')
-    if ePressed and self.eReleased and self.touchingDoor
-        and self.money >= self.touchingDoor.price then
-        self.money = self.money - self.touchingDoor.price
-        world:openDoor(self.touchingDoor)
-        self.touchingDoor = nil
+    if ePressed and self.eReleased then
+        if self.touchingChest then
+            self.touchingChest:interact(self, world)
+        elseif self.touchingDoor and self.money >= self.touchingDoor.price then
+            self.money = self.money - self.touchingDoor.price
+            world:openDoor(self.touchingDoor)
+            self.touchingDoor = nil
+        end
     end
     self.eReleased = not ePressed
 
@@ -164,14 +202,6 @@ function Player:update(dt, world)
     end
 
     -- ITEMS
-    local mx, my = love.mouse.getPosition()
-    mx, my = mx / SCALE, my / SCALE
-
-    -- world's camera is clamped at map edges, so use it instead of
-    -- assuming the player is centered on screen
-    local worldMx = mx + world.camX
-    local worldMy = my + world.camY
-
     self.facingLeft = worldMx < self.x + self.width/2
 
     self.items[self.itemIndex]:update(dt, self.x, self.y, worldMx, worldMy)
@@ -236,45 +266,95 @@ function Player:drawHud()
     love.graphics.print(T('hud.hp', math.max(0, math.floor(self.health))), 20, 50)
     love.graphics.print(T('hud.money', math.floor(self.money)), 20, 80)
 
-    if self.touchingDoor then
-        local d = self.touchingDoor
-        local txt = T('hud.door_open', d.price)
-        if self.money < d.price then
-            txt = T('hud.door_locked', d.price)
-            love.graphics.setColor(Color.red())
+    Hotbar.draw(self)
+
+    local prompt, red
+    if self.touchingChest then
+        local c = self.touchingChest
+        if c.state == 'idle' then
+            if self.money >= TUNE.chest.cost then
+                prompt = T('hud.chest_spin', TUNE.chest.cost)
+            else
+                prompt = T('hud.chest_poor', TUNE.chest.cost)
+                red = true
+            end
+        elseif c.state == 'offering' then
+            prompt = T('hud.chest_take', c.result.name, math.ceil(c.takeTimer))
         end
-        love.graphics.print(txt, SCREENWIDTH/2 - font:getWidth(txt)/2, SCREENHEIGHT - 60)
+    elseif self.touchingDoor then
+        local d = self.touchingDoor
+        prompt = T('hud.door_open', d.price)
+        if self.money < d.price then
+            prompt = T('hud.door_locked', d.price)
+            red = true
+        end
+    end
+
+    if prompt then
+        if red then love.graphics.setColor(Color.red()) end
+        love.graphics.print(prompt,
+            SCREENWIDTH/2 - font:getWidth(prompt)/2, SCREENHEIGHT - 120)
         love.graphics.setColor(Color.white())
     end
 end
 
--- Run-save data: health, money, held slot, per-gun ammo
+-- Run-save data: health, money, held slot, gun slots (by id + ammo),
+-- grenade count and med kit flag
 function Player:serialize()
-    local guns = {}
-    for i, item in ipairs(self.items) do
-        if item.isGun then
-            guns[i] = { curClip = item.curClip, bulletsLeft = item.bulletsLeft }
+    local gunSlots = {}
+    for i = 1, 2 do
+        local gun = self.items[i]
+        if gun then
+            gunSlots[i] = {
+                id = gun.id,
+                curClip = gun.curClip,
+                bulletsLeft = gun.bulletsLeft,
+            }
         end
     end
     return {
         health = self.health,
         money = self.money,
         itemIndex = self.itemIndex,
-        guns = guns,
+        lastGunSlot = self.lastGunSlot,
+        grenades = self.grenades,
+        hasHealthPack = self.items[5] ~= nil,
+        gunSlots = gunSlots,
     }
 end
+
+local gunFactories = {
+    usp    = function() return Gun:newUSP() end,
+    ak47   = function() return Gun:newAk47() end,
+    m4a1   = function() return Gun:newM4A1() end,
+    lupara = function() return Gun:newShotgun() end,
+}
 
 function Player:restore(data)
     self.health = data.health or self.health
     self.money = data.money or self.money
-    self.itemIndex = data.itemIndex or self.itemIndex
-    for i, g in pairs(data.guns or {}) do
-        local item = self.items[i]
-        if item and item.isGun then
-            item.curClip = g.curClip or item.curClip
-            item.bulletsLeft = g.bulletsLeft or item.bulletsLeft
+
+    -- pre-hotbar saves only carry health/money; keep the default loadout
+    if not data.gunSlots then return end
+
+    for i = 1, 2 do
+        local g = data.gunSlots[i]
+        if g and gunFactories[g.id] then
+            local gun = gunFactories[g.id]()
+            gun.curClip = g.curClip or gun.curClip
+            gun.bulletsLeft = g.bulletsLeft or gun.bulletsLeft
+            self.items[i] = gun
+        else
+            self.items[i] = nil
         end
     end
+    self.items[5] = data.hasHealthPack and HandItem:newHealthPack() or nil
+    self.grenades = data.grenades or 0
+    self.lastGunSlot = data.lastGunSlot or 1
+
+    self.itemIndex = 3 -- knife fallback, then try the saved slot
+    local saved = data.itemIndex or 1
+    if self:slotValid(saved) then self.itemIndex = saved end
 end
 
 return Player
