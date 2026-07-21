@@ -83,12 +83,17 @@ return {
     },
 
     lighting = {
-        ambient = 0.25,       -- world brightness with no lights (0 = pitch black)
+        ambient = 0.14,       -- world brightness with no lights (0 = pitch black)
         playerRange = 230,    -- player light radius, world px
         playerBright = 0.55,  -- player light intensity (1 = blinding white)
         muzzleRange = 210,    -- muzzle flash light radius
         muzzleBright = 0.9,   -- muzzle flash intensity
         muzzleTime = 0.06,    -- muzzle flash duration, secs
+
+        torchRange = 190,       -- torch tile light radius, world px
+        torchBright = 0.75,     -- torch light intensity
+        torchFlickerSpeed = 7,  -- flicker rate (noise samples/sec)
+        torchFlickerDepth = 0.3, -- how much the flicker moves the range (0-1)
     },
 
     zombies = {

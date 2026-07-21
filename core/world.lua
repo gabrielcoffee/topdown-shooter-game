@@ -30,19 +30,23 @@ function World:new()
     obj.mapW = obj.map.pixelW
     obj.mapH = obj.map.pixelH
 
-    obj.lighting = Lighting.new()
+    obj.lighting = Lighting.new(obj.map) -- solid tiles + torches from the map
     obj.vfx = Vfx.new()
 
     table.insert(obj.entities, obj.player)
 
     setmetatable(obj, World)
 
-    -- map entities from the level's object layer
+    -- map entities from the level's object layer; crates and doors cast shadows
     for _, o in ipairs(levelDef.objects or {}) do
         if o.type == 'crate' then
-            obj:addEntity(Crate:new(o.x, o.y))
+            local crate = Crate:new(o.x, o.y)
+            obj:addEntity(crate)
+            obj.lighting:trackOccluder(crate)
         elseif o.type == 'door' then
-            obj:addEntity(Door:new(o.x, o.y, o.price))
+            local door = Door:new(o.x, o.y, o.price)
+            obj:addEntity(door)
+            obj.lighting:trackOccluder(door)
         end
     end
 

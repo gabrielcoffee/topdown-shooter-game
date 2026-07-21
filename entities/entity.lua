@@ -156,7 +156,7 @@ function Entity:applyTileEffects(dt, world)
         if not (self.invulnTimer and self.invulnTimer > 0) then
             self.health = self.health - TUNE.tiles.spikeDps * dt
         end
-    elseif tile == 'ground' then
+    elseif tile == 'ground' or tile == 'torch' then
         self.lastGroundX, self.lastGroundY = self.x, self.y
     elseif tile == 'hole' then
         self:onFellInHole(world)

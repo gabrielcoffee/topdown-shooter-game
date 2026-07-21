@@ -9,6 +9,7 @@ local typeColors = {
     water  = {0.20, 0.45, 0.75},
     mud    = {0.30, 0.21, 0.12},
     hole   = {0.05, 0.05, 0.05},
+    torch  = {0.95, 0.55, 0.15}, -- bright so it reads as the light source
 }
 
 local function parseCsv(path)

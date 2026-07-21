@@ -10,6 +10,7 @@ return {
         [3] = 'water',
         [4] = 'mud',
         [5] = 'hole',
+        [6] = 'torch', -- walkable like ground, emits flickering light
     },
     groundFillId = 0, -- written into the grid when a crate plugs a hole
 
