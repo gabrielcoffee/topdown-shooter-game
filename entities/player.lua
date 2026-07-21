@@ -28,8 +28,12 @@ function Player:new(x, y, width, height)
     obj.hitboxColor = {0, 1, 1} -- cyan: stands out over the sprite
 
     obj.speed = TUNE.player.baseSpeed
+    obj.money = TUNE.player.startMoney
+    obj.isPlayer = true
+    obj.lastGroundX, obj.lastGroundY = x, y
     obj.leftReleased = true
     obj.rReleased = true
+    obj.eReleased = true
 
     obj.animState = 'idle'
     obj.animRun = Animation:new(Assets.quads.player, 2, 4, 0.1)
@@ -55,14 +59,13 @@ function Player:update(dt, world)
         moveX, moveY = moveX * inv, moveY * inv
     end
 
-    -- walk speed depends on held item
-    local speed = self.items[self.itemIndex].walkSpeed or self.speed
-    self.x = self.x + (moveX * speed * dt)
-    self.y = self.y + (moveY * speed * dt)
+    -- walk speed depends on held item; accel/decel + tile collision
+    self.maxSpeed = self.items[self.itemIndex].walkSpeed or self.speed
+    self:accelToward(dt, moveX, moveY, world)
+    self:moveAndCollide(dt, world)
 
-    -- can't walk past the map edges
-    self.x = math.max(0, math.min(self.x, world.mapW - self.width))
-    self.y = math.max(0, math.min(self.y, world.mapH - self.height))
+    -- spikes / water / mud / hole
+    self:applyTileEffects(dt, world)
 
     -- Change imtem in hand
     for i = 1, #self.items do
@@ -95,9 +98,16 @@ function Player:update(dt, world)
 
     -- Pick item?
 
-    -- Open Door?
-
-    -- Push crate
+    -- Open Door (buy with money, E key)
+    self.touchingDoor = world:getTouchingDoor(self)
+    local ePressed = love.keyboard.isDown('e')
+    if ePressed and self.eReleased and self.touchingDoor
+        and self.money >= self.touchingDoor.price then
+        self.money = self.money - self.touchingDoor.price
+        world:removeEntity(self.touchingDoor)
+        self.touchingDoor = nil
+    end
+    self.eReleased = not ePressed
 
     -- ANIMATIONS
     if moveX == 0 and moveY == 0 then
@@ -121,6 +131,13 @@ function Player:update(dt, world)
 
     self.items[self.itemIndex]:update(dt, self.x, self.y, worldMx, worldMy)
 
+end
+
+-- Falling in a hole: back to the last ground tile, lose life
+function Player:onFellInHole(world)
+    self.health = self.health - TUNE.tiles.holeDamage
+    self.x, self.y = self.lastGroundX, self.lastGroundY
+    self.vx, self.vy = 0, 0
 end
 
 
@@ -151,6 +168,18 @@ function Player:drawHud()
     self.items[self.itemIndex]:drawHud()
 
     love.graphics.print('HP: '..math.max(0, math.floor(self.health)), 20, 50)
+    love.graphics.print('$ '..math.floor(self.money), 20, 80)
+
+    if self.touchingDoor then
+        local d = self.touchingDoor
+        local txt = 'Press E to open — $'..d.price
+        if self.money < d.price then
+            txt = 'Locked — need $'..d.price
+            love.graphics.setColor(Color.red())
+        end
+        love.graphics.print(txt, SCREENWIDTH/2 - font:getWidth(txt)/2, SCREENHEIGHT - 60)
+        love.graphics.setColor(Color.white())
+    end
 end
 
 return Player

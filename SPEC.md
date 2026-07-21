@@ -12,14 +12,38 @@ Progress is tracked in PROGRESS.md. Build order is in PLAN.md. Cut ideas go to S
 
 **kill → earn → spend → survive**
 
-Player fights endless waves of zombies in one arena, earns points per hit and per kill, spends points at two in-level shop NPCs, survives as long as possible. Death → score screen → restart.
+Player fights endless waves of zombies in one arena, earns money per kill (by weapon used), spends it on doors and two in-level shop NPCs, survives as long as possible. Death → score screen → restart.
 
 ## Arena
 
-- Exactly **1 arena**. The existing dust background + camera.
-- Arena has fixed bounds (player and zombies cannot leave).
-  - TUNE: arena width = `1280` (world px)
-  - TUNE: arena height = `960` (world px)
+- Exactly **1 arena**, built as a **tile map designed in Tilesetter**: CSV grid of tile IDs + tileset PNG, loaded by `core/map.lua`. Level definition (CSV path, tile-ID→type mapping, object placements) lives in `maps/level1.lua`.
+- Arena size comes from the CSV (cols × rows × tile size). Must be at least one screen (640×480 world px) or the camera clamp inverts. Current placeholder: 40×30 tiles = 1280×960.
+  - TUNE: tile size = `32` (world px)
+- Camera follows the player, clamped to the map edges. Player and zombies cannot leave (border walls + hard clamp).
+- Until a real tileset PNG is exported, tiles draw as colored squares per type.
+
+### Tile types
+
+| Type   | Effect                                                                 |
+|--------|------------------------------------------------------------------------|
+| ground | Walkable. Player's last ground position = hole respawn point.           |
+| solid  | Blocks player, zombies, crates. Stops bullets.                          |
+| spikes | TUNE: `20` damage/sec to player AND zombies while standing on.          |
+| water  | Max speed × TUNE: `0.75` for anything in it.                            |
+| mud    | Acceleration and deceleration × TUNE: `0.25`.                           |
+| hole   | Player falls → respawn at last ground spot, −TUNE: `50` HP. Zombie falls → dies (no kill money). Crate falls → plugs the hole (tile becomes ground). |
+
+### Movement (player, zombies, crates)
+
+Velocity-based with acceleration/deceleration (new — was instant):
+- TUNE: accel time = `0.15` sec to max speed
+- TUNE: decel time = `0.10` sec to stop
+- TUNE: collision inset = `4` px (AABB shaved per side so 32px bodies fit 32px gaps)
+
+### Map entities (interactive, free-positioned, in `maps/level1.lua` objects list)
+
+- **Crate** — solid 32×32. Player pushing against it for TUNE: `0.5` sec starts it moving freely with the push (not grid-snapped). Blocked by solids/doors/other crates; affected by water/mud; plugs holes.
+- **Locked door** — solid 32×32 with per-door price (fallback TUNE: `250`). Touch + `E` with enough money → pay, door opens (removed).
 
 ## Waves
 
@@ -60,15 +84,16 @@ Wave 1 life: slow 40, fast 20, runner 10.
   - TUNE: armor points per purchase = `50`
   - TUNE: armor max = `100`
 - Starting loadout: pistol + knife.
-  - TUNE: starting points = `0`
+  - TUNE: starting money = `0`
 
 ## Economy
 
-- Points per bullet hit and per kill. Points are both currency and score.
-  - TUNE: points per hit = `10`
-  - TUNE: points per kill (slow) = `50`
-  - TUNE: points per kill (fast) = `75`
-  - TUNE: points per kill (runner) = `100`
+- Money per kill, by the **weapon that landed the killing blow** (not zombie type). Money is both currency and score.
+  - TUNE: kill reward knife = `50`
+  - TUNE: kill reward pistol = `20`
+  - TUNE: kill reward AK / M4 / shotgun = `10`
+  - TUNE: kill reward grenade = `10`
+- HUD shows money under HP. Doors (and later shops) spend it.
 
 ## Shops — 2 NPCs standing in the arena
 
@@ -126,7 +151,6 @@ Allowed: shop NPC one-liners, title tagline, death screen quip. That is the enti
 If any of these come up mid-build, the answer is no. They go to SEQUEL.md if they survive the cut.
 
 - Building systems
-- Movable crates (incl. the "push crate" comment in `player.lua` — dead comment, ignore it)
 - Ladders / vertical traversal
 - Multiplayer
 - Story content beyond flavor text

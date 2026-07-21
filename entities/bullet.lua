@@ -8,7 +8,7 @@ Bullet.__index = Bullet
 setmetatable(Bullet, Entity)
 
 
-function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime)
+function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime, killReward)
     local obj = Entity:new(x, y, 2, 4)
 
     obj.color = Color.white
@@ -16,6 +16,7 @@ function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime)
     obj.angle = angle
     obj.sprite = Assets.quads.bullet[1]
     obj.damage = damage
+    obj.killReward = killReward or 0
     obj.lifetime = lifetime
     obj.timer = 0
     obj.ox = 0
@@ -47,11 +48,21 @@ function Bullet:update(dt, world)
 
     self.animMuzzle:update(dt)
 
+    -- walls stop bullets
+    if world.map:isSolidAt(self.x, self.y) then
+        world:removeEntity(self)
+    end
+
+    -- health > 0 guard: an already-dead enemy can't pay twice (shotgun pellets)
     local enemyCollided =  world:getEntityCollision(self, 'enemy')
-    if enemyCollided ~= nil then
+    if enemyCollided ~= nil and enemyCollided.health > 0 then
         world:removeEntity(self)
         enemyCollided.health = enemyCollided.health - self.damage
         enemyCollided.flash = true
+
+        if enemyCollided.health <= 0 then
+            world.player.money = world.player.money + self.killReward
+        end
     end
 end
 

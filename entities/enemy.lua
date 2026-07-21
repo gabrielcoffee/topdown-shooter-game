@@ -48,14 +48,21 @@ function Enemy:followPlayer(dt, world)
 
     local dx, dy = px - ex, py - ey         -- calcula comprimento dos outros lados
     local length = math.sqrt(dx*dx + dy*dy) -- calcula comprimento hipotenusa // distancia entre player e inimigo
-    local nx, ny = dx / length, dy / length -- normalização da distancia no x e y
+    local nx, ny = 0, 0
+    if length > 0 then
+        nx, ny = dx / length, dy / length   -- normalização da distancia no x e y
+    end
 
-    self.x = self.x + (nx * self.speed * dt)
-    self.y = self.y + (ny * self.speed * dt)
+    self.maxSpeed = self.speed
+    self:accelToward(dt, nx, ny, world)
+    self:moveAndCollide(dt, world)
 end
 
 function Enemy:update(dt, world)
     self:followPlayer(dt, world)
+
+    -- spikes hurt, water/mud slow, holes kill
+    self:applyTileEffects(dt, world)
 
     -- Contact damage on the player
     self.attackTimer = self.attackTimer + dt
@@ -73,12 +80,13 @@ function Enemy:draw()
     Entity.draw(self)
 
     -- Shows the enemy health
-    local fontWidth = smallFont:getWidth(self.health)
+    local hp = math.ceil(self.health)
+    local fontWidth = smallFont:getWidth(hp)
     local fontHeight = smallFont:getHeight()
 
     love.graphics.setFont(smallFont)
     love.graphics.setColor(Color.red())
-    love.graphics.print(self.health, self.x + self.width/2 - fontWidth/2, self.y - fontHeight)
+    love.graphics.print(hp, self.x + self.width/2 - fontWidth/2, self.y - fontHeight)
     love.graphics.setColor(Color.white())
     love.graphics.setFont(font)
 end

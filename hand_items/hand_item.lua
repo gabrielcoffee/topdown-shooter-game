@@ -15,7 +15,8 @@ function HandItem:newKnife()
         sprite = Assets.quads.knife[1],
         static = true,
         walkSpeed = TUNE.knife.walkSpeed,
-        damage = TUNE.knife.damage -- used when melee lands (step 8)
+        damage = TUNE.knife.damage, -- used when melee lands (step 8)
+        killReward = TUNE.knife.killReward
     }
 
     setmetatable(obj, HandItem)
@@ -32,7 +33,8 @@ function HandItem:newGrenade(type)
         static = true,
         type = type or 'he',
         walkSpeed = TUNE.grenade.walkSpeed,
-        damage = TUNE.grenade.damage -- full damage anywhere inside blast radius (step 9)
+        damage = TUNE.grenade.damage, -- full damage anywhere inside blast radius (step 9)
+        killReward = TUNE.grenade.killReward
     }
 
     setmetatable(obj, HandItem)

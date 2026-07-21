@@ -40,6 +40,7 @@ local function applyTune(obj, t)
     obj.bulletDelay = t.bulletDelay
     obj.spread = t.spread
     obj.pellets = t.pellets
+    obj.killReward = t.killReward
 end
 
 function Gun:newUSP()
@@ -176,7 +177,8 @@ function Gun:fire(leftReleased)
                         self.x, self.y,
                         self.angle + finalSpread, self.damage,
                         gw,
-                        self.bulletLifeTime
+                        self.bulletLifeTime,
+                        self.killReward
                     )
                 )
             end
@@ -186,7 +188,8 @@ function Gun:fire(leftReleased)
                     self.x, self.y,
                     self.angle, self.damage,
                     gw,
-                    self.bulletLifeTime
+                    self.bulletLifeTime,
+                    self.killReward
                 )
             )
         end

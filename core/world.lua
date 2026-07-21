@@ -2,29 +2,58 @@ local Player = require('entities.player')
 local Color = require('core.color')
 local Assets = require('core.assets')
 local Enemy = require('entities.enemy')
+local Map = require('core.map')
+local Crate = require('entities.crate')
+local Door = require('entities.door')
 
 local World = {}
 World.__index = World
 
 function World:new()
+    local levelDef = require('maps.level1')
+
     local obj = {
         entities = {},
         player = Player:new((SCREENWIDTH/2)/SCALE, (SCREENHEIGHT/2)/SCALE, 32, 32),
         secsForSpawn = 5,
         camX = 0,
         camY = 0,
-        -- playable area = the bg image drawn at (0,0), in world units
-        mapW = SCREENWIDTH,
-        mapH = SCREENHEIGHT,
+        map = Map:new(levelDef),
         wave = 1,
         gameOver = false
     }
 
+    -- playable area comes from the level's CSV
+    obj.mapW = obj.map.pixelW
+    obj.mapH = obj.map.pixelH
+
     table.insert(obj.entities, obj.player)
 
     setmetatable(obj, World)
+
+    -- map entities from the level's object layer
+    for _, o in ipairs(levelDef.objects or {}) do
+        if o.type == 'crate' then
+            obj:addEntity(Crate:new(o.x, o.y))
+        elseif o.type == 'door' then
+            obj:addEntity(Door:new(o.x, o.y, o.price))
+        end
+    end
+
     obj:spawnTestZombies()
     return obj
+end
+
+-- Door the player's box (padded) is touching, if any
+function World:getTouchingDoor(player)
+    local pad = TUNE.door.interactPad
+    for _, e in ipairs(self.entities) do
+        if e.type == 'door' and not e.toRemove
+            and player.x < e.x + e.width + pad and player.x + player.width > e.x - pad
+            and player.y < e.y + e.height + pad and player.y + player.height > e.y - pad then
+            return e
+        end
+    end
 end
 
 -- Debug/test: one of each zombie type around the player (Z key)
@@ -117,8 +146,8 @@ function World:draw()
     love.graphics.scale(SCALE, SCALE)
     love.graphics.translate(-self.camX, -self.camY)
 
-    -- Draws the background
-    love.graphics.draw(Assets.bg_dust, Assets.quads.bg_dust[1], 0, 0)
+    -- Draws the tile map
+    self.map:draw(self.camX, self.camY)
 
     -- Draws all the entities
     for _, entity in ipairs(self.entities) do
