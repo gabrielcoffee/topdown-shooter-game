@@ -31,8 +31,6 @@ end
 function playing:keypressed(key)
     if key == 'escape' then
         State.push('paused')
-    elseif key == 'z' then
-        world:spawnTestZombies()
     elseif key == 'h' then
         showHitboxes = not showHitboxes
     elseif key == 'u' then

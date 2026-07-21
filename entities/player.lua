@@ -149,7 +149,7 @@ function Player:update(dt, world)
     if ePressed and self.eReleased and self.touchingDoor
         and self.money >= self.touchingDoor.price then
         self.money = self.money - self.touchingDoor.price
-        world:removeEntity(self.touchingDoor)
+        world:openDoor(self.touchingDoor)
         self.touchingDoor = nil
     end
     self.eReleased = not ePressed

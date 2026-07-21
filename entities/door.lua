@@ -5,11 +5,12 @@ local Door = {}
 Door.__index = Door
 setmetatable(Door, Entity)
 
-function Door:new(x, y, price)
+function Door:new(x, y, price, id)
     local obj = Entity:new(x, y, TUNE.tiles.size, TUNE.tiles.size)
     obj.type = 'door'
     obj.isObstacle = true
     obj.price = price or TUNE.door.price
+    obj.id = id -- spawn points can gate on this door being opened
     setmetatable(obj, Door)
     return obj
 end

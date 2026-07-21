@@ -29,4 +29,7 @@ return {
     ['hud.reloading']    = '%s  RELOADING...',
     ['hud.door_open']    = 'Press E to open - $%d',
     ['hud.door_locked']  = 'Locked - need $%d',
+
+    ['hud.wave']          = 'WAVE %d',
+    ['hud.wave_complete'] = 'WAVE COMPLETE',
 }

@@ -1,12 +1,12 @@
 local Player = require('entities.player')
 local Color = require('core.color')
 local Assets = require('core.assets')
-local Enemy = require('entities.enemy')
 local Map = require('core.map')
 local Crate = require('entities.crate')
 local Door = require('entities.door')
 local Lighting = require('core.lighting')
 local Vfx = require('core.vfx')
+local Waves = require('core.waves')
 
 local World = {}
 World.__index = World
@@ -17,11 +17,10 @@ function World:new()
     local obj = {
         entities = {},
         player = Player:new((SCREENWIDTH/2)/SCALE, (SCREENHEIGHT/2)/SCALE, 32, 32),
-        secsForSpawn = 5,
         camX = 0,
         camY = 0,
         map = Map:new(levelDef),
-        wave = 1,
+        openedDoors = {}, -- door id -> true once bought; gates spawn points
         gameOver = false
     }
 
@@ -37,19 +36,23 @@ function World:new()
     setmetatable(obj, World)
 
     -- map entities from the level's object layer; crates and doors cast shadows
+    local spawnPoints = {}
     for _, o in ipairs(levelDef.objects or {}) do
         if o.type == 'crate' then
             local crate = Crate:new(o.x, o.y)
             obj:addEntity(crate)
             obj.lighting:trackOccluder(crate)
         elseif o.type == 'door' then
-            local door = Door:new(o.x, o.y, o.price)
+            local door = Door:new(o.x, o.y, o.price, o.id)
             obj:addEntity(door)
             obj.lighting:trackOccluder(door)
+        elseif o.type == 'spawn' then
+            table.insert(spawnPoints, { x = o.x, y = o.y, door = o.door })
         end
     end
 
-    obj:spawnTestZombies()
+    obj.waves = Waves:new(spawnPoints)
+    obj.waves:startWave(1)
     return obj
 end
 
@@ -83,12 +86,12 @@ function World:getTouchingDoor(player)
     end
 end
 
--- Debug/test: one of each zombie type around the player (Z key)
-function World:spawnTestZombies()
-    local px, py = self.player.x, self.player.y
-    self:addEntity(Enemy:newSlow(px - 250, py, self.wave))
-    self:addEntity(Enemy:newFast(px + 250, py, self.wave))
-    self:addEntity(Enemy:newRunner(px, py - 200, self.wave))
+-- Buying a door: remember its id (activates linked spawn points), then remove it
+function World:openDoor(door)
+    if door.id then
+        self.openedDoors[door.id] = true
+    end
+    self:removeEntity(door)
 end
 
 function World:addEntity(e)
@@ -152,6 +155,9 @@ function World:update(dt)
         end
     end
 
+    -- wave FSM runs after the sweep so kills count the same frame
+    self.waves:update(dt, self)
+
     -- camera follows the player, clamped to the map edges
     local viewW, viewH = SCREENWIDTH/SCALE, SCREENHEIGHT/SCALE
     self.camX = self.player.x + self.player.width/2 - viewW/2
@@ -199,6 +205,8 @@ function World:draw()
         entity:drawHud()
     end
 
+    self.waves:drawBanner()
+
     -- Draws the mouse (crosshair is pixel art, keeps SCALE)
     local mx, my = love.mouse.getPosition()
     love.graphics.draw(Assets.spritesheet, Assets.quads.aim[1], mx - 8*SCALE, my - 8*SCALE, 0, SCALE, SCALE)
@@ -208,13 +216,21 @@ end
 -- Zombies aren't saved — the wave respawns fresh on load.
 function World:serialize()
     return {
-        wave = self.wave,
+        wave = self.waves.wave,
+        openedDoors = self.openedDoors,
         player = self.player:serialize(),
     }
 end
 
 function World:restore(data)
-    self.wave = data.wave or 1
+    self.openedDoors = data.openedDoors or {}
+    -- doors bought in the saved run stay open
+    for _, e in ipairs(self.entities) do
+        if e.type == 'door' and e.id and self.openedDoors[e.id] then
+            e.toRemove = true
+        end
+    end
+    self.waves:startWave(data.wave or 1)
     self.player:restore(data.player or {})
 end
 

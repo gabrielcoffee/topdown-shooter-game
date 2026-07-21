@@ -93,13 +93,35 @@ return {
     },
 
     zombies = {
-        contactDamage = 10,   -- all types
+        contactDamage = 25,   -- all types
         contactCooldown = 1.0, -- secs between hits, per zombie
-        baseLifePerWave = 20, -- life = this * wave * type multiplier
         repathTime = 0.4,     -- secs between A* recalculations, per zombie
 
         slow   = { speed = 30, lifeMult = 2,   size = 48 },
         fast   = { speed = 60, lifeMult = 1,   size = 32 },
         runner = { speed = 90, lifeMult = 0.5, size = 21 },
+    },
+
+    waves = {
+        quotaBase = 3,          -- zombies in wave w = this + w*(w+1)/2 -> 4, 6, 9, 13, 18, 24...
+
+        lifeBase = 30,          -- wave-1 zombie life, before the type multiplier
+        lifePerWave = 20,       -- +this per wave while wave <= lifeLinearUntil
+        lifeLinearUntil = 9,    -- linear growth up to this wave (= 190)...
+        lifeGrowth = 1.1,       -- ...then x this per wave afterwards
+
+        spawnDelayStart = 2,    -- secs between spawns on wave 1
+        spawnDelayDecay = 0.9,  -- delay multiplied by this each wave
+        spawnDelayFloor = 0.3,  -- delay never drops below this
+
+        startIntermission = 5,  -- secs of "WAVE N" banner before spawning starts
+        endIntermission = 5,    -- secs of "WAVE COMPLETE" before the next wave
+
+        -- spawn mix: last entry whose fromWave <= wave applies
+        weights = {
+            { fromWave = 1, slow = 70, fast = 30, runner = 0 },
+            { fromWave = 4, slow = 40, fast = 45, runner = 15 },
+            { fromWave = 8, slow = 20, fast = 45, runner = 35 },
+        },
     },
 }

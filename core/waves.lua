@@ -1,0 +1,143 @@
+-- Wave FSM: 'wave_start' banner -> 'active' drip-spawn -> cleared -> 'wave_end'
+-- banner -> next wave, forever. All numbers come from TUNE.waves. World owns one.
+
+local Enemy = require('entities.enemy')
+local Theme = require('ui.theme')
+local flux = require('lib.flux')
+
+local Waves = {}
+Waves.__index = Waves
+
+-- zombies in wave w: quotaBase + w*(w+1)/2 -> 4, 6, 9, 13, 18, 24...
+local function quotaFor(w)
+    return TUNE.waves.quotaBase + w * (w + 1) / 2
+end
+
+-- secs between spawns, shrinking each wave down to the floor
+local function delayFor(w)
+    local t = TUNE.waves
+    return math.max(t.spawnDelayFloor, t.spawnDelayStart * t.spawnDelayDecay ^ (w - 1))
+end
+
+-- last weights bracket whose fromWave <= w
+local function weightsFor(w)
+    local picked
+    for _, bracket in ipairs(TUNE.waves.weights) do
+        if bracket.fromWave <= w then picked = bracket end
+    end
+    return picked
+end
+
+local function pickType(w)
+    local wt = weightsFor(w)
+    local roll = love.math.random() * (wt.slow + wt.fast + wt.runner)
+    if roll < wt.slow then return 'slow' end
+    if roll < wt.slow + wt.fast then return 'fast' end
+    return 'runner'
+end
+
+local function liveEnemies(world)
+    local n = 0
+    for _, e in ipairs(world.entities) do
+        if e.type == 'enemy' and not e.toRemove then n = n + 1 end
+    end
+    return n
+end
+
+function Waves:new(spawnPoints)
+    local obj = {
+        wave = 1,
+        state = 'wave_start',
+        timer = 0,
+        remaining = 0,   -- zombies still to spawn this wave
+        spawnTimer = 0,
+        spawnPoints = spawnPoints,
+        bannerY = -160,
+    }
+    setmetatable(obj, Waves)
+    return obj
+end
+
+-- Re-entrant: restore() calls this with the saved wave number
+function Waves:startWave(n)
+    self.wave = n
+    self.state = 'wave_start'
+    self.timer = TUNE.waves.startIntermission
+    self.remaining = quotaFor(n)
+    self:slamBanner()
+end
+
+function Waves:slamBanner()
+    self.bannerY = -160
+    flux.to(self, TUNE.fx.titleSlamTime, { bannerY = 190 }):ease('quartin')
+end
+
+-- Points behind an unopened door stay inactive
+function Waves:activePoints(world)
+    local active = {}
+    for _, sp in ipairs(self.spawnPoints) do
+        if not sp.door or world.openedDoors[sp.door] then
+            table.insert(active, sp)
+        end
+    end
+    if #active == 0 then return self.spawnPoints end
+    return active
+end
+
+function Waves:spawnOne(world)
+    local points = self:activePoints(world)
+    local sp = points[love.math.random(#points)]
+    local t = pickType(self.wave)
+
+    -- center the zombie on the spawn tile; sizes differ per type
+    local half = TUNE.tiles.size / 2
+    local size = TUNE.zombies[t].size
+    local x, y = sp.x + half - size/2, sp.y + half - size/2
+
+    local e
+    if t == 'slow' then e = Enemy:newSlow(x, y, self.wave)
+    elseif t == 'fast' then e = Enemy:newFast(x, y, self.wave)
+    else e = Enemy:newRunner(x, y, self.wave) end
+    world:addEntity(e)
+end
+
+function Waves:update(dt, world)
+    if self.state == 'wave_start' then
+        self.timer = self.timer - dt
+        if self.timer <= 0 then
+            self.state = 'active'
+            self.spawnTimer = 0 -- first zombie drops right away
+        end
+
+    elseif self.state == 'active' then
+        self.spawnTimer = self.spawnTimer - dt
+        while self.remaining > 0 and self.spawnTimer <= 0 do
+            self:spawnOne(world)
+            self.remaining = self.remaining - 1
+            self.spawnTimer = self.spawnTimer + delayFor(self.wave)
+        end
+
+        if self.remaining == 0 and liveEnemies(world) == 0 then
+            self.state = 'wave_end'
+            self.timer = TUNE.waves.endIntermission
+            self:slamBanner()
+        end
+
+    elseif self.state == 'wave_end' then
+        self.timer = self.timer - dt
+        if self.timer <= 0 then
+            self:startWave(self.wave + 1)
+        end
+    end
+end
+
+-- Native resolution, drawn with the HUD
+function Waves:drawBanner()
+    if self.state == 'wave_start' then
+        Theme.drawTitle(T('hud.wave', self.wave), self.bannerY)
+    elseif self.state == 'wave_end' then
+        Theme.drawTitle(T('hud.wave_complete'), self.bannerY)
+    end
+end
+
+return Waves

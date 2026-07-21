@@ -27,11 +27,22 @@ function Enemy:new(x, y, width, height)
     return obj
 end
 
--- All numbers come from tune.lua. Life = baseLifePerWave * wave * type mult.
+-- Life grows linearly until lifeLinearUntil, compounds after, then type mult
+local function waveLife(wave)
+    local w = TUNE.waves
+    local capped = math.min(wave, w.lifeLinearUntil)
+    local life = w.lifeBase + w.lifePerWave * (capped - 1)
+    if wave > w.lifeLinearUntil then
+        life = life * w.lifeGrowth ^ (wave - w.lifeLinearUntil)
+    end
+    return life
+end
+
+-- All numbers come from tune.lua
 local function newTyped(x, y, wave, t, color)
     local obj = Enemy:new(x, y, t.size, t.size)
     obj.speed = t.speed
-    obj.health = TUNE.zombies.baseLifePerWave * (wave or 1) * t.lifeMult
+    obj.health = waveLife(wave or 1) * t.lifeMult
     obj.color = color
     return obj
 end

@@ -18,6 +18,12 @@ return {
     objects = {
         { type = 'crate', x = 400, y = 400 },
         { type = 'crate', x = 500, y = 600 },
-        { type = 'door',  x = 576, y = 224, price = 250 }, -- plugs the wall gap
+        { type = 'door',  x = 576, y = 224, price = 250, id = 'east' }, -- plugs the wall gap
+
+        -- zombie spawn points; door = only active once that door is bought
+        { type = 'spawn', x = 64,   y = 64 },
+        { type = 'spawn', x = 96,   y = 832 },
+        { type = 'spawn', x = 1152, y = 832 },
+        { type = 'spawn', x = 640,  y = 224, door = 'east' },
     },
 }
