@@ -7,8 +7,9 @@ local embers
 local fogTex
 local fogs = {}
 
--- Soft radial gradient circle on a canvas; power shapes the falloff
-local function softCircle(size, power)
+-- Soft radial gradient circle on a canvas; power shapes the falloff.
+-- coreR (optional) stamps a hot bright center so sparks read + bloom.
+local function softCircle(size, power, coreR)
     local canvas = love.graphics.newCanvas(size, size)
     love.graphics.setCanvas(canvas)
     local c = size / 2
@@ -17,6 +18,10 @@ local function softCircle(size, power)
         love.graphics.setColor(1, 1, 1, a * 0.16)
         love.graphics.circle('fill', c, c, r)
     end
+    if coreR then
+        love.graphics.setColor(1, 1, 1, 0.95)
+        love.graphics.circle('fill', c, c, coreR)
+    end
     love.graphics.setCanvas()
     love.graphics.setColor(1, 1, 1)
     return canvas
@@ -24,7 +29,7 @@ end
 
 function Particles.load()
     -- embers: small hot dots rising from the bottom of the screen
-    local emberTex = softCircle(16, 1.6)
+    local emberTex = softCircle(16, 1.6, 2.5)
     embers = love.graphics.newParticleSystem(emberTex, 400)
     embers:setPosition(SCREENWIDTH / 2, SCREENHEIGHT + 24)
     embers:setEmissionArea('uniform', SCREENWIDTH / 2, 12)

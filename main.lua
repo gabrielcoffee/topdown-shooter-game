@@ -33,13 +33,10 @@ function love.load()
     State.switch('menu')
 end
 
-local autotest = os.getenv('AUTOTEST') and require('autotest')
-
 function love.update(dt)
     flux.update(dt)
     Fx.update(dt)
     State.update(dt)
-    if autotest then autotest.update(dt) end
 end
 
 function love.draw()
@@ -62,9 +59,4 @@ end
 
 function love.mousereleased(x, y, btn)
     State.mousereleased(x, y, btn)
-end
-
--- scripted test runs: the physical cursor must not steer the menus
-if autotest then
-    love.mousemoved, love.mousepressed, love.mousereleased = nil, nil, nil
 end
