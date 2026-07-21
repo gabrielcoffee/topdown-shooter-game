@@ -25,6 +25,7 @@ function Player:new(x, y, width, height)
 
     obj.maxHealth = TUNE.player.maxHealth
     obj.health = obj.maxHealth
+    obj.hitboxColor = {0, 1, 1} -- cyan: stands out over the sprite
 
     obj.speed = TUNE.player.baseSpeed
     obj.leftReleased = true

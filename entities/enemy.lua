@@ -11,6 +11,7 @@ function Enemy:new(x, y, width, height)
     obj.color = Color.red
     obj.speed = 20
     obj.type = 'enemy'
+    obj.fillStyle = 'fill' -- enemies draw as full circles
 
     obj.damage = TUNE.zombies.contactDamage
     obj.attackCooldown = TUNE.zombies.contactCooldown

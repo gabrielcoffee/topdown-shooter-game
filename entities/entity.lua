@@ -13,7 +13,8 @@ function Entity:new(x, y, width, height)
         color = Color.blue,
         type = 'default',
         toRemove = false,
-        flash = false
+        flash = false,
+        fillStyle = 'line' -- placeholder circle: 'line' (empty) or 'fill'
     }
 
     setmetatable(obj, Entity)
@@ -63,7 +64,7 @@ function Entity:draw()
     end
 
     local cx, cy = self:getCenter()
-    love.graphics.circle('line', math.floor(cx), math.floor(cy), self.radius)
+    love.graphics.circle(self.fillStyle, math.floor(cx), math.floor(cy), self.radius)
     love.graphics.setColor(Color.white())
 
     self.flash = false
@@ -71,7 +72,9 @@ end
 
 -- Debug overlay (H key): collision circle on top of any sprite
 function Entity:drawHitbox()
-    love.graphics.setColor(0, 1, 0, 0.8)
+    local c = self.hitboxColor or {0, 1, 0}
+    love.graphics.setLineWidth(1)
+    love.graphics.setColor(c[1], c[2], c[3], 0.9)
     local cx, cy = self:getCenter()
     love.graphics.circle('line', cx, cy, self.radius)
     love.graphics.setColor(Color.white())
