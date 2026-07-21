@@ -10,55 +10,59 @@ function Crate:new(x, y)
     obj.type = 'crate'
     obj.isObstacle = true
     obj.health = TUNE.crate.health
-    obj.maxSpeed = 0
     obj.pushTimer = 0
+    obj.graceTimer = 0
     setmetatable(obj, Crate)
     return obj
 end
 
--- Called by the player's collision resolution while pushing against us.
--- pushTimer counts continuous contact regardless of which face is pushed:
--- resetting it on direction change made corner contact (where the axis
--- alternates every frame) restart the delay forever.
-function Crate:notifyPush(axis, sign, speed)
-    self.lastDir = {
-        x = axis == 'x' and sign or 0,
-        y = axis == 'y' and sign or 0,
-    }
-    self.pushDir = self.lastDir
-    self.graceTimer = 0
-    self.maxSpeed = speed * TUNE.crate.pushSpeedMult
+-- Positional push, called from the player's collision resolution: the crate
+-- has no velocity of its own, it moves by the player's penetration right here
+-- (speed-capped, then clipped by its own walls/obstacles). Returns whether it
+-- gave way, so the pusher knows to keep his speed against this face.
+function Crate:pushBy(axis, sign, penetration, dt, world, pusherSpeed)
+    self.pushedNow = true
+    if self.pushTimer < TUNE.crate.pushDelay then return false end
+
+    local cap = pusherSpeed * TUNE.crate.pushSpeedMult * dt
+    if world.map:typeAt(self:getCenter()) == 'water' then
+        cap = cap * TUNE.tiles.waterSpeedMult
+    end
+    local amount = math.min(penetration, cap)
+    if amount <= 0 then return false end
+
+    local before = (axis == 'x') and self.x or self.y
+    if axis == 'x' then
+        self.x = self.x + sign * amount
+        self.vx = sign -- direction hint so _resolveAxis snaps the right way
+    else
+        self.y = self.y + sign * amount
+        self.vy = sign
+    end
+    self:_resolveAxis(world, axis, dt)
+    self.vx, self.vy = 0, 0
+
+    -- safety net: never leave the map (normally moveAndCollide's job)
+    self.x = math.max(0, math.min(self.x, world.mapW - self.width))
+    self.y = math.max(0, math.min(self.y, world.mapH - self.height))
+
+    local after = (axis == 'x') and self.x or self.y
+    return math.abs(after - before) > 0.0001
 end
 
 function Crate:update(dt, world)
-    -- contact can drop for a single frame while the crate pulls ahead of the
-    -- pusher; keep the push alive through a short grace window instead of
-    -- restarting the whole pushDelay
-    if not self.pushDir and self.lastDir then
-        self.graceTimer = (self.graceTimer or 0) + dt
-        if self.graceTimer <= TUNE.crate.pushGrace then
-            self.pushDir = self.lastDir
-        end
-    end
-
-    local dirX, dirY = 0, 0
-
-    if self.pushDir then
+    -- pushTimer counts continuous contact (any face); the grace window keeps
+    -- it alive through 1-frame contact gaps so the delay doesn't restart
+    if self.pushedNow then
         self.pushTimer = self.pushTimer + dt
-        if self.pushTimer >= TUNE.crate.pushDelay then
-            dirX, dirY = self.pushDir.x, self.pushDir.y
-        end
+        self.graceTimer = 0
     else
-        -- push released for longer than the grace window: continuity broken
-        self.pushTimer = 0
-        self.lastDir = nil
+        self.graceTimer = self.graceTimer + dt
+        if self.graceTimer > TUNE.crate.pushGrace then
+            self.pushTimer = 0
+        end
     end
-
-    -- sliding this frame? pushers keep their speed against this face
-    self.activeDir = (dirX ~= 0 or dirY ~= 0) and { x = dirX, y = dirY } or nil
-
-    self:accelToward(dt, dirX, dirY, world)
-    self:moveAndCollide(dt, world)
+    self.pushedNow = false
 
     -- pushed over a hole: falls in and plugs it (tile becomes ground)
     local cx, cy = self:getCenter()
@@ -68,9 +72,6 @@ function Crate:update(dt, world)
                           world.map.groundFillId)
         world:removeEntity(self)
     end
-
-    -- must be re-notified every frame the push holds
-    self.pushDir = nil
 end
 
 function Crate:draw()

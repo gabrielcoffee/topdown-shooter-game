@@ -66,7 +66,7 @@ local function collisionBox(self)
 end
 
 -- Snap out of solid tiles and obstacle entities along one axis
-local function resolveAxis(self, world, axis)
+function Entity:_resolveAxis(world, axis, dt)
     local inset = TUNE.movement.collisionInset
     local ts = world.map.tileSize
     local bx, by, bw, bh = collisionBox(self)
@@ -110,15 +110,19 @@ local function resolveAxis(self, world, axis)
             local sign = (axis == 'x') and (self.vx > 0 and 1 or -1)
                                         or (self.vy > 0 and 1 or -1)
 
-            -- pushing player notifies crates; sliding crates don't kill his speed
+            -- player pushes crates positionally: the crate moves right now
+            -- (speed-capped, clipped by its own collisions), then we clamp
+            -- against its new face. keepSpeed while it gives way, so the
+            -- player's accel isn't reset every frame of the push.
             local keepSpeed = false
-            if e.notifyPush then
-                if self.isPlayer then
-                    e:notifyPush(axis, sign, self.maxSpeed)
+            if e.pushBy and self.isPlayer then
+                local pen
+                if axis == 'x' then
+                    pen = (sign > 0) and (bx + bw - e.x) or (e.x + e.width - bx)
+                else
+                    pen = (sign > 0) and (by + bh - e.y) or (e.y + e.height - by)
                 end
-                keepSpeed = e.activeDir ~= nil
-                    and ((axis == 'x' and e.activeDir.x == sign)
-                      or (axis == 'y' and e.activeDir.y == sign))
+                keepSpeed = e:pushBy(axis, sign, math.max(0, pen), dt, world, self.maxSpeed)
             end
 
             if axis == 'x' then
@@ -138,10 +142,10 @@ end
 -- Axis-separated movement: walls block, box slides along them
 function Entity:moveAndCollide(dt, world)
     self.x = self.x + self.vx * dt
-    resolveAxis(self, world, 'x')
+    self:_resolveAxis(world, 'x', dt)
 
     self.y = self.y + self.vy * dt
-    resolveAxis(self, world, 'y')
+    self:_resolveAxis(world, 'y', dt)
 
     -- safety net: never leave the map
     self.x = math.max(0, math.min(self.x, world.mapW - self.width))
