@@ -167,18 +167,47 @@ end
 function Player:drawHud()
     self.items[self.itemIndex]:drawHud()
 
-    love.graphics.print('HP: '..math.max(0, math.floor(self.health)), 20, 50)
-    love.graphics.print('$ '..math.floor(self.money), 20, 80)
+    love.graphics.print(T('hud.hp', math.max(0, math.floor(self.health))), 20, 50)
+    love.graphics.print(T('hud.money', math.floor(self.money)), 20, 80)
 
     if self.touchingDoor then
         local d = self.touchingDoor
-        local txt = 'Press E to open — $'..d.price
+        local txt = T('hud.door_open', d.price)
         if self.money < d.price then
-            txt = 'Locked — need $'..d.price
+            txt = T('hud.door_locked', d.price)
             love.graphics.setColor(Color.red())
         end
         love.graphics.print(txt, SCREENWIDTH/2 - font:getWidth(txt)/2, SCREENHEIGHT - 60)
         love.graphics.setColor(Color.white())
+    end
+end
+
+-- Run-save data: health, money, held slot, per-gun ammo
+function Player:serialize()
+    local guns = {}
+    for i, item in ipairs(self.items) do
+        if item.isGun then
+            guns[i] = { curClip = item.curClip, bulletsLeft = item.bulletsLeft }
+        end
+    end
+    return {
+        health = self.health,
+        money = self.money,
+        itemIndex = self.itemIndex,
+        guns = guns,
+    }
+end
+
+function Player:restore(data)
+    self.health = data.health or self.health
+    self.money = data.money or self.money
+    self.itemIndex = data.itemIndex or self.itemIndex
+    for i, g in pairs(data.guns or {}) do
+        local item = self.items[i]
+        if item and item.isGun then
+            item.curClip = g.curClip or item.curClip
+            item.bulletsLeft = g.bulletsLeft or item.bulletsLeft
+        end
     end
 end
 

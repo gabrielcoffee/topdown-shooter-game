@@ -173,4 +173,18 @@ function World:draw()
     love.graphics.draw(Assets.spritesheet, Assets.quads.aim[1], mx - 8*SCALE, my - 8*SCALE, 0, SCALE, SCALE)
 end
 
+-- Save data for the single run slot: wave + player state.
+-- Zombies aren't saved — the wave respawns fresh on load.
+function World:serialize()
+    return {
+        wave = self.wave,
+        player = self.player:serialize(),
+    }
+end
+
+function World:restore(data)
+    self.wave = data.wave or 1
+    self.player:restore(data.player or {})
+end
+
 return World

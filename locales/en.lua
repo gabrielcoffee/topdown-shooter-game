@@ -1,0 +1,32 @@
+return {
+    ['menu.subtitle']    = 'ZOMBIE SHOOTER',
+    ['menu.continue']    = 'CONTINUE',
+    ['menu.new_game']    = 'NEW GAME',
+    ['menu.options']     = 'OPTIONS',
+    ['menu.quit']        = 'QUIT',
+    ['menu.hint']        = 'ARROWS/WASD MOVE   ENTER SELECT',
+
+    ['pause.title']      = 'PAUSED',
+    ['pause.resume']     = 'RESUME',
+    ['pause.options']    = 'OPTIONS',
+    ['pause.save_quit']  = 'SAVE & QUIT TO MENU',
+    ['pause.quit']       = 'QUIT TO MENU',
+
+    ['options.title']    = 'OPTIONS',
+    ['options.master']   = 'MASTER',
+    ['options.sfx']      = 'SFX',
+    ['options.music']    = 'MUSIC',
+    ['options.language'] = 'LANGUAGE',
+    ['options.back']     = 'BACK',
+
+    ['gameover.title']   = 'YOU DIED',
+    ['gameover.restart'] = 'RESTART',
+    ['gameover.quit']    = 'QUIT TO MENU',
+
+    ['hud.hp']           = 'HP: %d',
+    ['hud.money']        = '$ %d',
+    ['hud.ammo']         = '%s  Ammo: %d/%d',
+    ['hud.reloading']    = '%s  RELOADING...',
+    ['hud.door_open']    = 'Press E to open - $%d',
+    ['hud.door_locked']  = 'Locked - need $%d',
+}

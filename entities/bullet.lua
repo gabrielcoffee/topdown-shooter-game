@@ -2,6 +2,7 @@ local Entity = require('entities.entity')
 local Assets = require('core.assets')
 local Color = require('core.color')
 local Animation = require('core.animation')
+local Audio = require('core.audio')
 
 local Bullet = {}
 Bullet.__index = Bullet
@@ -59,6 +60,7 @@ function Bullet:update(dt, world)
         world:removeEntity(self)
         enemyCollided.health = enemyCollided.health - self.damage
         enemyCollided.flash = true
+        Audio.play(love.math.random() < 0.5 and 'bullet_hit1' or 'bullet_hit2')
 
         if enemyCollided.health <= 0 then
             world.player.money = world.player.money + self.killReward

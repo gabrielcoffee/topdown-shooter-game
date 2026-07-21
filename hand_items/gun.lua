@@ -1,6 +1,7 @@
 local Assets = require('core.assets')
 local Bullet = require('entities.bullet')
 local HandItem = require('hand_items.hand_item')
+local Audio = require('core.audio')
 
 local Gun = {}
 Gun.__index = Gun
@@ -50,6 +51,7 @@ function Gun:newUSP()
     obj.name = 'USP-45'
     obj.sprite = Assets.quads.pistol[1]
     obj.type = GUNTYPE.semi
+    obj.shotSfx = 'mac10_shot' -- closest pistol-ish sample on disk
     obj.ox = 4
     obj.oy = 16
 
@@ -64,6 +66,7 @@ function Gun:newAk47()
     obj.name = 'AK-47'
     obj.sprite = Assets.quads.ak47[1]
     obj.type = GUNTYPE.auto
+    obj.shotSfx = 'ak47_shot'
     obj.ox = 12
     obj.oy = 16
 
@@ -78,6 +81,7 @@ function Gun:newM4A1()
     obj.name = 'M4A1'
     obj.sprite = Assets.quads.m4a1[1]
     obj.type = GUNTYPE.auto
+    obj.shotSfx = 'm4a1_shot'
     obj.ox = 12
     obj.oy = 16
 
@@ -92,6 +96,8 @@ function Gun:newShotgun()
     obj.name = 'Lupara'
     obj.sprite = Assets.quads.shotgun[1]
     obj.type = GUNTYPE.shotgun
+    obj.shotSfx = 'shotgun_shot'
+    obj.reloadSfx = 'shotgun_reload' -- only reload sample on disk; other guns reload silent for now
     obj.ox = 12
     obj.oy = 16
 
@@ -129,6 +135,9 @@ function Gun:reload()
     end
     self.reloading = true
     self.reloadTimer = 0
+    if self.reloadSfx then
+        Audio.play(self.reloadSfx)
+    end
 end
 
 function Gun:cancelReload()
@@ -142,9 +151,9 @@ end
 
 function Gun:drawHud()
     if self.reloading then
-        love.graphics.print(self.name..'  RELOADING...', 20, 20)
+        love.graphics.print(T('hud.reloading', self.name), 20, 20)
     else
-        love.graphics.print(self.name..'  Ammo: '..self.curClip..'/'..self.bulletsLeft, 20, 20)
+        love.graphics.print(T('hud.ammo', self.name, self.curClip, self.bulletsLeft), 20, 20)
     end
 end
 
@@ -169,6 +178,7 @@ function Gun:fire(leftReleased)
         gw = gw - self.ox
 
         self.canShoot = false
+        Audio.play(self.shotSfx) -- once per trigger pull, not per pellet
         if self.type == GUNTYPE.shotgun then
             for i = 1, self.pellets do
                 local finalSpread = (love.math.random() * 2 - 1) * self.spread

@@ -1,68 +1,53 @@
 _G.TUNE = require('tune')
-local World = require('core.world')
+require('core.assets') -- sets the nearest-neighbor filter before fonts/images load
+
+local State = require('core.state')
+local Audio = require('core.audio')
+local i18n = require('core.i18n')
+local Save = require('core.save')
+local Theme = require('ui.theme')
 
 _G.SCALE = 2
-_G.GAMESTATES = {
-    gameplay = 1,
-    menu = 2,
-}
 
-_G.font = love.graphics.newFont(18)
-_G.smallFont = love.graphics.newFont(8) -- for labels drawn in scaled world space
+_G.font = Theme.fonts.hud
+_G.smallFont = love.graphics.newFont('assets/fonts/PressStart2P-Regular.ttf', 8) -- labels in scaled world space
 love.graphics.setFont(font)
-local gameState = GAMESTATES.menu
 
 _G.world = nil
+_G.showHitboxes = false
 
 function love.load()
     love.mouse.setVisible(true)
     love.math.setRandomSeed(os.time())
 
-    world = World:new()
+    Audio.load()
+    _G.SETTINGS = Save.loadSettings()
+    Audio.setVolumes(SETTINGS.master, SETTINGS.sfx, SETTINGS.music)
+    i18n.setLanguage(SETTINGS.language)
+
+    State.switch('menu')
 end
 
 function love.update(dt)
-
-    if world.gameOver then
-        if love.keyboard.isDown('r') then
-            world = World:new()
-        end
-        return
-    end
-
-    world:update(dt)
-
-    if love.keyboard.isDown('escape') then
-        print('oi')
-    end
-end
-
-_G.showHitboxes = false
-
-function love.keypressed(key)
-    if key == 'z' and not world.gameOver then
-        world:spawnTestZombies()
-    elseif key == 'h' then
-        showHitboxes = not showHitboxes
-    elseif key == 'u' then
-        -- reload tune.lua and restart the run with the new values
-        package.loaded['tune'] = nil
-        TUNE = require('tune')
-        world = World:new()
-    end
+    State.update(dt)
 end
 
 function love.draw()
-    world:draw()
+    State.draw()
+end
 
-    if world.gameOver then
-        love.graphics.setColor(0, 0, 0, 0.7)
-        love.graphics.rectangle('fill', 0, 0, SCREENWIDTH, SCREENHEIGHT)
-        love.graphics.setColor(1, 1, 1)
+function love.keypressed(key)
+    State.keypressed(key)
+end
 
-        local title = 'YOU DIED'
-        local hint = 'press R to restart'
-        love.graphics.print(title, SCREENWIDTH/2 - font:getWidth(title)/2, SCREENHEIGHT/2 - 20)
-        love.graphics.print(hint, SCREENWIDTH/2 - font:getWidth(hint)/2, SCREENHEIGHT/2 + 10)
-    end
+function love.mousepressed(x, y, btn)
+    State.mousepressed(x, y, btn)
+end
+
+function love.mousemoved(x, y)
+    State.mousemoved(x, y)
+end
+
+function love.mousereleased(x, y, btn)
+    State.mousereleased(x, y, btn)
 end

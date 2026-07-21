@@ -1,0 +1,75 @@
+-- Options overlay, reachable from both the main menu and the pause menu.
+-- Every change applies immediately and is persisted — no apply button.
+
+local State = require('core.state')
+local Theme = require('ui.theme')
+local MenuList = require('ui.menu_list')
+local Save = require('core.save')
+local Audio = require('core.audio')
+local i18n = require('core.i18n')
+
+local options = {}
+options.overlay = true
+
+local function apply()
+    Audio.setVolumes(SETTINGS.master, SETTINGS.sfx, SETTINGS.music)
+    Save.saveSettings(SETTINGS)
+end
+
+local function volumeItem(labelKey, field)
+    return {
+        label = labelKey, type = 'slider',
+        get = function() return SETTINGS[field] end,
+        set = function(v)
+            SETTINGS[field] = v
+            apply()
+        end,
+    }
+end
+
+function options:enter()
+    self.list = MenuList:new({
+        volumeItem('options.master', 'master'),
+        volumeItem('options.sfx', 'sfx'),
+        volumeItem('options.music', 'music'),
+        {
+            label = 'options.language', type = 'cycle',
+            value = function() return i18n.names[i18n.lang] end,
+            cycle = function(dir)
+                local code = i18n.nextLanguage(dir)
+                i18n.setLanguage(code)
+                SETTINGS.language = code
+                Save.saveSettings(SETTINGS)
+            end,
+        },
+        {
+            label = 'options.back', type = 'action',
+            activate = function() State.pop() end,
+        },
+    }, 400)
+end
+
+function options:update(dt)
+    self.list:update(dt)
+end
+
+function options:draw()
+    Theme.drawDim(0.85)
+    Theme.drawTitle(T('options.title'), 240)
+    self.list:draw()
+    Theme.drawScanlines()
+end
+
+function options:keypressed(key)
+    if key == 'escape' then
+        State.pop()
+    else
+        self.list:keypressed(key)
+    end
+end
+
+function options:mousepressed(x, y, btn) self.list:mousepressed(x, y, btn) end
+function options:mousemoved(x, y) self.list:mousemoved(x, y) end
+function options:mousereleased(x, y, btn) self.list:mousereleased(x, y, btn) end
+
+return options

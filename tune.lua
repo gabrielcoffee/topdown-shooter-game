@@ -38,6 +38,18 @@ return {
 
     bullet = { speed = 360 },
 
+    audio = {
+        masterDefault = 1,  -- 0..1, used until the player touches the options
+        sfxDefault = 1,
+        musicDefault = 1,
+        poolSize = 6, -- max simultaneous plays of the same sound
+    },
+
+    menu = {
+        pulseSpeed = 6,   -- selector chevron pulse (radians/sec)
+        itemSpacing = 52, -- px between menu rows
+    },
+
     zombies = {
         contactDamage = 10,   -- all types
         contactCooldown = 1.0, -- secs between hits, per zombie
