@@ -2,7 +2,6 @@ local Assets = require('core.assets')
 local Bullet = require('entities.bullet')
 local HandItem = require('hand_items.hand_item')
 local Audio = require('core.audio')
-local Fx = require('ui.fx')
 
 local Gun = {}
 Gun.__index = Gun
@@ -43,7 +42,6 @@ local function applyTune(obj, t)
     obj.spread = t.spread
     obj.pellets = t.pellets
     obj.killReward = t.killReward
-    obj.shake = t.shake
 end
 
 function Gun:newUSP()
@@ -182,14 +180,13 @@ function Gun:fire(leftReleased)
         self.canShoot = false
         Audio.play(self.shotSfx) -- once per trigger pull, not per pellet
 
-        -- muzzle juice: flash light, sparks, screen kick
+        -- muzzle juice: flash light + sparks
         local mx = self.x + math.cos(self.angle) * gw
         local my = self.y + math.sin(self.angle) * gw
         local mb = TUNE.lighting.muzzleBright
         world.lighting:flash(mx, my, mb, mb * 0.8, mb * 0.45,
             TUNE.lighting.muzzleRange, TUNE.lighting.muzzleTime)
         world.vfx:muzzleSparks(mx, my, self.angle)
-        Fx.addShake(self.shake or 0)
 
         if self.type == GUNTYPE.shotgun then
             for i = 1, self.pellets do

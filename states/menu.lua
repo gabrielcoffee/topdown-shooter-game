@@ -39,12 +39,10 @@ function menu:enter()
 
     self.list = MenuList:new(items, 500)
 
-    -- title slams down from above, screen kicks when it lands
+    -- title slams down from above
     self.titleY = -160
     self.time = 0
-    flux.to(self, TUNE.fx.titleSlamTime, { titleY = 190 })
-        :ease('quartin')
-        :oncomplete(function() Fx.addShake(TUNE.fx.titleShake) end)
+    flux.to(self, TUNE.fx.titleSlamTime, { titleY = 190 }):ease('quartin')
 end
 
 function menu:update(dt)
@@ -55,10 +53,6 @@ end
 
 function menu:draw()
     Theme.drawBackground()
-
-    local sx, sy = Fx.shakeOffset()
-    love.graphics.push()
-    love.graphics.translate(sx, sy)
 
     Particles.drawFog()
 
@@ -71,7 +65,6 @@ function menu:draw()
     Theme.drawHint(T('menu.hint'), SCREENHEIGHT - 60)
 
     Particles.drawEmbers()
-    love.graphics.pop()
 end
 
 function menu:keypressed(key)

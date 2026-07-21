@@ -7,7 +7,6 @@ local Crate = require('entities.crate')
 local Door = require('entities.door')
 local Lighting = require('core.lighting')
 local Vfx = require('core.vfx')
-local Fx = require('ui.fx')
 
 local World = {}
 World.__index = World
@@ -174,26 +173,8 @@ function World:draw()
     -- Draws background color
     love.graphics.clear(Color.skyblue())
 
-    -- camera + screen shake, applied by the light world's transform
-    local shakeX, shakeY = Fx.shakeOffset()
-    local camX = self.camX + shakeX / SCALE
-    local camY = self.camY + shakeY / SCALE
+    local camX, camY = self.camX, self.camY
     self.lighting:setView(camX, camY, SCALE)
-
-    -- dev switch: raw scene without the light pipeline
-    if World.noLighting then
-        love.graphics.push()
-        love.graphics.scale(SCALE, SCALE)
-        love.graphics.translate(-camX, -camY)
-        self.map:draw(camX, camY)
-        for _, entity in ipairs(self.entities) do entity:draw() end
-        self.vfx:draw()
-        love.graphics.pop()
-        for _, entity in ipairs(self.entities) do entity:drawHud() end
-        local mx, my = love.mouse.getPosition()
-        love.graphics.draw(Assets.spritesheet, Assets.quads.aim[1], mx - 8*SCALE, my - 8*SCALE, 0, SCALE, SCALE)
-        return
-    end
 
     -- scene drawn in world coords; lighting darkens + applies lights on top
     self.lighting:draw(function()

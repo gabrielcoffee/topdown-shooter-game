@@ -1,4 +1,4 @@
--- Post-processing (moonshine), screen shake and screen flash.
+-- Post-processing (moonshine) and screen flash.
 -- One shared shader chain: menus run the full CRT arcade look,
 -- gameplay disables crt/scanlines/chromasep so mouse aim stays true.
 
@@ -8,7 +8,6 @@ local Fx = {}
 
 local chain
 local mode = nil
-local shake = 0
 local flash = { t = 0, dur = 1, color = { 1, 1, 1 } }
 
 function Fx.load()
@@ -61,19 +60,7 @@ function Fx.draw(fn)
 end
 
 function Fx.update(dt)
-    shake = shake * math.max(0, 1 - TUNE.fx.shakeDecay * dt)
-    if shake < 0.05 then shake = 0 end
     flash.t = math.max(0, flash.t - dt)
-end
-
-function Fx.addShake(amount)
-    shake = math.min(shake + (amount or 0), 24)
-end
-
-function Fx.shakeOffset()
-    if shake == 0 then return 0, 0 end
-    return (love.math.random() * 2 - 1) * shake,
-           (love.math.random() * 2 - 1) * shake
 end
 
 function Fx.flash(r, g, b, dur)

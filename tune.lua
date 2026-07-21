@@ -29,11 +29,11 @@ return {
     door  = { price = 250, interactPad = 4 },
 
     guns = {
-        usp    = { damage = 20, clip = 15, walkSpeed = 120, bulletDelay = 0.15, reloadTime = 2,   bulletLife = 0.5, killReward = 20, shake = 1.5 },
-        ak47   = { damage = 40, clip = 30, walkSpeed = 90,  bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10, shake = 3 },
-        m4a1   = { damage = 35, clip = 25, walkSpeed = 90,  bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10, shake = 2.5 },
+        usp    = { damage = 20, clip = 15, walkSpeed = 120, bulletDelay = 0.15, reloadTime = 2,   bulletLife = 0.5, killReward = 20 },
+        ak47   = { damage = 40, clip = 30, walkSpeed = 90,  bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10 },
+        m4a1   = { damage = 35, clip = 25, walkSpeed = 90,  bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10 },
         lupara = { damage = 10, clip = 7,  walkSpeed = 100, bulletDelay = 0.5,  reloadTime = 1,   bulletLife = 0.7,
-                   pellets = 14, spread = 0.20, killReward = 10, shake = 7 }, -- damage is per pellet
+                   pellets = 14, spread = 0.20, killReward = 10 }, -- damage is per pellet
     },
 
     knife   = { damage = 60,  walkSpeed = 130, killReward = 50 },
@@ -69,11 +69,6 @@ return {
         itemInTime = 0.25,    -- per-item slide-in time
         fadeTime = 0.35,      -- state-to-state fade to black
 
-        -- screen shake
-        shakeDecay = 7,    -- higher = settles faster
-        titleShake = 6,    -- when the title lands
-        gameoverShake = 12,
-
         -- menu background
         emberRate = 22,  -- embers per second
         fogAlpha = 0.5,  -- overall fog layer opacity
@@ -83,15 +78,15 @@ return {
     },
 
     lighting = {
-        ambient = 0.14,       -- world brightness with no lights (0 = pitch black)
+        ambient = 0.40,       -- world brightness with no lights (0 = pitch black)
         playerRange = 230,    -- player light radius, world px
-        playerBright = 0.55,  -- player light intensity (1 = blinding white)
+        playerBright = 0.40,  -- player light intensity (1 = blinding white)
         muzzleRange = 210,    -- muzzle flash light radius
-        muzzleBright = 0.9,   -- muzzle flash intensity
+        muzzleBright = 0.65,  -- muzzle flash intensity
         muzzleTime = 0.06,    -- muzzle flash duration, secs
 
         torchRange = 190,       -- torch tile light radius, world px
-        torchBright = 0.75,     -- torch light intensity
+        torchBright = 0.6,      -- torch light intensity
         torchFlickerSpeed = 7,  -- flicker rate (noise samples/sec)
         torchFlickerDepth = 0.3, -- how much the flicker moves the range (0-1)
     },

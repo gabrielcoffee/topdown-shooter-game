@@ -1,4 +1,4 @@
--- Gameover overlay: red flash + shake on death, the death scene stays
+-- Gameover overlay: red flash on death, the death scene stays
 -- frozen underneath, embers drift over. Entering deletes the run save.
 
 local State = require('core.state')
@@ -17,12 +17,9 @@ function gameover:enter()
     Save.deleteRun()
 
     Fx.flash(0.55, 0.02, 0.02, 0.35)
-    Fx.addShake(TUNE.fx.gameoverShake)
 
     self.titleY = -160
-    flux.to(self, TUNE.fx.titleSlamTime, { titleY = 320 })
-        :ease('quartin')
-        :oncomplete(function() Fx.addShake(TUNE.fx.titleShake) end)
+    flux.to(self, TUNE.fx.titleSlamTime, { titleY = 320 }):ease('quartin')
 
     self.list = MenuList:new({
         {
@@ -47,15 +44,9 @@ function gameover:draw()
     love.graphics.rectangle('fill', 0, 0, SCREENWIDTH, SCREENHEIGHT)
     love.graphics.setColor(1, 1, 1)
 
-    local sx, sy = Fx.shakeOffset()
-    love.graphics.push()
-    love.graphics.translate(sx, sy)
-
     Theme.drawTitle(T('gameover.title'), self.titleY)
     self.list:draw()
     Particles.drawEmbers()
-
-    love.graphics.pop()
 end
 
 function gameover:keypressed(key)
