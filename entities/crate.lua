@@ -16,24 +16,31 @@ function Crate:new(x, y)
     return obj
 end
 
--- Called by the player's collision resolution while pushing against us
+-- Called by the player's collision resolution while pushing against us.
+-- pushTimer counts continuous contact regardless of which face is pushed:
+-- resetting it on direction change made corner contact (where the axis
+-- alternates every frame) restart the delay forever.
 function Crate:notifyPush(axis, sign, speed)
-    local dir = {
+    self.lastDir = {
         x = axis == 'x' and sign or 0,
         y = axis == 'y' and sign or 0,
     }
-
-    -- push direction changed: start the 0.5s over
-    if not self.lastDir or self.lastDir.x ~= dir.x or self.lastDir.y ~= dir.y then
-        self.pushTimer = 0
-    end
-
-    self.lastDir = dir
-    self.pushDir = dir
+    self.pushDir = self.lastDir
+    self.graceTimer = 0
     self.maxSpeed = speed * TUNE.crate.pushSpeedMult
 end
 
 function Crate:update(dt, world)
+    -- contact can drop for a single frame while the crate pulls ahead of the
+    -- pusher; keep the push alive through a short grace window instead of
+    -- restarting the whole pushDelay
+    if not self.pushDir and self.lastDir then
+        self.graceTimer = (self.graceTimer or 0) + dt
+        if self.graceTimer <= TUNE.crate.pushGrace then
+            self.pushDir = self.lastDir
+        end
+    end
+
     local dirX, dirY = 0, 0
 
     if self.pushDir then
@@ -42,7 +49,7 @@ function Crate:update(dt, world)
             dirX, dirY = self.pushDir.x, self.pushDir.y
         end
     else
-        -- no push this frame: continuity broken
+        -- push released for longer than the grace window: continuity broken
         self.pushTimer = 0
         self.lastDir = nil
     end

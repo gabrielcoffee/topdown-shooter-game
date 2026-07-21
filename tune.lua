@@ -25,7 +25,8 @@ return {
         holeDamage = 50,      -- player falls in a hole
     },
 
-    crate = { pushDelay = 0.5, size = 32, health = 100, pushSpeedMult = 0.5 },
+    crate = { pushDelay = 0.5, size = 32, health = 100, pushSpeedMult = 0.5,
+              pushGrace = 0.15 }, -- secs of lost contact before a push resets
     door  = { price = 250, interactPad = 4 },
 
     guns = {
