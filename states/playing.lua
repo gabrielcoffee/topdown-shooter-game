@@ -40,6 +40,7 @@ function playing:keypressed(key)
         package.loaded['tune'] = nil
         TUNE = require('tune')
         Fx.refresh()
+        require('core.gif').clearCache() -- edited gifs get re-decoded too
         world = World:new()
     end
 end

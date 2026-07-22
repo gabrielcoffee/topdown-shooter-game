@@ -46,17 +46,27 @@ Assets.bg_dust:setWrap("repeat", "repeat")
 Assets.quads = {
     player = loadQuads(0, 0, 32, 32, 4),
 
-    pistol = loadQuads(0, 32, 26, 32, 1),
+    -- Items live in the first column, one row each; the "player holding it"
+    -- version sits right after the item in the same row.
+    pistol = loadQuads(0, 32, 32, 32, 1),
     grenade = loadQuads(0, 64, 32, 32, 1),
     knife = loadQuads(0, 96, 32, 32, 1),
 
-    ak47 = loadQuads(32, 32, 48, 32, 1),
-    m4a1 = loadQuads(32, 64, 56, 32, 1),
-    shotgun = loadQuads(32, 96, 40, 32, 1),
+    ak47 = loadQuads(0, 128, 64, 32, 1),
+    m4a1 = loadQuads(0, 160, 64, 32, 1),
+    shotgun = loadQuads(0, 192, 64, 32, 1),
 
-    aim = loadQuads(80, 32, 16, 16, 1),
-    bullet = loadQuads(96, 32, 4, 2, 1),
-    muzzle = loadQuads(112, 32, 12, 12, 3),
+    held_pistol = loadQuads(32, 32, 32, 32, 1),
+    held_grenade = loadQuads(32, 64, 32, 32, 1),
+    held_knife = loadQuads(32, 96, 32, 32, 1),
+
+    held_ak47 = loadQuads(64, 128, 64, 32, 1),
+    held_m4a1 = loadQuads(64, 160, 64, 32, 1),
+    held_shotgun = loadQuads(64, 192, 64, 32, 1),
+
+    aim = loadQuads(128, 0, 16, 16, 1),
+    bullet = loadQuads(144, 0, 4, 2, 1),
+    muzzle = loadQuads(160, 0, 12, 12, 3),
 
     bg_dust = loadBgQuads(0, 0, SCREENWIDTH, SCREENHEIGHT, 1, Assets.bg_dust)
 }
