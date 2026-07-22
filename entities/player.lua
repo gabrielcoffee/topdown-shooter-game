@@ -327,7 +327,7 @@ local gunFactories = {
     usp    = function() return Gun:newUSP() end,
     ak47   = function() return Gun:newAk47() end,
     m4a1   = function() return Gun:newM4A1() end,
-    lupara = function() return Gun:newShotgun() end,
+    sawedoff = function() return Gun:newShotgun() end,
 }
 
 function Player:restore(data)

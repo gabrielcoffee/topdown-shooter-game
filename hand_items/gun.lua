@@ -33,7 +33,7 @@ end
 local function applyTune(obj, t)
     obj.maxClip = t.clip
     obj.curClip = t.clip
-    obj.bulletsLeft = t.clip * 3
+    obj.bulletsLeft = t.reserve or t.clip * 3
     obj.walkSpeed = t.walkSpeed
     obj.damage = t.damage
     obj.bulletLifeTime = t.bulletLife
@@ -93,15 +93,17 @@ function Gun:newM4A1()
 end
 
 function Gun:newShotgun()
-    local obj = GunStateVariables(TUNE.guns.lupara.clip)
-    applyTune(obj, TUNE.guns.lupara)
+    local obj = GunStateVariables(TUNE.guns.sawedoff.clip)
+    applyTune(obj, TUNE.guns.sawedoff)
 
-    obj.name = 'Lupara'
-    obj.id = 'lupara'
+    obj.name = 'Sawed-Off'
+    obj.id = 'sawedoff'
     obj.sprite = Assets.quads.shotgun[1]
     obj.type = GUNTYPE.shotgun
     obj.shotSfx = 'shotgun_shot'
-    obj.reloadSfx = 'shotgun_reload' -- only reload sample on disk; other guns reload silent for now
+    obj.reloadSfx = 'shotgun_reload' -- break-open + tick, plays before shells go in
+    obj.shellSfx = { 'shell1', 'shell2', 'shell3' }
+    obj.reloadOpenTime = TUNE.guns.sawedoff.reloadOpenTime
     obj.ox = 12
     obj.oy = 16
 
@@ -123,7 +125,23 @@ function Gun:update(dt, px, py, mx, my)
 
     if self.reloading then
         self.reloadTimer = self.reloadTimer + dt
-        if self.reloadTimer >= self.reloadingTime then
+        if self.shellSfx then
+            -- per-shell reload: break-open first, then one shell per reloadTime
+            if self.reloadOpening then
+                if self.reloadTimer >= (self.reloadOpenTime or 0) then
+                    self.reloadOpening = false
+                    self.reloadTimer = 0
+                end
+            elseif self.reloadTimer >= self.reloadingTime then
+                self.reloadTimer = 0
+                self.curClip = self.curClip + 1
+                self.bulletsLeft = self.bulletsLeft - 1
+                Audio.play(self.shellSfx[love.math.random(#self.shellSfx)])
+                if self.curClip >= self.maxClip or self.bulletsLeft <= 0 then
+                    self.reloading = false
+                end
+            end
+        elseif self.reloadTimer >= self.reloadingTime then
             local moved = math.min(self.maxClip - self.curClip, self.bulletsLeft)
             self.curClip = self.curClip + moved
             self.bulletsLeft = self.bulletsLeft - moved
@@ -139,6 +157,7 @@ function Gun:reload()
     end
     self.reloading = true
     self.reloadTimer = 0
+    self.reloadOpening = self.shellSfx ~= nil
     if self.reloadSfx then
         Audio.play(self.reloadSfx)
     end
@@ -146,6 +165,7 @@ end
 
 function Gun:cancelReload()
     self.reloading = false
+    self.reloadOpening = false
     self.reloadTimer = 0
 end
 
@@ -164,7 +184,12 @@ end
 function Gun:fire(leftReleased)
 
     if self.reloading then
-        return
+        -- per-shell reload can be interrupted to fire what's already loaded
+        if self.shellSfx and self.curClip > 0 and not self.reloadOpening then
+            self:cancelReload()
+        else
+            return
+        end
     end
 
     if self.curClip <= 0 then
@@ -217,6 +242,11 @@ function Gun:fire(leftReleased)
             )
         end
         self.curClip = self.curClip - 1
+
+        -- sawed-off: barrels empty -> break open and reload right away
+        if self.shellSfx and self.curClip <= 0 and self.bulletsLeft > 0 then
+            self:reload()
+        end
     end
 end
 

@@ -16,10 +16,10 @@ setmetatable(Chest, Entity)
 local gunFactories = {
     ak47   = function() return Gun:newAk47() end,
     m4a1   = function() return Gun:newM4A1() end,
-    lupara = function() return Gun:newShotgun() end,
+    sawedoff = function() return Gun:newShotgun() end,
 }
 
-local gunNames = { ak47 = 'AK-47', m4a1 = 'M4A1', lupara = 'Lupara' }
+local gunNames = { ak47 = 'AK-47', m4a1 = 'M4A1', sawedoff = 'Sawed-Off' }
 
 function Chest:new(x, y)
     local obj = Entity:new(x, y, TUNE.tiles.size, TUNE.tiles.size)
@@ -199,7 +199,7 @@ function Chest:draw()
         love.graphics.draw(Assets.spritesheet, quad,
             math.floor(cx), math.floor(y - 20 + bob), 0, 1, 1, qw/2, qh/2)
     elseif self.state == 'offering' then
-        local quad = Assets.quads[self.result.gunId == 'lupara' and 'shotgun'
+        local quad = Assets.quads[self.result.gunId == 'sawedoff' and 'shotgun'
             or self.result.gunId][1]
         local _, _, qw, qh = quad:getViewport()
         love.graphics.setColor(1, 1, 1)

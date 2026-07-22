@@ -33,8 +33,10 @@ return {
         usp    = { damage = 20, clip = 15, walkSpeed = 120, bulletDelay = 0.15, reloadTime = 2,   bulletLife = 0.5, killReward = 20 },
         ak47   = { damage = 40, clip = 30, walkSpeed = 90,  bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10 },
         m4a1   = { damage = 35, clip = 25, walkSpeed = 90,  bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10 },
-        lupara = { damage = 10, clip = 7,  walkSpeed = 100, bulletDelay = 0.5,  reloadTime = 1,   bulletLife = 0.7,
-                   pellets = 14, spread = 0.20, killReward = 10 }, -- damage is per pellet
+        -- reloadTime = secs PER SHELL; reloadOpenTime = break-open sound before first shell
+        sawedoff = { damage = 10, clip = 2, walkSpeed = 100, bulletDelay = 0.5, reloadTime = 0.5, bulletLife = 0.7,
+                     reloadOpenTime = 0.4, reserve = 18,
+                     pellets = 14, spread = 0.20, killReward = 10 }, -- damage is per pellet
     },
 
     knife   = { damage = 60,  walkSpeed = 130, killReward = 50 },
@@ -54,7 +56,7 @@ return {
         interactPad = 4,
         -- loot odds; invalid categories (grenades full, medkit held) are
         -- dropped and the rest renormalized. Rolling an owned gun = ammo refill.
-        weights = { ak47 = 15, m4a1 = 15, lupara = 10, grenade = 30, healthpack = 30 },
+        weights = { ak47 = 15, m4a1 = 15, sawedoff = 10, grenade = 30, healthpack = 30 },
     },
 
     hotbar = { slotSize = 56, gap = 8, bottomMargin = 16 },
@@ -116,17 +118,17 @@ return {
         contactCooldown = 1.0, -- secs between hits, per zombie
         repathTime = 0.4,     -- secs between A* recalculations, per zombie
 
-        slow   = { speed = 30, lifeMult = 2,   size = 48 },
-        fast   = { speed = 60, lifeMult = 1,   size = 32 },
-        runner = { speed = 90, lifeMult = 0.5, size = 21 },
+        slow   = { speed = 30, lifeMult = 1,   size = 48 },
+        fast   = { speed = 60, lifeMult = 0.5,   size = 32 },
+        runner = { speed = 90, lifeMult = 0.25, size = 21 },
     },
 
     waves = {
         quotaBase = 3,          -- zombies in wave w = this + w*(w+1)/2 -> 4, 6, 9, 13, 18, 24...
 
-        lifeBase = 30,          -- wave-1 zombie life, before the type multiplier
+        lifeBase = 20,          -- wave-1 zombie life, before the type multiplier
         lifePerWave = 20,       -- +this per wave while wave <= lifeLinearUntil
-        lifeLinearUntil = 9,    -- linear growth up to this wave (= 190)...
+        lifeLinearUntil = 7,    -- linear growth up to this wave (= 140)...
         lifeGrowth = 1.1,       -- ...then x this per wave afterwards
 
         spawnDelayStart = 2,    -- secs between spawns on wave 1
