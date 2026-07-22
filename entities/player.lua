@@ -6,6 +6,7 @@ local Animation = require('core.animation')
 local HandItem = require('hand_items.hand_item')
 local ThrownGrenade = require('entities.thrown_grenade')
 local Hotbar = require('ui.hotbar')
+local Chat = require('ui.chat')
 
 local Player = {}
 Player.__index = Player
@@ -115,8 +116,10 @@ function Player:update(dt, world)
         if not held then self.lockedInputs[k] = nil end
     end
 
+    -- while the chat is open every gameplay input is dead (world keeps running)
+    local typing = Chat.open
     local function keyDown(k)
-        return love.keyboard.isDown(k) and not self.lockedInputs[k]
+        return not typing and love.keyboard.isDown(k) and not self.lockedInputs[k]
     end
 
     -- MOVEMENT
@@ -144,7 +147,7 @@ function Player:update(dt, world)
 
     -- Change item in hand (hotbar slots 1-5)
     for i = 1, 5 do
-        if love.keyboard.isDown(tostring(i)) then
+        if not typing and love.keyboard.isDown(tostring(i)) then
             self:selectSlot(i)
         end
     end
@@ -157,7 +160,8 @@ function Player:update(dt, world)
     local worldMy = my + world.camY
 
     -- INTERACTIONS
-    local leftPressed = love.mouse.isDown(1) and not self.lockedInputs.mouse1
+    local leftPressed = not typing and love.mouse.isDown(1)
+        and not self.lockedInputs.mouse1
     local heldItem = self.items[self.itemIndex]
 
     if leftPressed and heldItem.isGun then
@@ -186,7 +190,7 @@ function Player:update(dt, world)
     self.leftReleased = not leftPressed
 
     -- Reload
-    local rPressed = love.keyboard.isDown('r')
+    local rPressed = not typing and love.keyboard.isDown('r')
     if rPressed and self.rReleased and heldItem.isGun then
         heldItem:reload()
     end
@@ -198,7 +202,7 @@ function Player:update(dt, world)
         and world:getTouchingDroppedGun(self) or nil
     self.touchingDoor = (not self.touchingChest and not self.touchingDroppedGun)
         and world:getTouchingDoor(self) or nil
-    local ePressed = love.keyboard.isDown('e')
+    local ePressed = not typing and love.keyboard.isDown('e')
     if ePressed and self.eReleased then
         if self.touchingChest then
             self.touchingChest:interact(self, world)

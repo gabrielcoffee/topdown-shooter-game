@@ -72,7 +72,13 @@ return {
 
     hotbar = { slotSize = 56, gap = 8, bottomMargin = 16 },
 
-    dev = { enabled = true }, -- master switch for the ` dev console
+    dev = { enabled = true }, -- master switch for the chat console (T / ` / Enter)
+    chat = {
+        showTime = 8,   -- secs a line stays on screen before fading (chat closed)
+        fadeTime = 1,   -- secs of the fade-out at the end of showTime
+        maxVisible = 8, -- most lines drawn at once
+        maxLog = 50,    -- lines kept in memory (scrollback + sent history)
+    },
     droppedGun = { interactPad = 4,   -- px around a dropped gun where E picks it up
                    dropOffset = 40 }, -- px in front of the player where drops land
 
