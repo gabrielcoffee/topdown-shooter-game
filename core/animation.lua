@@ -15,7 +15,7 @@ function Animation:new(quads, from, to, timeBetweenFrames, loop, image)
         index = from,
         timer = 0,
         turn = 1,
-        loop = loop or true,
+        loop = loop == nil and true or loop,
         ended = false,
         paused = false
     }
@@ -41,6 +41,24 @@ end
 function Animation:restart()
     self.timer = 0
     self.index = self.from
+    self.turn = 1
+    self.ended = false
+end
+
+-- Stretch/squeeze the whole animation to last `total` seconds (e.g. sync a
+-- reload gif to the gun's tuned reload time).
+function Animation:setDuration(total)
+    if self.delays then
+        self.nativeDelays = self.nativeDelays or self.delays
+        local native = 0
+        for _, d in ipairs(self.nativeDelays) do native = native + d end
+        local factor = total / native
+        local scaled = {}
+        for i, d in ipairs(self.nativeDelays) do scaled[i] = d * factor end
+        self.delays = scaled
+    else
+        self.timeBetweenFrames = total / self.totalFrames
+    end
 end
 
 function Animation:update(dt)

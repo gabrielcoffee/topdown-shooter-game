@@ -38,7 +38,7 @@ end
 love.graphics.setDefaultFilter('nearest', 'nearest')
 
 -- Load the images
-Assets.spritesheet = love.graphics.newImage('assets/images/spritesheet.png')
+Assets.spritesheet = love.graphics.newImage('assets/spritesheet.png')
 Assets.bg_dust = love.graphics.newImage('assets/images/bg_dust.png')
 Assets.bg_dust:setWrap("repeat", "repeat")
 

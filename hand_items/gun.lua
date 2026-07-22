@@ -2,6 +2,7 @@ local Assets = require('core.assets')
 local Bullet = require('entities.bullet')
 local HandItem = require('hand_items.hand_item')
 local Audio = require('core.audio')
+local Animation = require('core.animation')
 
 local Gun = {}
 Gun.__index = Gun
@@ -86,6 +87,7 @@ function Gun:newAk47()
     obj.sprite = Assets.quads.ak47[1]
     obj.type = GUNTYPE.auto
     obj.shotSfx = 'ak47_shot'
+    obj.reloadAnim = Animation:fromGif('assets/ak_reload.gif', false)
     obj.ox = 12
     obj.oy = 16
 
@@ -142,6 +144,9 @@ function Gun:update(dt, px, py, mx, my)
 
     if self.reloading then
         self.reloadTimer = self.reloadTimer + dt
+        if self.reloadAnim then
+            self.reloadAnim:update(dt)
+        end
         if self.shellSfx then
             -- per-shell reload: break-open first, then one shell per reloadTime
             if self.reloadOpening then
@@ -175,6 +180,11 @@ function Gun:reload()
     self.reloading = true
     self.reloadTimer = 0
     self.reloadOpening = self.shellSfx ~= nil
+    if self.reloadAnim then
+        -- gif plays exactly once over the tuned reload time
+        self.reloadAnim:setDuration(self.reloadingTime)
+        self.reloadAnim:restart()
+    end
     if self.reloadSfx then
         Audio.play(self.reloadSfx)
     end
@@ -187,6 +197,17 @@ function Gun:cancelReload()
 end
 
 function Gun:draw(facingLeft)
+    -- reload gif replaces the gun sprite; same transform, so the gun art
+    -- inside the gif lines up with where the normal sprite sits
+    if self.reloading and self.reloadAnim then
+        local a = self.reloadAnim
+        love.graphics.draw(
+            a.image, a.quads[a.index],
+            math.floor(self.x), math.floor(self.y),
+            self.angle, 1, facingLeft and -1 or 1, self.ox, self.oy
+        )
+        return
+    end
     HandItem.draw(self, facingLeft)
 end
 
