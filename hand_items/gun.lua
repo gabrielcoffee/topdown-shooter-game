@@ -68,11 +68,13 @@ function Gun:newUSP()
 
     obj.name = 'USP-45'
     obj.id = 'usp'
-    obj.sprite = Assets.quads.pistol[1]
+    obj.sprite = Assets.quads.held_pistol[1] -- in-hand: with-hands version
+    obj.icon = Assets.quads.pistol[1]        -- hotbar: bare item
     obj.type = GUNTYPE.semi
     obj.shotSfx = 'mac10_shot' -- closest pistol-ish sample on disk
-    obj.ox = 4
-    obj.oy = 16
+    obj.ox = 12 -- pivot = hand pixel in the held sprite
+    obj.oy = 19
+    obj.tipLen = 14 -- barrel tip distance from pivot (muzzle/bullet spawn)
 
     setmetatable(obj, Gun)
     return obj
@@ -84,12 +86,14 @@ function Gun:newAk47()
 
     obj.name = 'AK-47'
     obj.id = 'ak47'
-    obj.sprite = Assets.quads.ak47[1]
+    obj.sprite = Assets.quads.held_ak47[1]
+    obj.icon = Assets.quads.ak47[1]
     obj.type = GUNTYPE.auto
     obj.shotSfx = 'ak47_shot'
     obj.reloadAnim = Animation:fromGif('assets/ak_reload.gif', false)
-    obj.ox = 12
-    obj.oy = 16
+    obj.ox = 19 -- gif frames share the held sprite's coordinate space
+    obj.oy = 20
+    obj.tipLen = 28
 
     setmetatable(obj, Gun)
     return obj
@@ -101,11 +105,13 @@ function Gun:newM4A1()
 
     obj.name = 'M4A1'
     obj.id = 'm4a1'
-    obj.sprite = Assets.quads.m4a1[1]
+    obj.sprite = Assets.quads.held_m4a1[1]
+    obj.icon = Assets.quads.m4a1[1]
     obj.type = GUNTYPE.auto
     obj.shotSfx = 'm4a1_shot'
-    obj.ox = 12
-    obj.oy = 16
+    obj.ox = 19
+    obj.oy = 20
+    obj.tipLen = 36
 
     setmetatable(obj, Gun)
     return obj
@@ -117,14 +123,16 @@ function Gun:newShotgun()
 
     obj.name = 'Sawed-Off'
     obj.id = 'sawedoff'
-    obj.sprite = Assets.quads.shotgun[1]
+    obj.sprite = Assets.quads.held_shotgun[1]
+    obj.icon = Assets.quads.shotgun[1]
     obj.type = GUNTYPE.shotgun
     obj.shotSfx = 'shotgun_shot'
     obj.reloadSfx = 'shotgun_reload' -- break-open + tick, plays before shells go in
     obj.shellSfx = { 'shell1', 'shell2', 'shell3' }
     obj.reloadOpenTime = TUNE.guns.sawedoff.reloadOpenTime
-    obj.ox = 12
-    obj.oy = 16
+    obj.ox = 18
+    obj.oy = 20
+    obj.tipLen = 21
 
     setmetatable(obj, Gun)
     return obj
@@ -241,8 +249,9 @@ function Gun:fire(leftReleased)
 
     if self.type == GUNTYPE.auto or leftReleased then
 
-        local _, _, gw, gh = self.sprite:getViewport()
-        gw = gw - self.ox
+        -- barrel tip distance from the pivot; quad width no longer works since
+        -- held cells are padded (64 wide) beyond the gun art
+        local gw = self.tipLen
 
         self.canShoot = false
         Audio.play(self.shotSfx) -- once per trigger pull, not per pellet

@@ -14,10 +14,12 @@ local function drawItemIcon(item, x, y, size)
         return
     end
 
-    local _, _, qw, qh = item.sprite:getViewport()
+    -- hotbar shows the bare item; in-hand sprite has the hands baked in
+    local quad = item.icon or item.sprite
+    local _, _, qw, qh = quad:getViewport()
     local scale = math.min((size - 12) / qw, (size - 12) / qh)
     love.graphics.draw(
-        Assets.spritesheet, item.sprite,
+        Assets.spritesheet, quad,
         math.floor(x + size/2), math.floor(y + size/2),
         0, scale, scale, qw/2, qh/2
     )
