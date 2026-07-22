@@ -160,14 +160,23 @@ local function pushApart(a, b)
 end
 
 function World:update(dt)
+    -- knife hitstop: everything freezes for a few frames on impact
+    if self.hitstop and self.hitstop > 0 then
+        self.hitstop = self.hitstop - dt
+        return
+    end
+
     for _, entity in ipairs(self.entities) do
         entity:update(dt, self)
     end
 
-    -- Zombies never overlap each other
+    -- Zombies never overlap each other, or the player (unless falling)
     for i = 1, #self.entities do
         local a = self.entities[i]
         if a.type == 'enemy' then
+            if not self.player.falling then
+                pushApart(self.player, a)
+            end
             for j = i + 1, #self.entities do
                 local b = self.entities[j]
                 if b.type == 'enemy' then

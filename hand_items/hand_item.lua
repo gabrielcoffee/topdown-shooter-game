@@ -1,4 +1,5 @@
 local Assets = require('core.assets')
+local Audio = require('core.audio')
 
 local HandItem = {}
 HandItem.__index = HandItem
@@ -14,13 +15,73 @@ function HandItem:newKnife()
         angle = 0,
         sprite = Assets.quads.knife[1],
         static = true,
+        isKnife = true,
         walkSpeed = TUNE.knife.walkSpeed,
-        damage = TUNE.knife.damage, -- used when melee lands (step 8)
-        killReward = TUNE.knife.killReward
+        damage = TUNE.knife.damage,
+        killReward = TUNE.knife.killReward,
+
+        cdTimer = 0,    -- secs until the next swing is allowed
+        swingTimer = 0, -- secs left of the visual sweep
+        aimAngle = 0,   -- locked at swing start
+        swingDir = 1,   -- sweep side alternates each swing
     }
 
     setmetatable(obj, HandItem)
     return obj
+end
+
+-- Signed smallest difference between two angles
+local function angleDiff(a, b)
+    return (a - b + math.pi) % (2 * math.pi) - math.pi
+end
+
+-- Swing toward aimAngle: instant arc hit check on every enemy in reach,
+-- knockback + blood + hitstop on connect. Returns true if the swing started
+-- (cooldown gate), whether or not it hit anything.
+function HandItem:swing(aimAngle, player, world)
+    if self.cdTimer > 0 then return false end
+    local K = TUNE.knife
+    self.cdTimer = K.cooldown
+    self.swingTimer = K.swingTime
+    self.aimAngle = aimAngle
+    self.swingDir = -self.swingDir
+
+    local pcx, pcy = player:getCenter()
+    local hit, killed = false, false
+
+    for _, e in ipairs(world.entities) do
+        if e.type == 'enemy' and not e.toRemove and e.health > 0 then
+            local ecx, ecy = e:getCenter()
+            local dx, dy = ecx - pcx, ecy - pcy
+            local dist = math.sqrt(dx*dx + dy*dy)
+
+            if dist - e.radius <= K.range
+                and math.abs(angleDiff(math.atan2(dy, dx), aimAngle)) <= math.rad(K.arcDeg) / 2 then
+
+                local nx, ny = 1, 0
+                if dist > 0 then nx, ny = dx/dist, dy/dist end
+
+                e.health = e.health - self.damage
+                e.flash = true
+                e.kbx = nx * K.knockback
+                e.kby = ny * K.knockback
+                world.vfx:bloodSplatter(ecx - nx * e.radius, ecy - ny * e.radius, math.atan2(dy, dx))
+
+                hit = true
+                if e.health <= 0 then
+                    player.money = player.money + self.killReward
+                    killed = true
+                end
+            end
+        end
+    end
+
+    if hit then
+        world.hitstop = killed and K.hitstopKill or K.hitstop
+        -- placeholder stab sfx until a real knife sound is added
+        Audio.play(love.math.random() < 0.5 and 'bullet_hit1' or 'bullet_hit2')
+    end
+    return true
 end
 
 function HandItem:newGrenade(type)
@@ -75,6 +136,17 @@ function HandItem:update(dt, px, py, mx, my)
 
     local dx, dy = mx-self.x, my-self.y
     self.angle = math.atan2(dy, dx)
+
+    if self.isKnife then
+        self.cdTimer = math.max(0, self.cdTimer - dt)
+        if self.swingTimer > 0 then
+            self.swingTimer = math.max(0, self.swingTimer - dt)
+            -- sweep across the arc, alternating side each swing
+            local t = 1 - self.swingTimer / TUNE.knife.swingTime
+            local halfArc = math.rad(TUNE.knife.arcDeg) / 2
+            self.angle = self.aimAngle + self.swingDir * halfArc * (2*t - 1)
+        end
+    end
 end
 
 function HandItem:draw(facingLeft)

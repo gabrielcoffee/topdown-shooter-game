@@ -23,6 +23,9 @@ function Enemy:new(x, y, width, height)
     obj.pathIndex = 1
     obj.repathTimer = love.math.random() * TUNE.zombies.repathTime
 
+    -- knife shove, decays fast (separate from vx/vy so accel can't fight it)
+    obj.kbx, obj.kby = 0, 0
+
     setmetatable(obj, Enemy)
     return obj
 end
@@ -102,7 +105,14 @@ function Enemy:followPlayer(dt, world)
 
     self.maxSpeed = self.speed
     self:accelToward(dt, nx, ny, world)
+
+    -- knockback rides on top of normal velocity for the move, then comes off
+    -- again so accel keeps working from the real speed
+    local decay = math.exp(-TUNE.knife.knockbackDecay * dt)
+    self.kbx, self.kby = self.kbx * decay, self.kby * decay
+    self.vx, self.vy = self.vx + self.kbx, self.vy + self.kby
     self:moveAndCollide(dt, world)
+    self.vx, self.vy = self.vx - self.kbx, self.vy - self.kby
 end
 
 function Enemy:update(dt, world)
@@ -111,12 +121,20 @@ function Enemy:update(dt, world)
     -- spikes hurt, water/mud slow, holes kill
     self:applyTileEffects(dt, world)
 
-    -- Contact damage on the player (not while falling/invincible)
+    -- Contact damage on the player (not while falling/invincible).
+    -- Separation keeps the circles just apart, so plain overlap would never
+    -- trigger: attackRange pads the reach a few px past touching.
+    local px, py = world.player:getCenter()
+    local cx, cy = self:getCenter()
+    local ddx, ddy = px - cx, py - cy
+    local reach = self.radius + world.player.radius + TUNE.zombies.attackRange
+
     self.attackTimer = self.attackTimer + dt
-    if self.attackTimer >= self.attackCooldown and self:collidesWith(world.player)
+    if self.attackTimer >= self.attackCooldown and ddx*ddx + ddy*ddy < reach*reach
         and not world.player.falling and world.player.invulnTimer <= 0
         and not world.player.godMode then
         world.player.health = world.player.health - self.damage
+        world.player.flashTimer = TUNE.player.hitFlashTime
         self.attackTimer = 0
     end
 

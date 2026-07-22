@@ -29,6 +29,8 @@ function Player:new(x, y, width, height)
 
     obj.maxHealth = TUNE.player.maxHealth
     obj.health = obj.maxHealth
+    obj.radius = TUNE.player.bodyRadius -- circle vs zombies, smaller than the sprite
+    obj.flashTimer = 0                  -- white flash when hit
     obj.hitboxColor = {0, 1, 1} -- cyan: stands out over the sprite
 
     obj.speed = TUNE.player.baseSpeed
@@ -103,6 +105,9 @@ function Player:update(dt, world)
     if self.invulnTimer > 0 then
         self.invulnTimer = self.invulnTimer - dt
     end
+    if self.flashTimer > 0 then
+        self.flashTimer = self.flashTimer - dt
+    end
 
     -- locked buttons free up once released
     for k in pairs(self.lockedInputs) do
@@ -157,6 +162,14 @@ function Player:update(dt, world)
 
     if leftPressed and heldItem.isGun then
         heldItem:fire(self.leftReleased)
+    elseif leftPressed and self.leftReleased and heldItem.isKnife then
+        -- swing at the mouse; small lunge makes it aggressive (and risky)
+        local pcx, pcy = self:getCenter()
+        local aim = math.atan2(worldMy - pcy, worldMx - pcx)
+        if heldItem:swing(aim, self, world) then
+            self.vx = self.vx + math.cos(aim) * TUNE.knife.lungeSpeed
+            self.vy = self.vy + math.sin(aim) * TUNE.knife.lungeSpeed
+        end
     elseif leftPressed and self.leftReleased
         and heldItem.isThrowable and self.grenades > 0 then
         local cx, cy = self:getCenter()
@@ -222,6 +235,20 @@ function Player:update(dt, world)
 
 end
 
+-- Sprites can't be whitened with a color tint (tints multiply), so the hit
+-- flash swaps in a shader that mixes the texel toward pure white
+local whiteShader
+local function getWhiteShader()
+    whiteShader = whiteShader or love.graphics.newShader([[
+        extern float amount;
+        vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
+            vec4 p = Texel(tex, tc) * color;
+            return vec4(mix(p.rgb, vec3(1.0), amount), p.a);
+        }
+    ]])
+    return whiteShader
+end
+
 -- Falling in a hole: fall anim, then respawn at last ground tile (see update)
 function Player:onFellInHole(world)
     if self.falling or self.invulnTimer > 0 then return end
@@ -254,6 +281,13 @@ function Player:draw()
         return
     end
 
+    local flashing = self.flashTimer > 0
+    if flashing then
+        local sh = getWhiteShader()
+        sh:send('amount', 1)
+        love.graphics.setShader(sh)
+    end
+
     if self.animState == 'idle' then
         love.graphics.draw(
             Assets.spritesheet, Assets.quads.player[1],
@@ -272,6 +306,10 @@ function Player:draw()
     end
 
     self.items[self.itemIndex]:draw(facingLeft)
+
+    if flashing then
+        love.graphics.setShader()
+    end
 end
 
 function Player:drawHud()

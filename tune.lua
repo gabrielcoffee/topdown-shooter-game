@@ -9,6 +9,8 @@ return {
         fallTime = 0.5,       -- secs of falling anim before hole respawn
         holeInvulnTime = 2,   -- secs of invincibility after hole respawn
         blinkInterval = 0.1,  -- sprite blink rate while invincible
+        bodyRadius = 14,      -- circle vs zombies (smaller than the 32px sprite)
+        hitFlashTime = 0.12,  -- secs the sprite flashes white when hit
     },
 
     movement = {
@@ -39,7 +41,16 @@ return {
                      pellets = 14, spread = 0.20, killReward = 10 }, -- damage is per pellet
     },
 
-    knife   = { damage = 60,  walkSpeed = 130, killReward = 50 },
+    knife   = { damage = 60,  walkSpeed = 130, killReward = 50,
+                range = 44,          -- arc reach from player center, px
+                arcDeg = 110,        -- swing arc width, degrees (aiming matters)
+                cooldown = 0.5,      -- secs between swings
+                swingTime = 0.14,    -- visual sweep duration
+                lungeSpeed = 150,    -- forward impulse on swing, px/s
+                knockback = 240,     -- shove on hit zombies, px/s
+                knockbackDecay = 8,  -- higher = shove stops sooner
+                hitstop = 0.04,      -- secs the world freezes on connect
+                hitstopKill = 0.09 },-- bigger freeze when the swing kills
     grenade = { damage = 120, walkSpeed = 120, killReward = 10,
                 throwSpeed = 240,  -- px/sec toward the aim point
                 fuse = 1.2,        -- secs from throw to blast
@@ -120,6 +131,7 @@ return {
     zombies = {
         contactDamage = 25,   -- all types
         contactCooldown = 1.0, -- secs between hits, per zombie
+        attackRange = 6,      -- px beyond touching circles where a hit lands
         repathTime = 0.4,     -- secs between A* recalculations, per zombie
 
         slow   = { speed = 30, lifeMult = 1,   size = 48 },
