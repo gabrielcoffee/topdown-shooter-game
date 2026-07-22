@@ -104,6 +104,12 @@ function State.keypressed(key)
     if s and s.keypressed then s:keypressed(key) end
 end
 
+function State.textinput(t)
+    if fade then return end
+    local s = State.current()
+    if s and s.textinput then s:textinput(t) end
+end
+
 function State.mousepressed(x, y, btn)
     if fade then return end
     local s = State.current()

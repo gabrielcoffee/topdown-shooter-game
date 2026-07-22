@@ -31,6 +31,8 @@ end
 function playing:keypressed(key)
     if key == 'escape' then
         State.push('paused')
+    elseif key == '`' and TUNE.dev and TUNE.dev.enabled then
+        State.push('console')
     elseif key == 'h' then
         showHitboxes = not showHitboxes
     elseif key == 'u' then

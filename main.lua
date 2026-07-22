@@ -49,6 +49,10 @@ function love.keypressed(key)
     State.keypressed(key)
 end
 
+function love.textinput(t)
+    State.textinput(t)
+end
+
 function love.mousepressed(x, y, btn)
     State.mousepressed(x, y, btn)
 end

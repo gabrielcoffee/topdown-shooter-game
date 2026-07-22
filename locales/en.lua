@@ -27,6 +27,7 @@ return {
     ['hud.money']        = '$ %d',
     ['hud.ammo']         = '%s  Ammo: %d/%d',
     ['hud.reloading']    = '%s  RELOADING...',
+    ['hud.gun_pickup']   = 'Press E to pick up %s',
     ['hud.door_open']    = 'Press E to open - $%d',
     ['hud.door_locked']  = 'Locked - need $%d',
 

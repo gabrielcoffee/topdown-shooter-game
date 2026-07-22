@@ -157,7 +157,7 @@ function Entity:applyTileEffects(dt, world)
     local tile = world.map:typeAt(self:getCenter())
 
     if tile == 'spikes' then
-        if not (self.invulnTimer and self.invulnTimer > 0) then
+        if not (self.invulnTimer and self.invulnTimer > 0) and not self.godMode then
             self.health = self.health - TUNE.tiles.spikeDps * dt
         end
     elseif tile == 'ground' or tile == 'torch' then

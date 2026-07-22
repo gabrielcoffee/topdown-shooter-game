@@ -83,7 +83,9 @@ function Player:update(dt, world)
         self.fallTimer = self.fallTimer + dt
         if self.fallTimer >= TUNE.player.fallTime then
             self.falling = false
-            self.health = self.health - TUNE.tiles.holeDamage
+            if not self.godMode then
+                self.health = self.health - TUNE.tiles.holeDamage
+            end
             self.x, self.y = self.lastGroundX, self.lastGroundY
             self.vx, self.vy = 0, 0
             self.invulnTimer = TUNE.player.holeInvulnTime
@@ -177,13 +179,25 @@ function Player:update(dt, world)
     end
     self.rReleased = not rPressed
 
-    -- E interactions: chest wins over door when touching both
+    -- E interactions: chest > dropped gun > door when touching several
     self.touchingChest = world:getTouchingChest(self)
-    self.touchingDoor = (not self.touchingChest) and world:getTouchingDoor(self) or nil
+    self.touchingDroppedGun = (not self.touchingChest)
+        and world:getTouchingDroppedGun(self) or nil
+    self.touchingDoor = (not self.touchingChest and not self.touchingDroppedGun)
+        and world:getTouchingDoor(self) or nil
     local ePressed = love.keyboard.isDown('e')
     if ePressed and self.eReleased then
         if self.touchingChest then
             self.touchingChest:interact(self, world)
+        elseif self.touchingDroppedGun then
+            local dg = self.touchingDroppedGun
+            local old = self:giveGun(dg.gun)
+            dg.toRemove = true
+            self.touchingDroppedGun = nil
+            if old then -- full slots: swap, old gun stays on the ground
+                local DroppedGun = require('entities.dropped_gun')
+                world:addEntity(DroppedGun:new(dg.x, dg.y, old))
+            end
         elseif self.touchingDoor and self.money >= self.touchingDoor.price then
             self.money = self.money - self.touchingDoor.price
             world:openDoor(self.touchingDoor)
@@ -281,6 +295,8 @@ function Player:drawHud()
         elseif c.state == 'offering' then
             prompt = T('hud.chest_take', c.result.name, math.ceil(c.takeTimer))
         end
+    elseif self.touchingDroppedGun then
+        prompt = T('hud.gun_pickup', self.touchingDroppedGun.gun.name)
     elseif self.touchingDoor then
         local d = self.touchingDoor
         prompt = T('hud.door_open', d.price)
@@ -296,6 +312,23 @@ function Player:drawHud()
             SCREENWIDTH/2 - font:getWidth(prompt)/2, SCREENHEIGHT - 120)
         love.graphics.setColor(Color.white())
     end
+end
+
+-- Put a gun in the hotbar and hold it. Target slot: empty gun slot first
+-- (2 then 1), else the gun in hand, else the last gun slot held.
+-- Returns the gun that got replaced (nil if the slot was empty).
+function Player:giveGun(gun)
+    local target
+    if not self.items[2] then target = 2
+    elseif not self.items[1] then target = 1
+    elseif self.itemIndex == 1 or self.itemIndex == 2 then target = self.itemIndex
+    else target = self.lastGunSlot end
+
+    local old = self.items[target]
+    self.items[target] = gun
+    self.itemIndex = target
+    self.lastGunSlot = target
+    return old
 end
 
 -- Run-save data: health, money, held slot, gun slots (by id + ammo),
@@ -323,13 +356,6 @@ function Player:serialize()
     }
 end
 
-local gunFactories = {
-    usp    = function() return Gun:newUSP() end,
-    ak47   = function() return Gun:newAk47() end,
-    m4a1   = function() return Gun:newM4A1() end,
-    sawedoff = function() return Gun:newShotgun() end,
-}
-
 function Player:restore(data)
     self.health = data.health or self.health
     self.money = data.money or self.money
@@ -339,14 +365,12 @@ function Player:restore(data)
 
     for i = 1, 2 do
         local g = data.gunSlots[i]
-        if g and gunFactories[g.id] then
-            local gun = gunFactories[g.id]()
+        local gun = g and Gun.newById(g.id)
+        if gun then
             gun.curClip = g.curClip or gun.curClip
             gun.bulletsLeft = g.bulletsLeft or gun.bulletsLeft
-            self.items[i] = gun
-        else
-            self.items[i] = nil
         end
+        self.items[i] = gun or nil
     end
     self.items[5] = data.hasHealthPack and HandItem:newHealthPack() or nil
     self.grenades = data.grenades or 0

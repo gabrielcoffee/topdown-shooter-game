@@ -7,6 +7,23 @@ local Gun = {}
 Gun.__index = Gun
 setmetatable(Gun, HandItem)
 
+-- Ordered list + factory by id: single source for chest, console, save restore
+Gun.ids = { 'usp', 'ak47', 'm4a1', 'sawedoff' }
+
+function Gun.newById(id)
+    if id == 'usp' then return Gun:newUSP() end
+    if id == 'ak47' then return Gun:newAk47() end
+    if id == 'm4a1' then return Gun:newM4A1() end
+    if id == 'sawedoff' then return Gun:newShotgun() end
+end
+
+-- gun id -> spritesheet quad name (ids mostly match, two exceptions)
+function Gun.quadName(id)
+    if id == 'sawedoff' then return 'shotgun' end
+    if id == 'usp' then return 'pistol' end
+    return id
+end
+
 _G.GUNTYPE = {
     auto = 0,
     semi = 1,

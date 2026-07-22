@@ -114,7 +114,8 @@ function Enemy:update(dt, world)
     -- Contact damage on the player (not while falling/invincible)
     self.attackTimer = self.attackTimer + dt
     if self.attackTimer >= self.attackCooldown and self:collidesWith(world.player)
-        and not world.player.falling and world.player.invulnTimer <= 0 then
+        and not world.player.falling and world.player.invulnTimer <= 0
+        and not world.player.godMode then
         world.player.health = world.player.health - self.damage
         self.attackTimer = 0
     end

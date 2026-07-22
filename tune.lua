@@ -61,6 +61,10 @@ return {
 
     hotbar = { slotSize = 56, gap = 8, bottomMargin = 16 },
 
+    dev = { enabled = true }, -- master switch for the ` dev console
+    droppedGun = { interactPad = 4,   -- px around a dropped gun where E picks it up
+                   dropOffset = 40 }, -- px in front of the player where drops land
+
     bullet = { speed = 360 },
 
     audio = {

@@ -13,12 +13,6 @@ local Chest = {}
 Chest.__index = Chest
 setmetatable(Chest, Entity)
 
-local gunFactories = {
-    ak47   = function() return Gun:newAk47() end,
-    m4a1   = function() return Gun:newM4A1() end,
-    sawedoff = function() return Gun:newShotgun() end,
-}
-
 local gunNames = { ak47 = 'AK-47', m4a1 = 'M4A1', sawedoff = 'Sawed-Off' }
 
 function Chest:new(x, y)
@@ -79,18 +73,8 @@ function Chest:roll(player)
     return { kind = 'gun', gunId = chosen, name = gunNames[chosen] }
 end
 
--- Target slot: empty gun slot first, else the gun in hand,
--- else the last gun slot the player held
 function Chest:giveGun(player)
-    local target
-    if not player.items[2] then target = 2
-    elseif not player.items[1] then target = 1
-    elseif player.itemIndex == 1 or player.itemIndex == 2 then target = player.itemIndex
-    else target = player.lastGunSlot end
-
-    player.items[target] = gunFactories[self.result.gunId]()
-    player.itemIndex = target
-    player.lastGunSlot = target
+    player:giveGun(Gun.newById(self.result.gunId)) -- replaced gun is lost (box ate it)
 end
 
 function Chest:interact(player, world)
@@ -151,7 +135,7 @@ function Chest:resolve(world)
             if gun and gun.id == r.gunId then
                 gun:cancelReload()
                 gun.curClip = gun.maxClip
-                gun.bulletsLeft = gun.maxClip * 3
+                gun.bulletsLeft = TUNE.guns[gun.id].reserve or gun.maxClip * 3
             end
         end
         self.toastText = T('hud.chest_refill', r.name)
@@ -199,8 +183,7 @@ function Chest:draw()
         love.graphics.draw(Assets.spritesheet, quad,
             math.floor(cx), math.floor(y - 20 + bob), 0, 1, 1, qw/2, qh/2)
     elseif self.state == 'offering' then
-        local quad = Assets.quads[self.result.gunId == 'sawedoff' and 'shotgun'
-            or self.result.gunId][1]
+        local quad = Assets.quads[Gun.quadName(self.result.gunId)][1]
         local _, _, qw, qh = quad:getViewport()
         love.graphics.setColor(1, 1, 1)
         love.graphics.draw(Assets.spritesheet, quad,

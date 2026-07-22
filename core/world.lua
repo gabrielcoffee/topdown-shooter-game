@@ -103,6 +103,18 @@ function World:getTouchingChest(player)
     end
 end
 
+-- Dropped gun the player's box (padded) is touching, if any
+function World:getTouchingDroppedGun(player)
+    local pad = TUNE.droppedGun.interactPad
+    for _, e in ipairs(self.entities) do
+        if e.type == 'dropped_gun' and not e.toRemove
+            and player.x < e.x + e.width + pad and player.x + player.width > e.x - pad
+            and player.y < e.y + e.height + pad and player.y + player.height > e.y - pad then
+            return e
+        end
+    end
+end
+
 -- Buying a door: remember its id (activates linked spawn points), then remove it
 function World:openDoor(door)
     if door.id then
