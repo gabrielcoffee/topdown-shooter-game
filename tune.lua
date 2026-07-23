@@ -5,7 +5,7 @@ return {
     player = {
         maxHealth = 100,
         baseSpeed = 130, -- walk speed, whatever is held
-        walkSpeedMult = 0.45, -- shift held: slower but steadier aim
+        walkSpeedMult = 0.34, -- shift held: at the accuracy floor, so walking = accurate
         startMoney = 0,
         fallTime = 0.5,       -- secs of falling anim before hole respawn
         holeInvulnTime = 2,   -- secs of invincibility after hole respawn
@@ -18,6 +18,10 @@ return {
         accelTime = 0.45,   -- secs to reach max speed
         decelTime = 0.10,   -- secs to stop from max speed
         collisionInset = 4, -- px shaved off each AABB side vs tiles (32px body fits 32px gaps)
+        -- movement inaccuracy window, as fractions of baseSpeed (CS: 34%..95%):
+        -- below floor = perfectly accurate, above ceil = full moveSpread
+        spreadSpeedFloor = 0.34,
+        spreadSpeedCeil = 0.95,
     },
 
     tiles = {
@@ -35,22 +39,23 @@ return {
     guns = {
         -- aim model (all angles in radians):
         --   baseSpread    = inaccuracy standing still
-        --   moveSpread    = extra inaccuracy at full run (scales with actual speed)
+        --   moveSpread    = extra inaccuracy at full run (0 below 34% speed,
+        --                   ramps linearly to full at 95% — see movement block)
         --   recoilPerShot = spread added by each shot...
         --   recoilMax     = ...capped here
         --   recoilRecover = recoil lost per second when not shooting
         usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 2,   bulletLife = 0.5, killReward = 20,
-                   baseSpread = 0.008, moveSpread = 0.055, recoilPerShot = 0.022, recoilMax = 0.09, recoilRecover = 0.30 },
+                   baseSpread = 0.008, moveSpread = 0.060, recoilPerShot = 0.022, recoilMax = 0.09, recoilRecover = 0.30 },
         ak47   = { damage = 40, clip = 30, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10,
-                   baseSpread = 0.012, moveSpread = 0.075, recoilPerShot = 0.016, recoilMax = 0.13, recoilRecover = 0.28 },
+                   baseSpread = 0.012, moveSpread = 0.120, recoilPerShot = 0.016, recoilMax = 0.13, recoilRecover = 0.28 },
         m4a1   = { damage = 35, clip = 25, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10,
-                   baseSpread = 0.010, moveSpread = 0.070, recoilPerShot = 0.014, recoilMax = 0.11, recoilRecover = 0.30 },
+                   baseSpread = 0.010, moveSpread = 0.110, recoilPerShot = 0.014, recoilMax = 0.11, recoilRecover = 0.30 },
         -- reloadTime = secs PER SHELL; reloadOpenTime = break-open sound before first shell
         -- spread here is the fixed pellet cone; aim spread shifts the whole cone
         sawedoff = { damage = 10, clip = 2, bulletDelay = 0.5, reloadTime = 0.5, bulletLife = 0.7,
                      reloadOpenTime = 0.4, reserve = 18,
                      pellets = 14, spread = 0.20, killReward = 10, -- damage is per pellet
-                     baseSpread = 0.025, moveSpread = 0.085, recoilPerShot = 0.06, recoilMax = 0.12, recoilRecover = 0.35 },
+                     baseSpread = 0.025, moveSpread = 0.100, recoilPerShot = 0.06, recoilMax = 0.12, recoilRecover = 0.35 },
     },
 
     crosshair = {
@@ -58,7 +63,7 @@ return {
         chipLen = 3,      -- chip long side, px (before the size setting multiplies it)
         chipThick = 2,    -- chip short side, px
         spreadToPx = 120, -- gap px added per radian of current spread
-        openSpeed = 14,   -- how fast the gap chases its target (higher = snappier)
+        openSpeed = 18,   -- how fast the gap chases its target (higher = snappier)
         tiltSpeed = 10,   -- how fast the 45° tilt eases in/out over an enemy
         itemMoveGap = 8,  -- max extra gap while moving with knife/grenade/medkit
     },

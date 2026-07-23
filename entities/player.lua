@@ -143,9 +143,14 @@ function Player:update(dt, world)
     self:accelToward(dt, moveX, moveY, world)
     self:moveAndCollide(dt, world)
 
-    -- actual speed as 0..1 of a full run — feeds gun spread + crosshair opening
+    -- CS-style movement accuracy: fully accurate below the floor (34% of run
+    -- speed in CS), inaccuracy ramps linearly up to the ceiling (95%). Fast
+    -- decel means stopping snaps back under the floor — counter-strafe feel.
     local spd = math.sqrt(self.vx * self.vx + self.vy * self.vy)
-    self.moveFactor = math.min(1, spd / TUNE.player.baseSpeed)
+    local base = TUNE.player.baseSpeed
+    local floor = base * TUNE.movement.spreadSpeedFloor
+    local ceil = base * TUNE.movement.spreadSpeedCeil
+    self.moveFactor = math.max(0, math.min(1, (spd - floor) / (ceil - floor)))
 
     -- spikes / water / mud / hole
     self:applyTileEffects(dt, world)
