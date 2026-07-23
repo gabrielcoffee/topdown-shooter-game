@@ -114,16 +114,27 @@ local function resolve(name)
     return name
 end
 
+-- A new play must ALWAYS get a voice (rapid AK fire never goes silent).
+-- Free source first, grow the pool to poolSize, then steal the play that's
+-- closest to finishing — standard channel-stealing, what CS/Source does.
 local function grabSource(name)
     local pool = pools[name]
     if not pool then return nil end
     for _, s in ipairs(pool) do
         if not s:isPlaying() then return s end
     end
-    if #pool >= TUNE.audio.poolSize then return nil end
-    local src = pool[1]:clone()
-    table.insert(pool, src)
-    return src
+    if #pool < TUNE.audio.poolSize then
+        local src = pool[1]:clone()
+        table.insert(pool, src)
+        return src
+    end
+    local best, bestLeft
+    for _, s in ipairs(pool) do
+        local left = s:getDuration('seconds') - s:tell('seconds')
+        if not bestLeft or left < bestLeft then best, bestLeft = s, left end
+    end
+    best:stop()
+    return best
 end
 
 -- Straight walk over the tile grid: is a solid wall between a and b?

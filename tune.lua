@@ -131,7 +131,7 @@ return {
         masterDefault = 1,  -- 0..1, used until the player touches the options
         sfxDefault = 1,
         musicDefault = 1,
-        poolSize = 6, -- max simultaneous plays of the same sound
+        poolSize = 8, -- max simultaneous plays of the same sound (then oldest is stolen)
 
         -- positional ("surround") audio; world px -> OpenAL units
         pxPerUnit = 100,     -- smaller = stronger pan + faster falloff
