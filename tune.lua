@@ -41,30 +41,30 @@ return {
         --   baseSpread    = inaccuracy standing still
         --   moveSpread    = extra inaccuracy at full run (0 below 34% speed,
         --                   ramps linearly to full at 95% — see movement block)
-        --   recoilPerShot = spread added by each shot...
+        --   recoilPerShot = spread added by each shot (stacks — spray = wild)...
         --   recoilMax     = ...capped here
-        --   recoilRecover = recoil lost per second when not shooting
+        --   recoilDelay   = secs after the last shot before recovery starts
+        --   recoilRecover = recoil lost per second once recovering
         usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 2,   bulletLife = 0.5, killReward = 20,
-                   baseSpread = 0.008, moveSpread = 0.060, recoilPerShot = 0.022, recoilMax = 0.09, recoilRecover = 0.30 },
+                   baseSpread = 0.008, moveSpread = 0.120, recoilPerShot = 0.030, recoilMax = 0.15, recoilDelay = 0.30, recoilRecover = 0.40 },
         ak47   = { damage = 40, clip = 30, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10,
-                   baseSpread = 0.012, moveSpread = 0.120, recoilPerShot = 0.016, recoilMax = 0.13, recoilRecover = 0.28 },
+                   baseSpread = 0.012, moveSpread = 0.220, recoilPerShot = 0.035, recoilMax = 0.30, recoilDelay = 0.25, recoilRecover = 0.45 },
         m4a1   = { damage = 35, clip = 25, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10,
-                   baseSpread = 0.010, moveSpread = 0.110, recoilPerShot = 0.014, recoilMax = 0.11, recoilRecover = 0.30 },
+                   baseSpread = 0.010, moveSpread = 0.200, recoilPerShot = 0.030, recoilMax = 0.26, recoilDelay = 0.25, recoilRecover = 0.45 },
         -- reloadTime = secs PER SHELL; reloadOpenTime = break-open sound before first shell
         -- spread here is the fixed pellet cone; aim spread shifts the whole cone
         sawedoff = { damage = 10, clip = 2, bulletDelay = 0.5, reloadTime = 0.5, bulletLife = 0.7,
                      reloadOpenTime = 0.4, reserve = 18,
                      pellets = 14, spread = 0.20, killReward = 10, -- damage is per pellet
-                     baseSpread = 0.025, moveSpread = 0.100, recoilPerShot = 0.06, recoilMax = 0.12, recoilRecover = 0.35 },
+                     baseSpread = 0.025, moveSpread = 0.180, recoilPerShot = 0.080, recoilMax = 0.16, recoilDelay = 0.40, recoilRecover = 0.40 },
     },
 
     crosshair = {
         gapMin = 2,       -- px from center to a chip's inner edge at zero spread (chips 4px apart)
-        chipLen = 3,      -- chip long side, px (before the size setting multiplies it)
+        chipLen = 3,      -- chip long side, px
         chipThick = 2,    -- chip short side, px
         spreadToPx = 120, -- gap px added per radian of current spread
         openSpeed = 18,   -- how fast the gap chases its target (higher = snappier)
-        tiltSpeed = 10,   -- how fast the 45° tilt eases in/out over an enemy
         itemMoveGap = 8,  -- max extra gap while moving with knife/grenade/medkit
     },
 

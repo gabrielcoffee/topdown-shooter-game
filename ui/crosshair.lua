@@ -1,18 +1,15 @@
 -- CS-style crosshair: 4 chips that open with the current spread (movement +
--- recoil) and close when standing still. Look (color / size / tilt / outline)
--- comes from SETTINGS, geometry and feel from TUNE.crosshair. Drawn at SCALE
--- so the chips stay pixel-art sized.
+-- recoil) and close when standing still. Never drawn past where the held
+-- gun's bullets can actually reach. Color (white/green) + outline come from
+-- SETTINGS, geometry and feel from TUNE.crosshair. Drawn at SCALE so the
+-- chips stay pixel-art sized.
 
 local Crosshair = {}
 
--- Preset palette the options menu cycles through (ids are what gets saved)
+-- The two allowed colors (ids are what gets saved)
 Crosshair.colors = {
-    { id = 'white',   name = 'WHITE',   rgb = {1, 1, 1} },
-    { id = 'green',   name = 'GREEN',   rgb = {0.2, 1, 0.2} },
-    { id = 'cyan',    name = 'CYAN',    rgb = {0.2, 1, 1} },
-    { id = 'yellow',  name = 'YELLOW',  rgb = {1, 1, 0.2} },
-    { id = 'red',     name = 'RED',     rgb = {1, 0.25, 0.25} },
-    { id = 'magenta', name = 'MAGENTA', rgb = {1, 0.3, 1} },
+    { id = 'white', name = 'WHITE', rgb = {1, 1, 1} },
+    { id = 'green', name = 'GREEN', rgb = {0.2, 1, 0.2} },
 }
 
 function Crosshair.colorById(id)
@@ -31,8 +28,7 @@ function Crosshair.nextColorId(id, dir)
     return Crosshair.colors[1].id
 end
 
-local gap = nil  -- smoothed px gap (center to chip inner edge), world-pixel units
-local tiltT = 0  -- 0..1 eased progress of the 45° tilt
+local gap = nil -- smoothed px gap (center to chip inner edge), world-pixel units
 
 function Crosshair.update(dt, world)
     local K = TUNE.crosshair
@@ -48,39 +44,35 @@ function Crosshair.update(dt, world)
     end
     if gap == nil then gap = target end
     gap = gap + (target - gap) * math.min(1, K.openSpeed * dt)
-
-    -- tilt eases in while a living zombie's hitbox sits under the mouse
-    local wantTilt = false
-    if SETTINGS.crossTilt then
-        local mx, my = love.mouse.getPosition()
-        local wx, wy = mx / SCALE + world.camX, my / SCALE + world.camY
-        for _, e in ipairs(world.entities) do
-            if e.type == 'enemy' and not e.toRemove and e.health > 0 then
-                local cx, cy = e:getCenter()
-                local dx, dy = wx - cx, wy - cy
-                if dx * dx + dy * dy <= e.radius * e.radius then
-                    wantTilt = true
-                    break
-                end
-            end
-        end
-    end
-    tiltT = math.max(0, math.min(1, tiltT + (wantTilt and 1 or -1) * K.tiltSpeed * dt))
 end
 
-function Crosshair.draw()
+function Crosshair.draw(world)
     local K = TUNE.crosshair
-    local s = SETTINGS.crossSize or 1
-    local len, thick = K.chipLen * s, K.chipThick * s
     local g = gap or K.gapMin
     local mx, my = love.mouse.getPosition()
+
+    -- the crosshair never sits past the bullet's actual reach
+    local player = world.player
+    local held = player.items[player.itemIndex]
+    if held and held.isGun then
+        local pcx, pcy = player:getCenter()
+        local sx = (pcx - world.camX) * SCALE
+        local sy = (pcy - world.camY) * SCALE
+        local reach = (held.tipLen + TUNE.bullet.speed * held.bulletLifeTime) * SCALE
+        local dx, dy = mx - sx, my - sy
+        local dist = math.sqrt(dx * dx + dy * dy)
+        if dist > reach then
+            mx = sx + dx / dist * reach
+            my = sy + dy / dist * reach
+        end
+    end
 
     love.graphics.push()
     love.graphics.translate(mx, my)
     love.graphics.scale(SCALE, SCALE)
-    love.graphics.rotate(tiltT * math.pi / 4)
 
     -- right / left chips lie flat, top / bottom stand upright
+    local len, thick = K.chipLen, K.chipThick
     local chips = {
         {  g,          -thick / 2, len,   thick },
         { -g - len,    -thick / 2, len,   thick },

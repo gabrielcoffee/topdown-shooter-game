@@ -44,7 +44,8 @@ local function GunStateVariables(maxClip)
         bulletsLeft = maxClip * 3,
         reloading = false,
         reloadTimer = 0,
-        recoil = 0 -- spread added by firing, decays over time
+        recoil = 0,      -- spread added by firing, recovers after a pause
+        sinceShot = 999  -- secs since the last shot (gates recoil recovery)
     }
 end
 
@@ -65,6 +66,7 @@ local function applyTune(obj, t)
     obj.recoilPerShot = t.recoilPerShot or 0
     obj.recoilMax = t.recoilMax or 0
     obj.recoilRecover = t.recoilRecover or 0
+    obj.recoilDelay = t.recoilDelay or 0
 end
 
 function Gun:newUSP()
@@ -146,7 +148,12 @@ end
 function Gun:update(dt, px, py, mx, my)
     HandItem.update(self, dt, px, py, mx, my)
 
-    self.recoil = math.max(0, self.recoil - self.recoilRecover * dt)
+    -- recoil holds while firing; recovery only starts recoilDelay after the
+    -- last shot (otherwise recovery between shots eats every shot's gain)
+    self.sinceShot = self.sinceShot + dt
+    if self.sinceShot >= self.recoilDelay then
+        self.recoil = math.max(0, self.recoil - self.recoilRecover * dt)
+    end
 
     if self.canShoot == false then
         self.timer = self.timer + dt
@@ -307,6 +314,7 @@ function Gun:fire(leftReleased)
             )
         end
         self.recoil = math.min(self.recoilMax, self.recoil + self.recoilPerShot)
+        self.sinceShot = 0
         self.curClip = self.curClip - 1
 
         -- sawed-off: barrels empty -> break open and reload right away

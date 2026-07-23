@@ -58,9 +58,7 @@ function Save.loadSettings()
         music = s.music or TUNE.audio.musicDefault,
         language = s.language or 'en',
         -- crosshair look (== nil keeps saved false from reading as default)
-        crossColor = s.crossColor or 'white',
-        crossSize = s.crossSize or 1,
-        crossTilt = s.crossTilt == nil and true or s.crossTilt,
+        crossColor = s.crossColor == 'green' and 'green' or 'white',
         crossOutline = s.crossOutline == nil and true or s.crossOutline,
     }
 end

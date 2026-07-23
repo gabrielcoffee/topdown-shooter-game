@@ -248,7 +248,7 @@ function World:draw()
     self.waves:drawBanner()
 
     -- CS-style crosshair replaces the mouse (opens with spread, see ui/crosshair)
-    Crosshair.draw()
+    Crosshair.draw(self)
 end
 
 -- Save data for the single run slot: wave + player state.

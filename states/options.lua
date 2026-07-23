@@ -54,22 +54,6 @@ function options:enter()
             end,
         },
         {
-            label = 'options.cross_size', type = 'cycle',
-            value = function() return SETTINGS.crossSize .. 'X' end,
-            cycle = function(dir)
-                SETTINGS.crossSize = ((SETTINGS.crossSize - 1 + dir) % 3) + 1
-                apply()
-            end,
-        },
-        {
-            label = 'options.cross_tilt', type = 'cycle',
-            value = function() return SETTINGS.crossTilt and T('options.on') or T('options.off') end,
-            cycle = function()
-                SETTINGS.crossTilt = not SETTINGS.crossTilt
-                apply()
-            end,
-        },
-        {
             label = 'options.cross_outline', type = 'cycle',
             value = function() return SETTINGS.crossOutline and T('options.on') or T('options.off') end,
             cycle = function()
@@ -81,7 +65,7 @@ function options:enter()
             label = 'options.back', type = 'action',
             activate = function() State.pop() end,
         },
-    }, 340, 46)
+    }, 400)
 end
 
 function options:update(dt)

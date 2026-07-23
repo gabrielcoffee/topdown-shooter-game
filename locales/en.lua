@@ -18,8 +18,6 @@ return {
     ['options.music']    = 'MUSIC',
     ['options.language'] = 'LANGUAGE',
     ['options.cross_color']   = 'CROSSHAIR COLOR',
-    ['options.cross_size']    = 'CROSSHAIR SIZE',
-    ['options.cross_tilt']    = 'CROSSHAIR TILT',
     ['options.cross_outline'] = 'CROSSHAIR OUTLINE',
     ['options.on']       = 'ON',
     ['options.off']      = 'OFF',
