@@ -137,8 +137,8 @@ function Player:update(dt, world)
         moveX, moveY = moveX * inv, moveY * inv
     end
 
-    -- walk speed depends on held item; accel/decel + tile collision
-    self.maxSpeed = self.items[self.itemIndex].walkSpeed or self.speed
+    -- one walk speed whatever is held; accel/decel + tile collision
+    self.maxSpeed = self.speed
     self:accelToward(dt, moveX, moveY, world)
     self:moveAndCollide(dt, world)
 

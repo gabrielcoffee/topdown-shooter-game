@@ -4,7 +4,7 @@
 return {
     player = {
         maxHealth = 100,
-        baseSpeed = 90, -- fallback when held item has no walkSpeed
+        baseSpeed = 130, -- walk speed, whatever is held
         startMoney = 0,
         fallTime = 0.5,       -- secs of falling anim before hole respawn
         holeInvulnTime = 2,   -- secs of invincibility after hole respawn
@@ -32,16 +32,16 @@ return {
     door  = { price = 250, interactPad = 4 },
 
     guns = {
-        usp    = { damage = 20, clip = 15, walkSpeed = 120, bulletDelay = 0.15, reloadTime = 2,   bulletLife = 0.5, killReward = 20 },
-        ak47   = { damage = 40, clip = 30, walkSpeed = 90,  bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10 },
-        m4a1   = { damage = 35, clip = 25, walkSpeed = 90,  bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10 },
+        usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 2,   bulletLife = 0.5, killReward = 20 },
+        ak47   = { damage = 40, clip = 30, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10 },
+        m4a1   = { damage = 35, clip = 25, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10 },
         -- reloadTime = secs PER SHELL; reloadOpenTime = break-open sound before first shell
-        sawedoff = { damage = 10, clip = 2, walkSpeed = 100, bulletDelay = 0.5, reloadTime = 0.5, bulletLife = 0.7,
+        sawedoff = { damage = 10, clip = 2, bulletDelay = 0.5, reloadTime = 0.5, bulletLife = 0.7,
                      reloadOpenTime = 0.4, reserve = 18,
                      pellets = 14, spread = 0.20, killReward = 10 }, -- damage is per pellet
     },
 
-    knife   = { damage = 60,  walkSpeed = 130, killReward = 50,
+    knife   = { damage = 60,  killReward = 50,
                 range = 44,          -- arc reach from player center, px
                 arcDeg = 110,        -- swing arc width, degrees (aiming matters)
                 cooldown = 0.5,      -- secs between swings
@@ -51,13 +51,13 @@ return {
                 knockbackDecay = 8,  -- higher = shove stops sooner
                 hitstop = 0.04,      -- secs the world freezes on connect
                 hitstopKill = 0.09 },-- bigger freeze when the swing kills
-    grenade = { damage = 120, walkSpeed = 120, killReward = 10,
+    grenade = { damage = 120, killReward = 10,
                 throwSpeed = 240,  -- px/sec toward the aim point
                 fuse = 1.2,        -- secs from throw to blast
                 blastRadius = 80,  -- world px; flat damage inside
                 maxCarry = 3 },
 
-    healthpack = { healAmount = 50, walkSpeed = 120 },
+    healthpack = { healAmount = 50 },
 
     chest = {
         cost = 150,           -- ~10 kills

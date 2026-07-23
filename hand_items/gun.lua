@@ -52,7 +52,6 @@ local function applyTune(obj, t)
     obj.maxClip = t.clip
     obj.curClip = t.clip
     obj.bulletsLeft = t.reserve or t.clip * 3
-    obj.walkSpeed = t.walkSpeed
     obj.damage = t.damage
     obj.bulletLifeTime = t.bulletLife
     obj.reloadingTime = t.reloadTime
@@ -72,9 +71,9 @@ function Gun:newUSP()
     obj.icon = Assets.quads.pistol[1]        -- hotbar: bare item
     obj.type = GUNTYPE.semi
     obj.shotSfx = 'mac10_shot' -- closest pistol-ish sample on disk
-    obj.ox = 12 -- pivot = hand pixel in the held sprite
-    obj.oy = 19
-    obj.tipLen = 14 -- barrel tip distance from pivot (muzzle/bullet spawn)
+    obj.ox = 4
+    obj.oy = 16
+    obj.tipLen = 22 -- barrel tip distance from pivot (muzzle/bullet spawn)
 
     setmetatable(obj, Gun)
     return obj
@@ -91,9 +90,9 @@ function Gun:newAk47()
     obj.type = GUNTYPE.auto
     obj.shotSfx = 'ak47_shot'
     obj.reloadAnim = Animation:fromGif('assets/ak_reload.gif', false)
-    obj.ox = 19 -- gif frames share the held sprite's coordinate space
-    obj.oy = 20
-    obj.tipLen = 28
+    obj.ox = 12 -- reload gif shares the held sprite's coordinate space, same pivot
+    obj.oy = 16
+    obj.tipLen = 36
 
     setmetatable(obj, Gun)
     return obj
@@ -109,9 +108,9 @@ function Gun:newM4A1()
     obj.icon = Assets.quads.m4a1[1]
     obj.type = GUNTYPE.auto
     obj.shotSfx = 'm4a1_shot'
-    obj.ox = 19
-    obj.oy = 20
-    obj.tipLen = 36
+    obj.ox = 12
+    obj.oy = 16
+    obj.tipLen = 44
 
     setmetatable(obj, Gun)
     return obj
@@ -130,9 +129,9 @@ function Gun:newShotgun()
     obj.reloadSfx = 'shotgun_reload' -- break-open + tick, plays before shells go in
     obj.shellSfx = { 'shell1', 'shell2', 'shell3' }
     obj.reloadOpenTime = TUNE.guns.sawedoff.reloadOpenTime
-    obj.ox = 18
-    obj.oy = 20
-    obj.tipLen = 21
+    obj.ox = 12
+    obj.oy = 16
+    obj.tipLen = 28
 
     setmetatable(obj, Gun)
     return obj

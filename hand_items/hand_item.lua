@@ -13,10 +13,10 @@ function HandItem:newKnife()
         x = 0, y = 0,
         ox = 4, oy = 15,
         angle = 0,
-        sprite = Assets.quads.knife[1],
+        sprite = Assets.quads.held_knife[1],
+        icon = Assets.quads.knife[1],
         static = true,
         isKnife = true,
-        walkSpeed = TUNE.knife.walkSpeed,
         damage = TUNE.knife.damage,
         killReward = TUNE.knife.killReward,
 
@@ -90,11 +90,11 @@ function HandItem:newGrenade(type)
         x = 0, y = 0,
         ox = 4, oy = 15,
         angle = 0,
-        sprite = Assets.quads.grenade[1],
+        sprite = Assets.quads.held_grenade[1],
+        icon = Assets.quads.grenade[1],
         static = true,
         type = type or 'he',
         isThrowable = true,
-        walkSpeed = TUNE.grenade.walkSpeed,
         damage = TUNE.grenade.damage,
         killReward = TUNE.grenade.killReward
     }
@@ -111,7 +111,6 @@ function HandItem:newHealthPack()
         angle = 0,
         static = true,
         isHealthPack = true,
-        walkSpeed = TUNE.healthpack.walkSpeed,
     }
 
     setmetatable(obj, HandItem)
