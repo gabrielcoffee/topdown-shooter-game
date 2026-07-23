@@ -6,6 +6,7 @@ local State = require('core.state')
 local World = require('core.world')
 local Fx = require('ui.fx')
 local Chat = require('ui.chat')
+local Audio = require('core.audio')
 
 local playing = {}
 playing.fxMode = 'game'
@@ -17,6 +18,7 @@ function playing:enter(opts)
     if opts.run then
         world:restore(opts.run)
     end
+    Audio.playAmbience(world.ambience)
 end
 
 function playing:update(dt)
@@ -62,6 +64,7 @@ function playing:keypressed(key)
         Fx.refresh()
         require('core.gif').clearCache() -- edited gifs get re-decoded too
         world = World:new()
+        Audio.playAmbience(world.ambience)
     end
 end
 

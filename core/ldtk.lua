@@ -94,6 +94,10 @@ function Ldtk.load(path)
         tileTypes = tileTypes,
         groundFillId = 0,
         tileset = 'assets/images/tileset.png', -- optional, colored squares until it exists
+
+        -- audio identity of the map (sets: cave / forest / desert)
+        ambience = 'cave',
+        surfaces = { ground = 'dirt', torch = 'stone' }, -- tile type -> footstep material
     }
 end
 

@@ -7,6 +7,7 @@ local HandItem = require('hand_items.hand_item')
 local ThrownGrenade = require('entities.thrown_grenade')
 local Hotbar = require('ui.hotbar')
 local Chat = require('ui.chat')
+local Audio = require('core.audio')
 
 local Player = {}
 Player.__index = Player
@@ -32,6 +33,7 @@ function Player:new(x, y, width, height)
     obj.health = obj.maxHealth
     obj.radius = TUNE.player.bodyRadius -- circle vs zombies, smaller than the sprite
     obj.flashTimer = 0                  -- white flash when hit
+    obj.dustTimer = 0                   -- next movement dust puff
     obj.hitboxColor = {0, 1, 1} -- cyan: stands out over the sprite
 
     obj.speed = TUNE.player.baseSpeed
@@ -154,6 +156,23 @@ function Player:update(dt, world)
 
     -- spikes / water / mud / hole
     self:applyTileEffects(dt, world)
+
+    -- dust puffs around the feet while actually moving (lunge/shove included)
+    self.dustTimer = self.dustTimer - dt
+    if self.dustTimer <= 0 and self.vx*self.vx + self.vy*self.vy > 400 then
+        self.dustTimer = TUNE.fx.dustInterval
+        world.vfx:footDust(self.x + self.width/2, self.y + self.height - 4)
+    end
+
+    -- footsteps: cadence follows actual speed, sound follows the tile material
+    self.stepTimer = (self.stepTimer or 0) - dt
+    local spd2 = self.vx*self.vx + self.vy*self.vy
+    if self.stepTimer <= 0 and spd2 > 400 then
+        local A = TUNE.audio
+        self.stepTimer = A.stepInterval * (TUNE.player.baseSpeed / math.sqrt(spd2))
+        local cx, cy = self:getCenter()
+        Audio.playAt(world.map:surfaceAt(cx, cy), cx, cy, A.stepGain, A.pitchJitter, world)
+    end
 
     -- Change item in hand (hotbar slots 1-5)
     for i = 1, 5 do

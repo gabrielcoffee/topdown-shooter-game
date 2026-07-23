@@ -123,6 +123,32 @@ return {
         sfxDefault = 1,
         musicDefault = 1,
         poolSize = 6, -- max simultaneous plays of the same sound
+
+        -- positional ("surround") audio; world px -> OpenAL units
+        pxPerUnit = 100,     -- smaller = stronger pan + faster falloff
+        listenerHeight = 2,  -- listener lifted off the plane; higher = softer pan
+        refDist = 1.5,       -- full volume within this many units
+        maxDist = 14,        -- silent past this
+
+        -- echo grows with nearby walls (reverb follows the map around you)
+        reverbRadius = 6,          -- tiles sampled around the listener
+        reverbUpdateInterval = 0.25,
+        reverbSmooth = 3,          -- higher = adapts faster
+        reverbDecayMin = 0.5,      -- open field decay, secs
+        reverbDecayMax = 2.6,      -- boxed-in decay
+        reverbGainMin = 0.04,      -- reverb loudness open...
+        reverbGainMax = 0.4,       -- ...vs surrounded by walls
+        occlusionHighgain = 0.3,   -- muffle strength when a wall blocks the sound
+
+        -- footsteps
+        stepInterval = 0.32, -- secs between steps at full run (scales with speed)
+        stepGain = 0.45,
+        pitchJitter = 0.12,  -- ± random pitch on steps/hits/stingers
+
+        -- ambience: looping bed + sparse positional one-shots
+        bedGain = 0.7,
+        stingerMin = 15, stingerMax = 40, -- secs between stingers
+        stingerGain = 0.55,
     },
 
     menu = {
@@ -152,6 +178,11 @@ return {
 
         -- gameplay
         bloodParticles = 18, -- per bullet hit
+
+        -- movement dust (muzzle-flash sprite, faded, drifts randomly)
+        dustInterval = 0.12, -- secs between puffs while moving
+        dustCount = 2,       -- particles per puff
+        dustOpacity = 0.2,   -- constant alpha, no fade
     },
 
     lighting = {
@@ -172,6 +203,7 @@ return {
         contactDamage = 25,   -- all types
         contactCooldown = 1.0, -- secs between hits, per zombie
         attackRange = 6,      -- px beyond touching circles where a hit lands
+        growlMin = 6, growlMax = 16, -- secs between random growls, per zombie
         repathTime = 0.4,     -- secs between A* recalculations, per zombie
 
         slow   = { speed = 30, lifeMult = 1,   size = 48 },

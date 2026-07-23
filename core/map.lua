@@ -19,6 +19,7 @@ function Map:new(levelDef)
         tileSize = TUNE.tiles.size,
         tileTypes = levelDef.tileTypes,
         groundFillId = levelDef.groundFillId,
+        surfaces = levelDef.surfaces, -- tile type -> footstep material
     }
 
     obj.rows = #obj.grid
@@ -62,6 +63,13 @@ end
 function Map:isSolidAt(px, py)
     local t = self:typeAt(px, py)
     return t == 'solid' or t == 'void'
+end
+
+-- Footstep material at a pixel: level's surfaces map keyed by tile type,
+-- 'dirt' when the level doesn't say
+function Map:surfaceAt(px, py)
+    local t = self:typeAt(px, py)
+    return (self.surfaces and self.surfaces[t]) or 'dirt'
 end
 
 function Map:setTile(col, row, id)

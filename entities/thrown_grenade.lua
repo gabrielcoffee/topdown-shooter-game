@@ -78,7 +78,7 @@ function ThrownGrenade:explode(world)
 
     world.lighting:flash(self.x, self.y, 1, 0.75, 0.4, radius * 4, 0.15)
     world.vfx:explosion(self.x, self.y)
-    Audio.play('grenade_blast')
+    Audio.playAt('grenade_blast', self.x, self.y)
     world:removeEntity(self)
 end
 

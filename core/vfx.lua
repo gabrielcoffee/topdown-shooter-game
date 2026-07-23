@@ -2,6 +2,8 @@
 -- One instance per World. Particle systems live in world space and use
 -- burst emits (moveTo + emit) so a single system serves every event.
 
+local Assets = require('core.assets')
+
 local Vfx = {}
 Vfx.__index = Vfx
 
@@ -45,6 +47,22 @@ function Vfx.new()
         1, 0.6, 0.2, 0
     )
 
+    -- movement dust: the muzzle-flash sprite frames at constant low alpha
+    -- (no fade — each puff plays the 3 frames and pops out)
+    self.dust = love.graphics.newParticleSystem(Assets.spritesheet, 300)
+    self.dust:setQuads(unpack(Assets.quads.muzzle))
+    local _, _, qw, qh = Assets.quads.muzzle[1]:getViewport()
+    self.dust:setOffset(qw / 2, qh / 2)
+    self.dust:setParticleLifetime(0.3, 0.5)
+    self.dust:setSpread(math.pi * 2) -- puffs drift in a random direction
+    self.dust:setSpeed(6, 22)
+    self.dust:setLinearDamping(1, 3)
+    self.dust:setRotation(0, math.pi * 2)
+    self.dust:setSizeVariation(0.4)
+    self.dust:setEmissionArea('uniform', 10, 5) -- around the feet, front included
+    local da = TUNE.fx.dustOpacity
+    self.dust:setColors(1, 1, 1, da) -- one stop = constant alpha, no fade
+
     self.boom = love.graphics.newParticleSystem(dot, 300)
     self.boom:setParticleLifetime(0.15, 0.5)
     self.boom:setSpread(math.pi * 2)
@@ -79,10 +97,23 @@ function Vfx:explosion(x, y)
     self.boom:emit(60)
 end
 
+-- Puffs around the mover's feet, drifting off in random directions
+function Vfx:footDust(x, y)
+    self.dust:moveTo(x, y)
+    self.dust:emit(TUNE.fx.dustCount)
+end
+
 function Vfx:update(dt)
     self.blood:update(dt)
     self.sparks:update(dt)
     self.boom:update(dt)
+    self.dust:update(dt)
+end
+
+-- Ground-level effects, drawn before entities so they stay under them
+function Vfx:drawUnder()
+    love.graphics.draw(self.dust)
+    love.graphics.setColor(1, 1, 1)
 end
 
 -- Drawn in world space, after entities

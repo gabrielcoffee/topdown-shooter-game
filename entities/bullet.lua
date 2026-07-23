@@ -52,7 +52,7 @@ function Bullet:update(dt, world)
     -- walls stop bullets (bullet_hit samples are wall-impact sounds)
     if world.map:isSolidAt(self.x, self.y) then
         world:removeEntity(self)
-        Audio.play(love.math.random() < 0.5 and 'bullet_hit1' or 'bullet_hit2')
+        Audio.playAt('bullet_hit', self.x, self.y, 1, TUNE.audio.pitchJitter, world)
     end
 
     -- crates take damage, doors just stop bullets (sfx for both come later)
@@ -82,6 +82,7 @@ function Bullet:update(dt, world)
         enemyCollided.health = enemyCollided.health - self.damage
         enemyCollided.flash = true
         world.vfx:bloodSplatter(self.x, self.y, self.angle)
+        Audio.playAt('flesh_hit', self.x, self.y, 1, TUNE.audio.pitchJitter, world)
 
         if enemyCollided.health <= 0 then
             world.player.money = world.player.money + self.killReward

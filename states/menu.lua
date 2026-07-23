@@ -8,11 +8,13 @@ local Save = require('core.save')
 local Fx = require('ui.fx')
 local Particles = require('ui.particles')
 local flux = require('lib.flux')
+local Audio = require('core.audio')
 
 local menu = {}
 menu.fxMode = 'menu'
 
 function menu:enter()
+    Audio.stopAmbience()
     local items = {}
 
     if Save.runExists() then

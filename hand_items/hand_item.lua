@@ -48,6 +48,7 @@ function HandItem:swing(aimAngle, player, world)
 
     local pcx, pcy = player:getCenter()
     local hit, killed = false, false
+    Audio.playAt('knife_swing', pcx, pcy, 0.8, TUNE.audio.pitchJitter, world)
 
     for _, e in ipairs(world.entities) do
         if e.type == 'enemy' and not e.toRemove and e.health > 0 then
@@ -78,8 +79,7 @@ function HandItem:swing(aimAngle, player, world)
 
     if hit then
         world.hitstop = killed and K.hitstopKill or K.hitstop
-        -- placeholder stab sfx until a real knife sound is added
-        Audio.play(love.math.random() < 0.5 and 'bullet_hit1' or 'bullet_hit2')
+        Audio.playAt('knife_hit', pcx, pcy, 1, TUNE.audio.pitchJitter, world)
     end
     return true
 end

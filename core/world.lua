@@ -3,6 +3,7 @@ local Color = require('core.color')
 local Assets = require('core.assets')
 local Map = require('core.map')
 local Ldtk = require('core.ldtk')
+local Audio = require('core.audio')
 local Crate = require('entities.crate')
 local Door = require('entities.door')
 local Chest = require('entities.chest')
@@ -23,6 +24,7 @@ function World:new()
         camY = 0,
         map = Map:new(levelDef),
         rooms = levelDef.rooms,
+        ambience = levelDef.ambience,
         transition = nil, -- set while the camera pans between rooms
         openedDoors = {}, -- door id -> true once bought; gates spawn points
         gameOver = false
@@ -307,6 +309,11 @@ function World:update(dt)
     self.vfx:update(dt)
     self.lighting:update(dt, self)
     Crosshair.update(dt, self)
+
+    -- ears follow the player; reverb adapts to nearby walls; stingers tick
+    local lx, ly = self.player:getCenter()
+    Audio.setListener(lx, ly, self)
+    Audio.update(dt)
 
     -- player death ends the run
     if self.player.health <= 0 then

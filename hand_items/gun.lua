@@ -78,7 +78,8 @@ function Gun:newUSP()
     obj.sprite = Assets.quads.held_pistol[1] -- in-hand: with-hands version
     obj.icon = Assets.quads.pistol[1]        -- hotbar: bare item
     obj.type = GUNTYPE.semi
-    obj.shotSfx = 'mac10_shot' -- closest pistol-ish sample on disk
+    obj.shotSfx = 'usp_shot'
+    obj.reloadSfx = 'usp_reload'
     obj.ox = 4
     obj.oy = 16
     obj.tipLen = 22 -- barrel tip distance from pivot (muzzle/bullet spawn)
@@ -97,6 +98,7 @@ function Gun:newAk47()
     obj.icon = Assets.quads.ak47[1]
     obj.type = GUNTYPE.auto
     obj.shotSfx = 'ak47_shot'
+    obj.reloadSfx = 'ak47_reload'
     obj.reloadAnim = Animation:fromGif('assets/ak_reload.gif', false)
     obj.ox = 12 -- reload gif shares the held sprite's coordinate space, same pivot
     obj.oy = 16
@@ -116,6 +118,7 @@ function Gun:newM4A1()
     obj.icon = Assets.quads.m4a1[1]
     obj.type = GUNTYPE.auto
     obj.shotSfx = 'm4a1_shot'
+    obj.reloadSfx = 'm4a1_reload'
     obj.ox = 12
     obj.oy = 16
     obj.tipLen = 44
@@ -180,7 +183,7 @@ function Gun:update(dt, px, py, mx, my)
                 self.reloadTimer = 0
                 self.curClip = self.curClip + 1
                 self.bulletsLeft = self.bulletsLeft - 1
-                Audio.play(self.shellSfx[love.math.random(#self.shellSfx)])
+                Audio.playAt(self.shellSfx[love.math.random(#self.shellSfx)], self.x, self.y)
                 if self.curClip >= self.maxClip or self.bulletsLeft <= 0 then
                     self.reloading = false
                 end
@@ -208,7 +211,7 @@ function Gun:reload()
         self.reloadAnim:restart()
     end
     if self.reloadSfx then
-        Audio.play(self.reloadSfx)
+        Audio.playAt(self.reloadSfx, self.x, self.y)
     end
 end
 
@@ -275,7 +278,7 @@ function Gun:fire(leftReleased)
         local gw = self.tipLen
 
         self.canShoot = false
-        Audio.play(self.shotSfx) -- once per trigger pull, not per pellet
+        Audio.playAt(self.shotSfx, self.x, self.y) -- once per trigger pull, not per pellet
 
         -- muzzle juice: flash light + sparks
         local mx = self.x + math.cos(self.angle) * gw

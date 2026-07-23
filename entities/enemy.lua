@@ -1,6 +1,7 @@
 local Entity = require('entities.entity')
 local Color = require('core.color')
 local Path = require('core.path')
+local Audio = require('core.audio')
 
 local Enemy = {}
 Enemy.__index = Enemy
@@ -25,6 +26,10 @@ function Enemy:new(x, y, width, height)
 
     -- knife shove, decays fast (separate from vx/vy so accel can't fight it)
     obj.kbx, obj.kby = 0, 0
+
+    -- random growls; silent until zombie recordings exist in assets/sounds/zombies
+    obj.growlTimer = TUNE.zombies.growlMin
+        + love.math.random() * (TUNE.zombies.growlMax - TUNE.zombies.growlMin)
 
     setmetatable(obj, Enemy)
     return obj
@@ -136,10 +141,21 @@ function Enemy:update(dt, world)
         world.player.health = world.player.health - self.damage
         world.player.flashTimer = TUNE.player.hitFlashTime
         self.attackTimer = 0
+        Audio.playAt('zombie_attack', cx, cy, 1, TUNE.audio.pitchJitter, world)
+    end
+
+    -- occasional growl (positional — you hear which side it comes from)
+    self.growlTimer = self.growlTimer - dt
+    if self.growlTimer <= 0 then
+        self.growlTimer = TUNE.zombies.growlMin
+            + love.math.random() * (TUNE.zombies.growlMax - TUNE.zombies.growlMin)
+        Audio.playAt('zombie_growl', cx, cy, 1, TUNE.audio.pitchJitter, world)
     end
 
     if self.health < 1 then
         self.toRemove = true
+        local dx, dy = self:getCenter()
+        Audio.playAt('zombie_death', dx, dy, 1, TUNE.audio.pitchJitter, world)
     end
 end
 
