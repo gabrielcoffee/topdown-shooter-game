@@ -45,7 +45,9 @@ local function GunStateVariables(maxClip)
         reloading = false,
         reloadTimer = 0,
         recoil = 0,      -- spread added by firing, recovers after a pause
-        sinceShot = 999  -- secs since the last shot (gates recoil recovery)
+        sinceShot = 999, -- secs since the last shot (gates recoil recovery)
+        kickPos = 0,     -- visual slide-back, 1 = just fired -> 0
+        kickAng = 0      -- visual muzzle-rise, 1 = just fired -> 0
     }
 end
 
@@ -158,6 +160,11 @@ function Gun:update(dt, px, py, mx, my)
         self.recoil = math.max(0, self.recoil - self.recoilRecover * dt)
     end
 
+    -- visual kick decays: slide-back fast, muzzle-rise slower (both draw-only)
+    local GK = TUNE.gunKick
+    self.kickPos = math.max(0, self.kickPos - dt / GK.posTime)
+    self.kickAng = math.max(0, self.kickAng - dt / GK.angTime)
+
     if self.canShoot == false then
         self.timer = self.timer + dt
     end
@@ -222,18 +229,36 @@ function Gun:cancelReload()
 end
 
 function Gun:draw(facingLeft)
-    -- reload gif replaces the gun sprite; same transform, so the gun art
-    -- inside the gif lines up with where the normal sprite sits
+    local GK = TUNE.gunKick
+    local ang = self.angle
+    local dx, dy = 0, 0
+
+    if self.reloading then
+        -- fixed pose: barrel held ~30 deg up, pointing the way you face, ignores mouse
+        local up = math.rad(GK.reloadUpAngle)
+        ang = facingLeft and (math.pi + up) or -up
+    else
+        -- per-shot kick: muzzle snaps up (sign flips with facing so it's always
+        -- "up"), whole gun slides straight back along the barrel
+        local sign = facingLeft and 1 or -1
+        ang = ang + sign * math.rad(GK.angle) * self.kickAng
+        local back = GK.dist * self.kickPos
+        dx = -math.cos(self.angle) * back
+        dy = -math.sin(self.angle) * back
+    end
+
+    -- reload gif replaces the gun sprite; same transform so the art lines up
+    local img, quad = Assets.spritesheet, self.sprite
     if self.reloading and self.reloadAnim then
         local a = self.reloadAnim
-        love.graphics.draw(
-            a.image, a.quads[a.index],
-            math.floor(self.x), math.floor(self.y),
-            self.angle, 1, facingLeft and -1 or 1, self.ox, self.oy
-        )
-        return
+        img, quad = a.image, a.quads[a.index]
     end
-    HandItem.draw(self, facingLeft)
+
+    love.graphics.draw(
+        img, quad,
+        math.floor(self.x + dx), math.floor(self.y + dy),
+        ang, 1, facingLeft and -1 or 1, self.ox, self.oy
+    )
 end
 
 function Gun:drawHud()
@@ -318,6 +343,8 @@ function Gun:fire(leftReleased)
         end
         self.recoil = math.min(self.recoilMax, self.recoil + self.recoilPerShot)
         self.sinceShot = 0
+        self.kickPos = 1 -- trigger visual kick (auto fire re-arms it every shot)
+        self.kickAng = 1
         self.curClip = self.curClip - 1
 
         -- sawed-off: barrels empty -> break open and reload right away

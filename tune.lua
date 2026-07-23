@@ -75,6 +75,15 @@ return {
         itemMoveGap = 8,  -- max extra gap while moving with knife/grenade/medkit
     },
 
+    -- per-shot gun kick (draw-only, doesn't touch where bullets go)
+    gunKick = {
+        dist = 1,           -- px the gun slides straight back per shot
+        posTime = 0.085,    -- ~5 frames: slide-back eases back over this
+        angle = 7,          -- deg the muzzle snaps up per shot (instant up)
+        angTime = 0.14,     -- muzzle-rise eases back over this (slower than slide, still fast)
+        reloadUpAngle = 30, -- deg: fixed muzzle-up pose held while reloading
+    },
+
     knife   = { damage = 60,  killReward = 50,
                 range = 44,          -- arc reach from player center, px
                 arcDeg = 110,        -- swing arc width, degrees (aiming matters)

@@ -47,13 +47,15 @@ function Crosshair.update(dt, world)
 end
 
 function Crosshair.draw(world)
-    local K = TUNE.crosshair
-    local g = gap or K.gapMin
-    local mx, my = love.mouse.getPosition()
-
-    -- the crosshair never sits past the bullet's actual reach
     local player = world.player
     local held = player.items[player.itemIndex]
+    if held and held.isKnife then return end -- knife has no aim
+
+    local K = TUNE.crosshair
+    local g = gap or K.gapMin
+    local mx, my = require('ui.screen').mouse()
+
+    -- the crosshair never sits past the bullet's actual reach
     if held and held.isGun then
         local pcx, pcy = player:getCenter()
         local sx = (pcx - world.camX) * SCALE
