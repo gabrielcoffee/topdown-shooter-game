@@ -2,6 +2,7 @@ local Player = require('entities.player')
 local Color = require('core.color')
 local Assets = require('core.assets')
 local Map = require('core.map')
+local Ldtk = require('core.ldtk')
 local Crate = require('entities.crate')
 local Door = require('entities.door')
 local Chest = require('entities.chest')
@@ -14,19 +15,25 @@ local World = {}
 World.__index = World
 
 function World:new()
-    local levelDef = require('maps.level1')
+    local levelDef = Ldtk.load('maps/level1.ldtk')
 
     local obj = {
         entities = {},
-        player = Player:new((SCREENWIDTH/2)/SCALE, (SCREENHEIGHT/2)/SCALE, 32, 32),
         camX = 0,
         camY = 0,
         map = Map:new(levelDef),
+        rooms = levelDef.rooms,
+        transition = nil, -- set while the camera pans between rooms
         openedDoors = {}, -- door id -> true once bought; gates spawn points
         gameOver = false
     }
 
-    -- playable area comes from the level's CSV
+    -- player starts centered in the first LDtk room
+    local r1 = obj.rooms[1]
+    obj.player = Player:new(r1.x + r1.w/2 - 16, r1.y + r1.h/2 - 16, 32, 32)
+    obj.currentRoom = r1
+
+    -- playable area is the union of every room
     obj.mapW = obj.map.pixelW
     obj.mapH = obj.map.pixelH
 
@@ -60,6 +67,77 @@ function World:new()
     obj.waves = Waves:new(spawnPoints)
     obj.waves:startWave(1)
     return obj
+end
+
+-- Camera centered on (px,py), clamped inside a room; rooms smaller than the
+-- view get centered instead
+function World:cameraFor(room, px, py)
+    local viewW, viewH = SCREENWIDTH/SCALE, SCREENHEIGHT/SCALE
+    local cx, cy = px - viewW/2, py - viewH/2
+    if room.w <= viewW then cx = room.x + (room.w - viewW)/2
+    else cx = math.max(room.x, math.min(cx, room.x + room.w - viewW)) end
+    if room.h <= viewH then cy = room.y + (room.h - viewH)/2
+    else cy = math.max(room.y, math.min(cy, room.y + room.h - viewH)) end
+    return cx, cy
+end
+
+-- Fraction of a box's area inside a room
+local function roomOverlap(room, bx, by, bw, bh)
+    local ox = math.min(bx + bw, room.x + room.w) - math.max(bx, room.x)
+    local oy = math.min(by + bh, room.y + room.h) - math.max(by, room.y)
+    if ox <= 0 or oy <= 0 then return 0 end
+    return (ox * oy) / (bw * bh)
+end
+
+-- Room containing a world point (fallback: first room)
+function World:roomAt(x, y)
+    for _, r in ipairs(self.rooms) do
+        if x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h then
+            return r
+        end
+    end
+    return self.rooms[1]
+end
+
+-- Starts a Celeste-style transition once enough of the player's hitbox
+-- (TUNE.rooms.enterFraction) is inside a room that isn't the current one.
+-- Walking back needs the same fraction, so the check can't flip-flop.
+function World:checkRoomTransition()
+    local inset = TUNE.movement.collisionInset
+    local p = self.player
+    local bx, by = p.x + inset, p.y + inset
+    local bw, bh = p.width - inset*2, p.height - inset*2
+
+    for _, room in ipairs(self.rooms) do
+        if room ~= self.currentRoom
+            and roomOverlap(room, bx, by, bw, bh) >= TUNE.rooms.enterFraction then
+
+            -- nudge along the player's heading; fallback: dominant axis
+            -- toward the new room's center
+            local nx, ny = p.vx, p.vy
+            local len = math.sqrt(nx*nx + ny*ny)
+            if len < 1 then
+                nx = (room.x + room.w/2) - (p.x + p.width/2)
+                ny = (room.y + room.h/2) - (p.y + p.height/2)
+                if math.abs(nx) > math.abs(ny) then ny = 0 else nx = 0 end
+                len = math.sqrt(nx*nx + ny*ny)
+            end
+            nx, ny = nx/len, ny/len
+
+            local nudge = TUNE.rooms.nudgePx
+            local toX, toY = self:cameraFor(room,
+                p.x + p.width/2 + nx*nudge, p.y + p.height/2 + ny*nudge)
+
+            self.transition = {
+                t = 0, room = room,
+                fromCamX = self.camX, fromCamY = self.camY,
+                toCamX = toX, toCamY = toY,
+                playerFromX = p.x, playerFromY = p.y,
+                nudgeX = nx*nudge, nudgeY = ny*nudge,
+            }
+            return
+        end
+    end
 end
 
 -- Tiles blocked by unopened doors, keyed 'col,row' (for A*)
@@ -161,6 +239,27 @@ local function pushApart(a, b)
 end
 
 function World:update(dt)
+    -- Room switch: gameplay freezes while the camera pans and the player
+    -- drifts a few px into the new room (Celeste-style)
+    if self.transition then
+        local tr = self.transition
+        tr.t = tr.t + dt
+        local k = math.min(1, tr.t / TUNE.rooms.transitionTime)
+        local e = 1 - (1 - k)^3 -- cubic ease-out
+
+        self.camX = tr.fromCamX + (tr.toCamX - tr.fromCamX) * e
+        self.camY = tr.fromCamY + (tr.toCamY - tr.fromCamY) * e
+        self.player.x = tr.playerFromX + tr.nudgeX * e
+        self.player.y = tr.playerFromY + tr.nudgeY * e
+
+        self.lighting:update(dt, self) -- torches keep flickering during the pan
+        if k >= 1 then
+            self.currentRoom = tr.room
+            self.transition = nil
+        end
+        return
+    end
+
     -- knife hitstop: everything freezes for a few frames on impact
     if self.hitstop and self.hitstop > 0 then
         self.hitstop = self.hitstop - dt
@@ -197,12 +296,13 @@ function World:update(dt)
     -- wave FSM runs after the sweep so kills count the same frame
     self.waves:update(dt, self)
 
-    -- camera follows the player, clamped to the map edges
-    local viewW, viewH = SCREENWIDTH/SCALE, SCREENHEIGHT/SCALE
-    self.camX = self.player.x + self.player.width/2 - viewW/2
-    self.camY = self.player.y + self.player.height/2 - viewH/2
-    self.camX = math.max(0, math.min(self.camX, self.mapW - viewW))
-    self.camY = math.max(0, math.min(self.camY, self.mapH - viewH))
+    -- camera follows the player, locked to the current room; crossing into
+    -- another room starts the frozen pan instead
+    self:checkRoomTransition()
+    if not self.transition then
+        local pcx, pcy = self.player:getCenter()
+        self.camX, self.camY = self:cameraFor(self.currentRoom, pcx, pcy)
+    end
 
     self.vfx:update(dt)
     self.lighting:update(dt, self)
@@ -225,6 +325,8 @@ function World:draw()
     -- scene drawn in world coords; lighting darkens + applies lights on top
     self.lighting:draw(function()
         self.map:draw(camX, camY)
+
+        self.vfx:drawUnder() -- ground dust stays below everyone
 
         for _, entity in ipairs(self.entities) do
             entity:draw()
@@ -271,6 +373,8 @@ function World:restore(data)
     end
     self.waves:startWave(data.wave or 1)
     self.player:restore(data.player or {})
+    -- saved runs can end in any room
+    self.currentRoom = self:roomAt(self.player:getCenter())
 end
 
 return World

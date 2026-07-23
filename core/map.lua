@@ -10,25 +10,12 @@ local typeColors = {
     mud    = {0.30, 0.21, 0.12},
     hole   = {0.05, 0.05, 0.05},
     torch  = {0.95, 0.55, 0.15}, -- bright so it reads as the light source
+    void   = {0.02, 0.02, 0.03}, -- between rooms: blocked, near-black
 }
-
-local function parseCsv(path)
-    local grid = {}
-    for line in love.filesystem.lines(path) do
-        if line:match('%S') then
-            local row = {}
-            for cell in line:gmatch('[^,%s]+') do
-                table.insert(row, tonumber(cell))
-            end
-            table.insert(grid, row)
-        end
-    end
-    return grid
-end
 
 function Map:new(levelDef)
     local obj = {
-        grid = parseCsv(levelDef.csv),
+        grid = levelDef.grid, -- global 2D grid built by core/ldtk
         tileSize = TUNE.tiles.size,
         tileTypes = levelDef.tileTypes,
         groundFillId = levelDef.groundFillId,
@@ -46,7 +33,7 @@ function Map:new(levelDef)
         local perRow = math.floor(obj.tileset:getWidth() / obj.tileSize)
         for _, row in ipairs(obj.grid) do
             for _, id in ipairs(row) do
-                if not obj.quads[id] then
+                if id >= 0 and not obj.quads[id] then
                     obj.quads[id] = love.graphics.newQuad(
                         (id % perRow) * obj.tileSize,
                         math.floor(id / perRow) * obj.tileSize,
@@ -71,8 +58,10 @@ function Map:typeAt(px, py)
     return self.tileTypes[self.grid[row][col]] or 'ground'
 end
 
+-- void (outside every room) blocks exactly like solid
 function Map:isSolidAt(px, py)
-    return self:typeAt(px, py) == 'solid'
+    local t = self:typeAt(px, py)
+    return t == 'solid' or t == 'void'
 end
 
 function Map:setTile(col, row, id)
@@ -92,7 +81,8 @@ function Map:draw(camX, camY)
         for col = c0, c1 do
             local id = self.grid[row][col]
             local x, y = (col - 1) * ts, (row - 1) * ts
-            if self.tileset then
+            if self.tileset and self.quads[id] then
+                love.graphics.setColor(1, 1, 1)
                 love.graphics.draw(self.tileset, self.quads[id], x, y)
             else
                 local c = typeColors[self.tileTypes[id] or 'ground']

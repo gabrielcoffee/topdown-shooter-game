@@ -15,7 +15,8 @@ local function walkable(map, blocked, col, row)
     if blocked[key(col, row)] then
         return false
     end
-    return (map.tileTypes[map.grid[row][col]] or 'ground') ~= 'solid'
+    local t = map.tileTypes[map.grid[row][col]] or 'ground'
+    return t ~= 'solid' and t ~= 'void'
 end
 
 -- octile distance heuristic

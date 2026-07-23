@@ -32,6 +32,13 @@ return {
         holeDamage = 50,      -- player falls in a hole
     },
 
+    rooms = {
+        -- Celeste-style room switch: world freezes, camera pans to the new room
+        enterFraction = 0.8,   -- how much of the player's hitbox must be inside the next room
+        transitionTime = 0.55, -- secs of frozen camera pan between rooms
+        nudgePx = 20,          -- px the player drifts into the new room during the pan
+    },
+
     crate = { pushDelay = 0.5, size = 32, health = 100, pushSpeedMult = 0.5,
               pushGrace = 0.15 }, -- secs of lost contact before a push resets
     door  = { price = 250, interactPad = 4 },
