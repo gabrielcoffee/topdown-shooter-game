@@ -5,6 +5,7 @@ return {
     player = {
         maxHealth = 100,
         baseSpeed = 130, -- walk speed, whatever is held
+        walkSpeedMult = 0.45, -- shift held: slower but steadier aim
         startMoney = 0,
         fallTime = 0.5,       -- secs of falling anim before hole respawn
         holeInvulnTime = 2,   -- secs of invincibility after hole respawn
@@ -32,13 +33,34 @@ return {
     door  = { price = 250, interactPad = 4 },
 
     guns = {
-        usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 2,   bulletLife = 0.5, killReward = 20 },
-        ak47   = { damage = 40, clip = 30, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10 },
-        m4a1   = { damage = 35, clip = 25, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10 },
+        -- aim model (all angles in radians):
+        --   baseSpread    = inaccuracy standing still
+        --   moveSpread    = extra inaccuracy at full run (scales with actual speed)
+        --   recoilPerShot = spread added by each shot...
+        --   recoilMax     = ...capped here
+        --   recoilRecover = recoil lost per second when not shooting
+        usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 2,   bulletLife = 0.5, killReward = 20,
+                   baseSpread = 0.008, moveSpread = 0.055, recoilPerShot = 0.022, recoilMax = 0.09, recoilRecover = 0.30 },
+        ak47   = { damage = 40, clip = 30, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10,
+                   baseSpread = 0.012, moveSpread = 0.075, recoilPerShot = 0.016, recoilMax = 0.13, recoilRecover = 0.28 },
+        m4a1   = { damage = 35, clip = 25, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10,
+                   baseSpread = 0.010, moveSpread = 0.070, recoilPerShot = 0.014, recoilMax = 0.11, recoilRecover = 0.30 },
         -- reloadTime = secs PER SHELL; reloadOpenTime = break-open sound before first shell
+        -- spread here is the fixed pellet cone; aim spread shifts the whole cone
         sawedoff = { damage = 10, clip = 2, bulletDelay = 0.5, reloadTime = 0.5, bulletLife = 0.7,
                      reloadOpenTime = 0.4, reserve = 18,
-                     pellets = 14, spread = 0.20, killReward = 10 }, -- damage is per pellet
+                     pellets = 14, spread = 0.20, killReward = 10, -- damage is per pellet
+                     baseSpread = 0.025, moveSpread = 0.085, recoilPerShot = 0.06, recoilMax = 0.12, recoilRecover = 0.35 },
+    },
+
+    crosshair = {
+        gapMin = 2,       -- px from center to a chip's inner edge at zero spread (chips 4px apart)
+        chipLen = 3,      -- chip long side, px (before the size setting multiplies it)
+        chipThick = 2,    -- chip short side, px
+        spreadToPx = 120, -- gap px added per radian of current spread
+        openSpeed = 14,   -- how fast the gap chases its target (higher = snappier)
+        tiltSpeed = 10,   -- how fast the 45° tilt eases in/out over an enemy
+        itemMoveGap = 8,  -- max extra gap while moving with knife/grenade/medkit
     },
 
     knife   = { damage = 60,  killReward = 50,
@@ -82,7 +104,7 @@ return {
     droppedGun = { interactPad = 4,   -- px around a dropped gun where E picks it up
                    dropOffset = 40 }, -- px in front of the player where drops land
 
-    bullet = { speed = 360 },
+    bullet = { speed = 540 },
 
     audio = {
         masterDefault = 1,  -- 0..1, used until the player touches the options

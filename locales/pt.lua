@@ -17,6 +17,12 @@ return {
     ['options.sfx']      = 'EFEITOS',
     ['options.music']    = 'MÚSICA',
     ['options.language'] = 'IDIOMA',
+    ['options.cross_color']   = 'COR DA MIRA',
+    ['options.cross_size']    = 'TAMANHO DA MIRA',
+    ['options.cross_tilt']    = 'GIRO DA MIRA',
+    ['options.cross_outline'] = 'CONTORNO DA MIRA',
+    ['options.on']       = 'SIM',
+    ['options.off']      = 'NÃO',
     ['options.back']     = 'VOLTAR',
 
     ['gameover.title']   = 'VOCÊ MORREU',

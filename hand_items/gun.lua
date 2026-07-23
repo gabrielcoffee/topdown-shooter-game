@@ -43,7 +43,8 @@ local function GunStateVariables(maxClip)
         curClip = maxClip,
         bulletsLeft = maxClip * 3,
         reloading = false,
-        reloadTimer = 0
+        reloadTimer = 0,
+        recoil = 0 -- spread added by firing, decays over time
     }
 end
 
@@ -59,6 +60,11 @@ local function applyTune(obj, t)
     obj.spread = t.spread
     obj.pellets = t.pellets
     obj.killReward = t.killReward
+    obj.baseSpread = t.baseSpread or 0
+    obj.moveSpread = t.moveSpread or 0
+    obj.recoilPerShot = t.recoilPerShot or 0
+    obj.recoilMax = t.recoilMax or 0
+    obj.recoilRecover = t.recoilRecover or 0
 end
 
 function Gun:newUSP()
@@ -139,6 +145,8 @@ end
 
 function Gun:update(dt, px, py, mx, my)
     HandItem.update(self, dt, px, py, mx, my)
+
+    self.recoil = math.max(0, self.recoil - self.recoilRecover * dt)
 
     if self.canShoot == false then
         self.timer = self.timer + dt
@@ -226,6 +234,13 @@ function Gun:drawHud()
     end
 end
 
+-- Total inaccuracy right now (radians): standing base + movement + recoil.
+-- The crosshair maps this same number to its gap, so what you see is what
+-- the bullets do.
+function Gun:currentSpread(moveFactor)
+    return self.baseSpread + self.moveSpread * (moveFactor or 0) + self.recoil
+end
+
 function Gun:fire(leftReleased)
 
     if self.reloading then
@@ -263,13 +278,17 @@ function Gun:fire(leftReleased)
             TUNE.lighting.muzzleRange, TUNE.lighting.muzzleTime)
         world.vfx:muzzleSparks(mx, my, self.angle)
 
+        -- aim spread pushes the shot (or the whole pellet cone) off center
+        local spread = self:currentSpread(world.player.moveFactor)
+        local shotAngle = self.angle + (love.math.random() * 2 - 1) * spread
+
         if self.type == GUNTYPE.shotgun then
             for i = 1, self.pellets do
                 local finalSpread = (love.math.random() * 2 - 1) * self.spread
                 world:addEntity(
                     Bullet:new(
                         self.x, self.y,
-                        self.angle + finalSpread, self.damage,
+                        shotAngle + finalSpread, self.damage,
                         gw,
                         self.bulletLifeTime,
                         self.killReward
@@ -280,13 +299,14 @@ function Gun:fire(leftReleased)
             world:addEntity(
                 Bullet:new(
                     self.x, self.y,
-                    self.angle, self.damage,
+                    shotAngle, self.damage,
                     gw,
                     self.bulletLifeTime,
                     self.killReward
                 )
             )
         end
+        self.recoil = math.min(self.recoilMax, self.recoil + self.recoilPerShot)
         self.curClip = self.curClip - 1
 
         -- sawed-off: barrels empty -> break open and reload right away

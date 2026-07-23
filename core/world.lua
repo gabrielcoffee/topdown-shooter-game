@@ -8,6 +8,7 @@ local Chest = require('entities.chest')
 local Lighting = require('core.lighting')
 local Vfx = require('core.vfx')
 local Waves = require('core.waves')
+local Crosshair = require('ui.crosshair')
 
 local World = {}
 World.__index = World
@@ -205,6 +206,7 @@ function World:update(dt)
 
     self.vfx:update(dt)
     self.lighting:update(dt, self)
+    Crosshair.update(dt, self)
 
     -- player death ends the run
     if self.player.health <= 0 then
@@ -245,9 +247,8 @@ function World:draw()
 
     self.waves:drawBanner()
 
-    -- Draws the mouse (crosshair is pixel art, keeps SCALE)
-    local mx, my = love.mouse.getPosition()
-    love.graphics.draw(Assets.spritesheet, Assets.quads.aim[1], mx - 8*SCALE, my - 8*SCALE, 0, SCALE, SCALE)
+    -- CS-style crosshair replaces the mouse (opens with spread, see ui/crosshair)
+    Crosshair.draw()
 end
 
 -- Save data for the single run slot: wave + player state.

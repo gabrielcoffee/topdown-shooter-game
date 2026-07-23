@@ -14,6 +14,7 @@ gameover.overlay = true
 gameover.fxMode = 'overlay'
 
 function gameover:enter()
+    love.mouse.setVisible(true)
     Save.deleteRun()
 
     Fx.flash(0.55, 0.02, 0.02, 0.35)

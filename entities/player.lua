@@ -137,10 +137,15 @@ function Player:update(dt, world)
         moveX, moveY = moveX * inv, moveY * inv
     end
 
-    -- one walk speed whatever is held; accel/decel + tile collision
-    self.maxSpeed = self.speed
+    -- one walk speed whatever is held; shift walks slower for steadier aim
+    local walking = keyDown('lshift') or keyDown('rshift')
+    self.maxSpeed = self.speed * (walking and TUNE.player.walkSpeedMult or 1)
     self:accelToward(dt, moveX, moveY, world)
     self:moveAndCollide(dt, world)
+
+    -- actual speed as 0..1 of a full run — feeds gun spread + crosshair opening
+    local spd = math.sqrt(self.vx * self.vx + self.vy * self.vy)
+    self.moveFactor = math.min(1, spd / TUNE.player.baseSpeed)
 
     -- spikes / water / mud / hole
     self:applyTileEffects(dt, world)

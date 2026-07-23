@@ -20,6 +20,10 @@ function playing:enter(opts)
 end
 
 function playing:update(dt)
+    -- OS cursor off in gameplay: the crosshair IS the cursor. Set every frame
+    -- so popping back from pause/options (which show the cursor) restores it.
+    love.mouse.setVisible(false)
+
     Chat.update(dt)
     world:update(dt)
 

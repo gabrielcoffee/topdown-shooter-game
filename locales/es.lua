@@ -17,6 +17,12 @@ return {
     ['options.sfx']      = 'EFECTOS',
     ['options.music']    = 'MÚSICA',
     ['options.language'] = 'IDIOMA',
+    ['options.cross_color']   = 'COLOR DE MIRA',
+    ['options.cross_size']    = 'TAMAÑO DE MIRA',
+    ['options.cross_tilt']    = 'GIRO DE MIRA',
+    ['options.cross_outline'] = 'BORDE DE MIRA',
+    ['options.on']       = 'SÍ',
+    ['options.off']      = 'NO',
     ['options.back']     = 'VOLVER',
 
     ['gameover.title']   = 'HAS MUERTO',

@@ -8,6 +8,7 @@ local Save = require('core.save')
 local Audio = require('core.audio')
 local i18n = require('core.i18n')
 local Particles = require('ui.particles')
+local Crosshair = require('ui.crosshair')
 
 local options = {}
 options.overlay = true
@@ -45,10 +46,42 @@ function options:enter()
             end,
         },
         {
+            label = 'options.cross_color', type = 'cycle',
+            value = function() return Crosshair.colorById(SETTINGS.crossColor).name end,
+            cycle = function(dir)
+                SETTINGS.crossColor = Crosshair.nextColorId(SETTINGS.crossColor, dir)
+                apply()
+            end,
+        },
+        {
+            label = 'options.cross_size', type = 'cycle',
+            value = function() return SETTINGS.crossSize .. 'X' end,
+            cycle = function(dir)
+                SETTINGS.crossSize = ((SETTINGS.crossSize - 1 + dir) % 3) + 1
+                apply()
+            end,
+        },
+        {
+            label = 'options.cross_tilt', type = 'cycle',
+            value = function() return SETTINGS.crossTilt and T('options.on') or T('options.off') end,
+            cycle = function()
+                SETTINGS.crossTilt = not SETTINGS.crossTilt
+                apply()
+            end,
+        },
+        {
+            label = 'options.cross_outline', type = 'cycle',
+            value = function() return SETTINGS.crossOutline and T('options.on') or T('options.off') end,
+            cycle = function()
+                SETTINGS.crossOutline = not SETTINGS.crossOutline
+                apply()
+            end,
+        },
+        {
             label = 'options.back', type = 'action',
             activate = function() State.pop() end,
         },
-    }, 400)
+    }, 340, 46)
 end
 
 function options:update(dt)

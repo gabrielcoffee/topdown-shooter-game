@@ -10,6 +10,7 @@ paused.overlay = true
 paused.fxMode = 'overlay'
 
 function paused:enter()
+    love.mouse.setVisible(true)
     self.list = MenuList:new({
         {
             label = 'pause.resume', type = 'action',
