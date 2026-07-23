@@ -74,8 +74,17 @@ function Player:selectSlot(i)
     self.itemIndex = i
     if i == 1 or i == 2 then self.lastGunSlot = i end
 
-    -- switching to an empty gun starts its reload right away
+    -- CS-style deploy sound for whatever lands in hand
     local newItem = self.items[i]
+    if newItem.isGun then
+        Audio.play('gun_draw', 0.7)
+    elseif newItem.isKnife then
+        Audio.play('knife_swing', 0.5)
+    elseif newItem.isThrowable then
+        Audio.play('grenade_draw', 0.7)
+    end
+
+    -- switching to an empty gun starts its reload right away
     if newItem.isGun and newItem.curClip <= 0 then
         newItem:reload()
     end
@@ -164,12 +173,15 @@ function Player:update(dt, world)
         world.vfx:footDust(self.x + self.width/2, self.y + self.height - 4)
     end
 
-    -- footsteps: cadence follows actual speed, sound follows the tile material
+    -- footsteps: cadence follows actual speed, sound follows the tile material.
+    -- Cadence factor clamped — at low speed the old open-ended formula pushed
+    -- steps seconds apart, which read as "footsteps randomly missing"
     self.stepTimer = (self.stepTimer or 0) - dt
     local spd2 = self.vx*self.vx + self.vy*self.vy
     if self.stepTimer <= 0 and spd2 > 400 then
         local A = TUNE.audio
-        self.stepTimer = A.stepInterval * (TUNE.player.baseSpeed / math.sqrt(spd2))
+        local slower = math.min(TUNE.player.baseSpeed / math.sqrt(spd2), A.stepMaxStretch)
+        self.stepTimer = A.stepInterval * slower
         local cx, cy = self:getCenter()
         Audio.playAt(world.map:surfaceAt(cx, cy), cx, cy, A.stepGain, A.pitchJitter, world)
     end
@@ -399,6 +411,7 @@ function Player:giveGun(gun)
     self.items[target] = gun
     self.itemIndex = target
     self.lastGunSlot = target
+    Audio.play('gun_draw', 0.7) -- picked up = racked and in hand
     return old
 end
 

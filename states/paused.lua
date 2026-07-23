@@ -4,12 +4,18 @@ local State = require('core.state')
 local Theme = require('ui.theme')
 local MenuList = require('ui.menu_list')
 local Save = require('core.save')
+local Audio = require('core.audio')
 
 local paused = {}
 paused.overlay = true
 paused.fxMode = 'overlay'
 
+function paused:exit()
+    Audio.setMuffled(false)
+end
+
 function paused:enter()
+    Audio.setMuffled(true)
     love.mouse.setVisible(true)
     self.list = MenuList:new({
         {

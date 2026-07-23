@@ -17,7 +17,12 @@ All files converted to mono WAV (positional) or stereo OGG (ambient beds), renam
 - **Flesh hits + knife hits** (flesh_hit1-3, knife_hit1-2): "Fleshy Fight Sounds" by **Will Leamon** — https://opengameart.org/content/fleshy-fight-sounds. Credit "Additional Sound FX by Will Leamon".
 
 ## Pre-existing (kept from earlier dev, converted)
-- shotgun_reload, shell1-3, bullet_hit1-2, grenade_blast — original mp3 sources in repo history.
+- shotgun_shot, shotgun_reload, shell1-3, bullet_hit1-2, grenade_blast — original mp3 sources in repo history.
+
+## More CC0
+- **gun_draw** (weapon deploy click): "equipment clicks III" — https://opengameart.org/content/equipment-clicks-iii (bolt-action cock slice)
+- **grenade_draw**: "Gun reload, lock or click sound" — https://opengameart.org/content/gun-reload-lock-or-click-sound
+- **m4a1_shot**: suppressed shot synthesized from the CC0 AR-15 recording (Free Firearm Sound Library) — lowpass + tight envelope + click layer. Replace with a real suppressed recording anytime by overwriting `weapons/m4a1_shot.wav`.
 
 ## Zombie sounds (empty slot)
 Gabriel records these. Drop mono files into `assets/sounds/zombies/` named:

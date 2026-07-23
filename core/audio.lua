@@ -18,15 +18,14 @@ Audio.music = 1
 
 -- explicit registry (weapons/effects keep curated names)
 local files = {
-    -- gun shots (mono wav; N-suffix = variation group, e.g. play 'usp_shot')
-    usp_shot1      = 'assets/sounds/weapons/usp_shot1.wav',
-    usp_shot2      = 'assets/sounds/weapons/usp_shot2.wav',
-    ak47_shot1     = 'assets/sounds/weapons/ak47_shot1.wav',
-    ak47_shot2     = 'assets/sounds/weapons/ak47_shot2.wav',
-    m4a1_shot1     = 'assets/sounds/weapons/m4a1_shot1.wav',
-    m4a1_shot2     = 'assets/sounds/weapons/m4a1_shot2.wav',
-    shotgun_shot1  = 'assets/sounds/weapons/shotgun_shot1.wav',
-    shotgun_shot2  = 'assets/sounds/weapons/shotgun_shot2.wav',
+    -- gun shots: ONE sound per gun, no variations
+    usp_shot       = 'assets/sounds/weapons/usp_shot.wav',
+    ak47_shot      = 'assets/sounds/weapons/ak47_shot.wav',
+    m4a1_shot      = 'assets/sounds/weapons/m4a1_shot.wav',
+    shotgun_shot   = 'assets/sounds/weapons/shotgun_shot.wav',
+    -- draw/pickup clicks (CS-style deploy)
+    gun_draw       = 'assets/sounds/weapons/gun_draw.wav',
+    grenade_draw   = 'assets/sounds/weapons/grenade_draw.wav',
     -- reload handling
     usp_reload     = 'assets/sounds/weapons/usp_reload.wav',
     ak47_reload    = 'assets/sounds/weapons/ak47_reload.wav',
@@ -254,6 +253,33 @@ function Audio.update(dt)
     Audio.playAt(ambience.set .. '_st',
         listener.x + math.cos(ang) * dist, listener.y + math.sin(ang) * dist,
         A.stingerGain, A.pitchJitter)
+end
+
+-- GTA-style pause muffle: lowpass + duck everything currently audible.
+-- UI sounds played after this (pause menu clicks) stay crisp.
+function Audio.setMuffled(m)
+    local A = TUNE.audio
+    for _, pool in pairs(pools) do
+        for _, s in ipairs(pool) do
+            if s:isPlaying() then
+                if m then
+                    pcall(s.setFilter, s, { type = 'lowpass', volume = 1, highgain = A.muffleHighgain })
+                else
+                    pcall(s.setFilter, s)
+                end
+            end
+        end
+    end
+    if ambience.bed then
+        if m then
+            pcall(ambience.bed.setFilter, ambience.bed,
+                { type = 'lowpass', volume = 1, highgain = A.muffleHighgain })
+        else
+            pcall(ambience.bed.setFilter, ambience.bed)
+        end
+        ambience.bed:setVolume(Audio.master * Audio.music * A.bedGain
+            * (m and A.muffleDuck or 1))
+    end
 end
 
 function Audio.setVolumes(master, sfx, music)

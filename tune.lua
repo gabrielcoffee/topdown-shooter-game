@@ -15,8 +15,8 @@ return {
     },
 
     movement = {
-        accelTime = 0.45,   -- secs to reach max speed
-        decelTime = 0.10,   -- secs to stop from max speed
+        accelTime = 0.22,   -- secs to reach max speed (snappier start)
+        decelTime = 0.20,   -- secs to stop from max speed (small glide)
         collisionInset = 4, -- px shaved off each AABB side vs tiles (32px body fits 32px gaps)
         -- movement inaccuracy window, as fractions of baseSpeed (CS: 34%..95%):
         -- below floor = perfectly accurate, above ceil = full moveSpread
@@ -141,9 +141,14 @@ return {
         occlusionHighgain = 0.3,   -- muffle strength when a wall blocks the sound
 
         -- footsteps
-        stepInterval = 0.32, -- secs between steps at full run (scales with speed)
+        stepInterval = 0.32,  -- secs between steps at full run (scales with speed)
+        stepMaxStretch = 1.6, -- slowest cadence = interval * this (walking slowly)
         stepGain = 0.45,
         pitchJitter = 0.12,  -- ± random pitch on steps/hits/stingers
+
+        -- pause muffle (GTA-style)
+        muffleHighgain = 0.12, -- how much treble survives the pause lowpass
+        muffleDuck = 0.5,      -- ambience volume multiplier while paused
 
         -- ambience: looping bed + sparse positional one-shots
         bedGain = 0.7,
