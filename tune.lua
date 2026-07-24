@@ -141,7 +141,7 @@ return {
         spinCycleTime = 0.08, -- secs per sprite during the spin
         takeWindow = 5.0,     -- secs to press E and take a rolled gun
         openTime = 0.25,      -- secs for the lid open (and close) animation
-        interactPad = 4,
+        interactPad = 32,     -- px around the 64x32 box where E buys/takes
         -- loot odds; invalid categories (grenades full, medkit held) are
         -- dropped and the rest renormalized. Rolling an owned gun = ammo refill.
         weights = { ak47 = 15, m4a1 = 15, sawedoff = 10, grenade = 30, healthpack = 30 },
@@ -164,12 +164,12 @@ return {
     -- spent shell casings: faked-3D hop (ground x/y + height z), spin, settle
     -- near the player, then blink out. Purely decorative.
     shell = {
-        ejectSpeed = 70,       -- sideways ground drift px/s (off the barrel side)
+        ejectSpeed = 95,       -- sideways ground drift px/s (off the barrel side)
         ejectSpeedJitter = 40, -- +/- random on ejectSpeed
         dirSpread = 0.6,       -- rad: random tilt around the sideways eject dir (~+/-34deg)
-        ejectUp = 215,         -- initial upward hop velocity px/s (higher = pops higher)
-        ejectUpJitter = 65,    -- +/- random on ejectUp
-        gravity = 340,         -- px/s^2 pulling the hop down
+        ejectUp = 70,          -- initial upward hop velocity px/s (higher = pops higher)
+        ejectUpJitter = 25,    -- +/- random on ejectUp
+        gravity = 500,         -- px/s^2 pulling the hop down
         bounce = 0.4,          -- vertical velocity kept per ground bounce
         friction = 5,          -- ground drift decay (higher = stops sooner)
         spinMin = 8, spinMax = 22, -- random spin rad/s while airborne
