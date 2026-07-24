@@ -82,6 +82,10 @@ return {
         angle = 7,          -- deg the muzzle snaps up per shot (instant up)
         angTime = 0.14,     -- muzzle-rise eases back over this (slower than slide, still fast)
         reloadUpAngle = 30, -- deg: fixed muzzle-up pose held while reloading
+        -- whole-body shove (ak/m4/shotgun only, not the pistol): player + gun
+        -- slide 1px opposite the shot, then snap back
+        bodyDist = 1,       -- px the player slides back per shot
+        bodyTime = 0.085,   -- slide-back eases back over this (~5 frames)
     },
 
     knife   = { damage = 60,  killReward = 50,

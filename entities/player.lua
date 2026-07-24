@@ -52,6 +52,10 @@ function Player:new(x, y, width, height)
     obj.animState = 'idle'
     obj.animRun = Animation:new(Assets.quads.player, 2, 4, 0.1)
 
+    -- body recoil shove (draw-only): amt 1 -> 0, (dx,dy) = unit dir opposite the shot
+    obj.kickAmt = 0
+    obj.kickDX, obj.kickDY = 0, 0
+
     setmetatable(obj, Player)
     return obj
 end
@@ -194,8 +198,9 @@ function Player:update(dt, world)
     end
 
     -- mouse in world coords; the camera is clamped at map edges, so use it
-    -- instead of assuming the player is centered on screen
-    local mx, my = love.mouse.getPosition()
+    -- instead of assuming the player is centered on screen. getPosition is
+    -- window-space — map through the scaler to logical canvas space first.
+    local mx, my = require('ui.screen').mouse()
     mx, my = mx / SCALE, my / SCALE
     local worldMx = mx + world.camX
     local worldMy = my + world.camY
@@ -278,6 +283,14 @@ function Player:update(dt, world)
 
     self.items[self.itemIndex]:update(dt, self.x, self.y, worldMx, worldMy)
 
+    self.kickAmt = math.max(0, self.kickAmt - dt / TUNE.gunKick.bodyTime)
+end
+
+-- Heavy guns shove the body 1px opposite the shot, then it snaps back.
+function Player:shotKick(shotAngle)
+    self.kickDX = -math.cos(shotAngle)
+    self.kickDY = -math.sin(shotAngle)
+    self.kickAmt = 1
 end
 
 -- Sprites can't be whitened with a color tint (tints multiply), so the hit
@@ -333,6 +346,12 @@ function Player:draw()
         love.graphics.setShader(sh)
     end
 
+    -- body recoil: shove sprite + held item together, opposite the shot
+    local kd = TUNE.gunKick.bodyDist * self.kickAmt
+    local kx, ky = math.floor(self.kickDX * kd), math.floor(self.kickDY * kd)
+    love.graphics.push()
+    love.graphics.translate(kx, ky)
+
     if self.animState == 'idle' then
         love.graphics.draw(
             Assets.spritesheet, Assets.quads.player[1],
@@ -351,6 +370,8 @@ function Player:draw()
     end
 
     self.items[self.itemIndex]:draw(facingLeft)
+
+    love.graphics.pop()
 
     if flashing then
         love.graphics.setShader()

@@ -345,6 +345,9 @@ function Gun:fire(leftReleased)
         self.sinceShot = 0
         self.kickPos = 1 -- trigger visual kick (auto fire re-arms it every shot)
         self.kickAng = 1
+        if self.type ~= GUNTYPE.semi then -- ak / m4 / shotgun shove the whole body
+            world.player:shotKick(self.angle)
+        end
         self.curClip = self.curClip - 1
 
         -- sawed-off: barrels empty -> break open and reload right away
