@@ -153,12 +153,12 @@ function World:checkRoomTransition()
     end
 end
 
--- Tiles blocked by unopened doors, keyed 'col,row' (for A*)
+-- Tiles blocked by obstacle entities (unopened doors, crates), keyed 'col,row' (for A*)
 function World:blockedTiles()
     local ts = self.map.tileSize
     local blocked = {}
     for _, e in ipairs(self.entities) do
-        if e.type == 'door' and not e.toRemove then
+        if e.isObstacle and not e.toRemove then
             local c0, c1 = math.floor(e.x / ts) + 1, math.floor((e.x + e.width - 1) / ts) + 1
             local r0, r1 = math.floor(e.y / ts) + 1, math.floor((e.y + e.height - 1) / ts) + 1
             for row = r0, r1 do

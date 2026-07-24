@@ -23,6 +23,7 @@ function Enemy:new(x, y, width, height)
     obj.path = nil
     obj.pathIndex = 1
     obj.repathTimer = love.math.random() * TUNE.zombies.repathTime
+    obj.stuckTimer = 0
 
     -- knife shove, decays fast (separate from vx/vy so accel can't fight it)
     obj.kbx, obj.kby = 0, 0
@@ -52,6 +53,13 @@ local function newTyped(x, y, wave, t, color)
     obj.speed = t.speed
     obj.health = waveLife(wave or 1) * t.lifeMult
     obj.color = color
+
+    -- wall-collision box capped so big sprites (slow, 48px) still fit 1-tile
+    -- gaps and can reach wall-adjacent waypoints; combat circle stays size/2
+    local box = math.min(t.size - TUNE.movement.collisionInset * 2,
+                         TUNE.zombies.colliderCap)
+    obj.colW, obj.colH = box, box
+    obj.colOX, obj.colOY = (t.size - box) / 2, (t.size - box) / 2
     return obj
 end
 
@@ -98,12 +106,13 @@ function Enemy:followPlayer(dt, world)
         -- same/adjacent tile, or no route found: head straight at the player
         nx, ny = dirTo(cx, cy, pcx, pcy)
     else
-        -- walk waypoint tile centers
+        -- walk waypoint tile centers; a wall-pinned body can sit a few px off
+        -- a wall-adjacent tile center, so the reach radius must absorb that
         local wp = self.path[self.pathIndex]
         local wx, wy = (wp.col - 0.5) * ts, (wp.row - 0.5) * ts
         local dist
         nx, ny, dist = dirTo(cx, cy, wx, wy)
-        if dist < 4 then
+        if dist < TUNE.zombies.waypointRadius then
             self.pathIndex = self.pathIndex + 1
         end
     end
@@ -118,6 +127,20 @@ function Enemy:followPlayer(dt, world)
     self.vx, self.vy = self.vx + self.kbx, self.vy + self.kby
     self:moveAndCollide(dt, world)
     self.vx, self.vy = self.vx - self.kbx, self.vy - self.kby
+
+    -- stuck watchdog: wants to move but the world isn't letting it (crate
+    -- shoved onto a stale path, wall pin) -> stop waiting out repathTimer
+    local mx, my = self.x - cx + self.width/2, self.y - cy + self.height/2
+    if (nx ~= 0 or ny ~= 0)
+        and mx*mx + my*my < (self.speed * dt * 0.25)^2 then
+        self.stuckTimer = self.stuckTimer + dt
+        if self.stuckTimer >= TUNE.zombies.stuckRepath then
+            self.repathTimer = 0
+            self.stuckTimer = 0
+        end
+    else
+        self.stuckTimer = 0
+    end
 end
 
 function Enemy:update(dt, world)

@@ -1,5 +1,7 @@
 -- A* over the tile grid. Walls = solid tiles + whatever the caller marks
--- in `blocked` (unopened doors). 8-directional, no corner cutting.
+-- in `blocked` (unopened doors, crates). 8-directional, no corner cutting.
+-- The start tile is always expandable and the goal tile ignores `blocked`:
+-- a crate half-overlapping either tile must not make the whole search fail.
 local Path = {}
 
 local SQRT2 = math.sqrt(2)
@@ -28,8 +30,21 @@ end
 
 -- Returns array of {col, row} from start (exclusive) to goal, or nil
 function Path.find(map, blocked, startCol, startRow, goalCol, goalRow)
-    if not walkable(map, blocked, goalCol, goalRow)
-        or not walkable(map, blocked, startCol, startRow) then
+    local goalKey = key(goalCol, goalRow)
+
+    -- entity-blocked goal is still targetable (solid walls stay fatal)
+    local function passable(col, row)
+        if key(col, row) == goalKey then
+            if col < 1 or col > map.cols or row < 1 or row > map.rows then
+                return false
+            end
+            local t = map.tileTypes[map.grid[row][col]] or 'ground'
+            return t ~= 'solid' and t ~= 'void'
+        end
+        return walkable(map, blocked, col, row)
+    end
+
+    if not passable(goalCol, goalRow) then
         return nil
     end
     if startCol == goalCol and startRow == goalRow then
@@ -72,7 +87,7 @@ function Path.find(map, blocked, startCol, startRow, goalCol, goalRow)
                     if not (dc == 0 and dr == 0) then
                         local nc, nr = cur.col + dc, cur.row + dr
                         local diagonal = dc ~= 0 and dr ~= 0
-                        local ok = walkable(map, blocked, nc, nr)
+                        local ok = passable(nc, nr)
 
                         -- no cutting corners: both straight neighbors must be free
                         if ok and diagonal then
