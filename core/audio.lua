@@ -61,6 +61,11 @@ local pools = {}      -- name -> { Source, ... }
 local groups = {}     -- base name -> { member names } (name123 -> name)
 local srcGain = {}    -- Source -> per-play gain (for live volume updates)
 setmetatable(srcGain, { __mode = 'k' })
+local srcNoFade = {}  -- Source -> true: this play ignores the run-start fade (UI cues)
+setmetatable(srcNoFade, { __mode = 'k' })
+
+-- run-start fade-in: multiplies every gameplay volume, rises 0 -> 1 over dur
+local fade = { mult = 1, t = 0, dur = 0 }
 
 local effectsOk = false
 local listener = { x = 0, y = 0 }        -- world px, for occlusion + stingers
@@ -153,8 +158,9 @@ local function wallBetween(map, ax, ay, bx, by)
     return false
 end
 
--- Flat sound pinned to the listener (menus, own-body cues)
-function Audio.play(name, gain)
+-- Flat sound pinned to the listener (menus, own-body cues).
+-- noFade: plays at full volume even during the run-start fade (start cue).
+function Audio.play(name, gain, noFade)
     local src = grabSource(resolve(name))
     if not src then return end
 
@@ -165,7 +171,8 @@ function Audio.play(name, gain)
     end
     src:setPitch(1)
     srcGain[src] = gain or 1
-    src:setVolume(Audio.master * Audio.sfx * (gain or 1))
+    srcNoFade[src] = noFade or nil
+    src:setVolume(Audio.master * Audio.sfx * (gain or 1) * (noFade and 1 or fade.mult))
     src:play()
 end
 
@@ -194,7 +201,8 @@ function Audio.playAt(name, x, y, gain, jitter, world)
 
     src:setPitch(jitter and (1 + (love.math.random() * 2 - 1) * jitter) or 1)
     srcGain[src] = gain or 1
-    src:setVolume(Audio.master * Audio.sfx * (gain or 1))
+    srcNoFade[src] = nil
+    src:setVolume(Audio.master * Audio.sfx * (gain or 1) * fade.mult)
     src:play()
 end
 
@@ -242,7 +250,7 @@ function Audio.playAmbience(set)
     ambience.set = set
     ambience.bed = love.audio.newSource(path, 'stream')
     ambience.bed:setLooping(true)
-    ambience.bed:setVolume(Audio.master * Audio.music * TUNE.audio.bedGain)
+    ambience.bed:setVolume(Audio.master * Audio.music * TUNE.audio.bedGain * fade.mult)
     ambience.bed:play()
     ambience.stingerTimer = love.math.random(TUNE.audio.stingerMin, TUNE.audio.stingerMax)
 end
@@ -252,9 +260,41 @@ function Audio.stopAmbience()
     ambience.bed, ambience.set = nil, nil
 end
 
+-- Re-apply every live volume from the current master/sfx/music + fade state
+local function applyVolumes()
+    for _, pool in pairs(pools) do
+        for _, s in ipairs(pool) do
+            if s:isPlaying() and not srcNoFade[s] then
+                s:setVolume(Audio.master * Audio.sfx * (srcGain[s] or 1) * fade.mult)
+            end
+        end
+    end
+    if ambience.bed then
+        ambience.bed:setVolume(Audio.master * Audio.music * TUNE.audio.bedGain * fade.mult)
+    end
+end
+
+-- Run-start fade: everything audible rises from silence over dur secs.
+-- Sounds played mid-fade start at the faded volume and rise with the rest.
+function Audio.fadeIn(dur)
+    fade.t, fade.dur, fade.mult = 0, dur or 1, 0
+    applyVolumes()
+end
+
+-- Back to instant full volume (menu return kills a half-done fade)
+function Audio.cancelFade()
+    fade.t, fade.dur, fade.mult = 0, 0, 1
+end
+
 -- Sparse one-shot stingers, placed in the world around the player so the
 -- ambience feels alive without getting annoying
 function Audio.update(dt)
+    if fade.mult < 1 and fade.dur > 0 then
+        fade.t = fade.t + dt
+        fade.mult = math.min(1, fade.t / fade.dur)
+        applyVolumes()
+    end
+
     if not ambience.set then return end
     ambience.stingerTimer = ambience.stingerTimer - dt
     if ambience.stingerTimer > 0 then return end
@@ -291,7 +331,7 @@ function Audio.setMuffled(m)
         else
             pcall(ambience.bed.setFilter, ambience.bed)
         end
-        ambience.bed:setVolume(Audio.master * Audio.music * A.bedGain
+        ambience.bed:setVolume(Audio.master * Audio.music * A.bedGain * fade.mult
             * (m and A.muffleDuck or 1))
     end
 end
@@ -300,17 +340,7 @@ function Audio.setVolumes(master, sfx, music)
     Audio.master = master or Audio.master
     Audio.sfx = sfx or Audio.sfx
     Audio.music = music or Audio.music
-
-    for _, pool in pairs(pools) do
-        for _, s in ipairs(pool) do
-            if s:isPlaying() then
-                s:setVolume(Audio.master * Audio.sfx * (srcGain[s] or 1))
-            end
-        end
-    end
-    if ambience.bed then
-        ambience.bed:setVolume(Audio.master * Audio.music * TUNE.audio.bedGain)
-    end
+    applyVolumes()
 end
 
 return Audio

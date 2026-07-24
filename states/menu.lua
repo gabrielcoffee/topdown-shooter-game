@@ -15,12 +15,14 @@ menu.fxMode = 'menu'
 
 function menu:enter()
     Audio.stopAmbience()
+    Audio.cancelFade() -- a run that died mid-fade must not mute menu clicks
     local items = {}
 
     if Save.runExists() then
         table.insert(items, {
             label = 'menu.continue', type = 'action',
             activate = function()
+                Audio.play(TUNE.start.sound, TUNE.start.soundGain, true)
                 State.fadeTo('playing', { run = Save.loadRun() })
             end,
         })
@@ -28,7 +30,10 @@ function menu:enter()
 
     table.insert(items, {
         label = 'menu.new_game', type = 'action',
-        activate = function() State.fadeTo('playing') end,
+        activate = function()
+            Audio.play(TUNE.start.sound, TUNE.start.soundGain, true)
+            State.fadeTo('playing')
+        end,
     })
     table.insert(items, {
         label = 'menu.options', type = 'action',

@@ -78,7 +78,7 @@ function World:new()
     end
 
     obj.waves = Waves:new(spawnPoints)
-    obj.waves:startWave(1)
+    obj.waves:hold(TUNE.start.fadeTime, 1) -- banner waits out the run-start fade
     return obj
 end
 
@@ -234,8 +234,11 @@ function World:getEntityCollision(e, type)
     end
 end
 
--- Pushes two overlapping circle entities half the overlap apart each
-local function pushApart(a, b)
+-- Pushes two overlapping circle entities half the overlap apart each.
+-- Corrections go through Entity:nudge, so walls and obstacles clip them:
+-- an entity against a wall stays put and the pair just stays overlapped a
+-- little longer, instead of one being shoved through the wall.
+local function pushApart(world, a, b)
     local ax, ay = a:getCenter()
     local bx, by = b:getCenter()
     local dx, dy = bx - ax, by - ay
@@ -246,8 +249,14 @@ local function pushApart(a, b)
         local nx, ny = 1, 0
         if dist > 0 then nx, ny = dx/dist, dy/dist end
         local half = overlap / 2
-        a.x, a.y = a.x - nx*half, a.y - ny*half
-        b.x, b.y = b.x + nx*half, b.y + ny*half
+
+        -- a takes its half first; whatever a couldn't move (wall behind it)
+        -- is handed to b, so a wall-pinned entity pushes the free one the
+        -- full distance instead of the pair sinking toward the wall
+        local ax0, ay0 = a.x, a.y
+        a:nudge(world, -nx*half, -ny*half)
+        local movedA = (ax0 - a.x)*nx + (ay0 - a.y)*ny
+        b:nudge(world, nx*(overlap - movedA), ny*(overlap - movedA))
     end
 end
 
@@ -288,12 +297,12 @@ function World:update(dt)
         local a = self.entities[i]
         if a.type == 'enemy' then
             if not self.player.falling then
-                pushApart(self.player, a)
+                pushApart(self, self.player, a)
             end
             for j = i + 1, #self.entities do
                 local b = self.entities[j]
                 if b.type == 'enemy' then
-                    pushApart(a, b)
+                    pushApart(self, a, b)
                 end
             end
         end
@@ -407,7 +416,7 @@ function World:restore(data)
             e.toRemove = true
         end
     end
-    self.waves:startWave(data.wave or 1)
+    self.waves:hold(TUNE.start.fadeTime, data.wave or 1)
     self.player:restore(data.player or {})
     -- saved runs can end in any room
     self.currentRoom = self:roomAt(self.player:getCenter())

@@ -18,6 +18,10 @@ function playing:enter(opts)
     if opts.run then
         world:restore(opts.run)
     end
+    -- run start: audio + image rise from black together; the wave banner
+    -- waits out the same window (waves pregame hold)
+    self.startFade = TUNE.start.fadeTime
+    Audio.fadeIn(TUNE.start.fadeTime)
     Audio.playAmbience(world.ambience)
 end
 
@@ -25,6 +29,8 @@ function playing:update(dt)
     -- OS cursor off in gameplay: the crosshair IS the cursor. Set every frame
     -- so popping back from pause/options (which show the cursor) restores it.
     love.mouse.setVisible(false)
+
+    self.startFade = math.max(0, (self.startFade or 0) - dt)
 
     Chat.update(dt)
     world:update(dt)
@@ -38,6 +44,13 @@ end
 function playing:draw()
     world:draw()
     Chat.draw()
+
+    -- run-start fade from black, in step with the audio fade
+    if self.startFade and self.startFade > 0 then
+        love.graphics.setColor(0, 0, 0, self.startFade / TUNE.start.fadeTime)
+        love.graphics.rectangle('fill', 0, 0, SCREENWIDTH, SCREENHEIGHT)
+        love.graphics.setColor(1, 1, 1)
+    end
 end
 
 function playing:textinput(t)

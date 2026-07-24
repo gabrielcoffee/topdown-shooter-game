@@ -96,12 +96,12 @@ local commands = {
         local n
         if arg == 'skip' then n = world.waves.wave + 1
         else n = tonumber(arg or '') end
-        if not n or n < 1 or n % 1 ~= 0 then
-            return 'usage: wave skip | wave <n>', true
+        if not n or n < 0 or n % 1 ~= 0 then
+            return 'usage: wave skip | wave <n>  (0 = empty sandbox)', true
         end
         killAllZombies()
         world.waves:startWave(n)
-        return 'wave ' .. n
+        return 'wave ' .. n .. (n == 0 and ' (sandbox, no zombies)' or '')
     end },
     spawn = { argKind = 'zombie', run = function(arg)
         local factory = arg and zombieFactories[arg]

@@ -1,5 +1,7 @@
--- Wave FSM: 'wave_start' banner -> 'active' drip-spawn -> cleared -> 'wave_end'
--- banner -> next wave, forever. All numbers come from TUNE.waves. World owns one.
+-- Wave FSM: optional 'pregame' hold (run-start fade) -> 'wave_start' banner ->
+-- 'active' drip-spawn -> cleared -> 'wave_end' banner -> next wave, forever.
+-- Wave 0 is a dev sandbox: no zombies ever spawn and it never ends
+-- (chat: `wave 0`). All numbers come from TUNE.waves. World owns one.
 
 local Enemy = require('entities.enemy')
 local Theme = require('ui.theme')
@@ -63,8 +65,16 @@ function Waves:startWave(n)
     self.wave = n
     self.state = 'wave_start'
     self.timer = TUNE.waves.startIntermission
-    self.remaining = quotaFor(n)
+    self.remaining = (n == 0) and 0 or quotaFor(n) -- wave 0: sandbox, no zombies
     self:slamBanner()
+end
+
+-- Hold the FSM silent (no banner, no spawns) for secs, then start wave n —
+-- lets the run-start fade finish before the first banner slams down
+function Waves:hold(secs, n)
+    self.state = 'pregame'
+    self.timer = secs
+    self.pendingWave = n or 1
 end
 
 function Waves:slamBanner()
@@ -102,7 +112,13 @@ function Waves:spawnOne(world)
 end
 
 function Waves:update(dt, world)
-    if self.state == 'wave_start' then
+    if self.state == 'pregame' then
+        self.timer = self.timer - dt
+        if self.timer <= 0 then
+            self:startWave(self.pendingWave or 1)
+        end
+
+    elseif self.state == 'wave_start' then
         self.timer = self.timer - dt
         if self.timer <= 0 then
             self.state = 'active'
@@ -117,7 +133,8 @@ function Waves:update(dt, world)
             self.spawnTimer = self.spawnTimer + delayFor(self.wave)
         end
 
-        if self.remaining == 0 and liveEnemies(world) == 0 then
+        -- wave 0 never ends: free roam until a chat command moves it on
+        if self.wave > 0 and self.remaining == 0 and liveEnemies(world) == 0 then
             self.state = 'wave_end'
             self.timer = TUNE.waves.endIntermission
             self:slamBanner()

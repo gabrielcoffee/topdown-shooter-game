@@ -135,6 +135,12 @@ return {
 
     healthpack = { healAmount = 50 },
 
+    start = { -- run start (Play / New Game / retry)
+        sound = 'shotgun_pump', -- cue on the menu click (any name core/audio knows)
+        soundGain = 1,
+        fadeTime = 2,           -- secs the image + audio fade in; wave banner waits for it
+    },
+
     chest = {
         cost = 150,           -- ~10 kills
         spinTime = 2.0,       -- secs of sprite cycling after paying
