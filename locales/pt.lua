@@ -21,7 +21,17 @@ return {
     ['options.cross_outline'] = 'CONTORNO DA MIRA',
     ['options.on']       = 'SIM',
     ['options.off']      = 'NÃO',
+    ['options.graphics'] = 'GRÁFICOS',
     ['options.back']     = 'VOLTAR',
+
+    ['gfx.title']        = 'GRÁFICOS',
+    ['gfx.aspect']       = 'PROPORÇÃO',
+    ['gfx.resolution']   = 'RESOLUÇÃO',
+    ['gfx.fullscreen']   = 'TELA CHEIA',
+    ['gfx.crt_ingame']   = 'FILTRO TV NO JOGO',
+    ['gfx.native']       = 'NATIVA',
+    ['gfx.apply']        = 'APLICAR',
+    ['gfx.unapplied']    = 'ALTERAÇÕES PENDENTES - APLICAR',
 
     ['gameover.title']   = 'VOCÊ MORREU',
     ['gameover.restart'] = 'REINICIAR',

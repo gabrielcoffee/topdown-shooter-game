@@ -31,9 +31,12 @@ local files = {
     ak47_reload    = 'assets/sounds/weapons/ak47_reload.wav',
     m4a1_reload    = 'assets/sounds/weapons/m4a1_reload.wav',
     shotgun_reload = 'assets/sounds/weapons/shotgun_reload.wav',
+    shotgun_pump   = 'assets/sounds/weapons/shotgun_pump.wav',
     shell1         = 'assets/sounds/weapons/shell1.wav',
     shell2         = 'assets/sounds/weapons/shell2.wav',
     shell3         = 'assets/sounds/weapons/shell3.wav',
+    rifle_shell    = 'assets/sounds/weapons/rifle_shell.wav',  -- ak/m4 casing hit
+    pistol_shell   = 'assets/sounds/weapons/pistol_shell.wav', -- usp casing hit
     -- impacts
     bullet_hit1    = 'assets/sounds/effects/bullet_hit1.wav',
     bullet_hit2    = 'assets/sounds/effects/bullet_hit2.wav',

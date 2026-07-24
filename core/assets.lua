@@ -49,6 +49,7 @@ Assets.quads = {
     -- Items live in the first column, one row each; the "player holding it"
     -- version sits right after the item in the same row.
     pistol = loadQuads(0, 32, 32, 32, 1),
+    medkit = loadQuads(64, 32, 32, 32, 1),
     grenade = loadQuads(0, 64, 32, 32, 1),
     knife = loadQuads(0, 96, 32, 32, 1),
 
@@ -57,12 +58,24 @@ Assets.quads = {
     shotgun = loadQuads(0, 192, 64, 32, 1),
 
     held_pistol = loadQuads(32, 32, 32, 32, 1),
+    held_medkit = loadQuads(96, 32, 32, 32, 1),
     held_grenade = loadQuads(32, 64, 32, 32, 1),
     held_knife = loadQuads(32, 96, 32, 32, 1),
 
     held_ak47 = loadQuads(64, 128, 64, 32, 1),
     held_m4a1 = loadQuads(64, 160, 64, 32, 1),
     held_shotgun = loadQuads(64, 192, 64, 32, 1),
+    held_shotgun_pump = loadQuads(128, 192, 64, 32, 1), -- rack pose, next cell after held_shotgun
+
+    -- spent casings, 8x8 cells (art is 16px apart on the sheet), ejected by the
+    -- gun: red shotgun shell / brass rifle case / short pistol case
+    shell_shotgun = loadQuads(196, 4, 8, 8, 1),
+    shell_rifle   = loadQuads(212, 4, 8, 8, 1), -- ak47 + m4a1
+    shell_pistol  = loadQuads(228, 4, 8, 8, 1), -- usp
+
+    -- crate: 32x48 sprite, but only the bottom 32x32 is the hitbox. The top
+    -- 16px is a walk-behind cap (see Crate:sortY / Crate:draw).
+    crate = loadQuads(0, 256, 32, 48, 1),
 
     aim = loadQuads(128, 0, 16, 16, 1),
     bullet = loadQuads(144, 0, 4, 2, 1),
@@ -70,5 +83,10 @@ Assets.quads = {
 
     bg_dust = loadBgQuads(0, 0, SCREENWIDTH, SCREENHEIGHT, 1, Assets.bg_dust)
 }
+
+-- Re-cut the fullscreen bg quad after the logical size changes (aspect switch).
+function Assets.rebakeBg()
+    Assets.quads.bg_dust = loadBgQuads(0, 0, SCREENWIDTH, SCREENHEIGHT, 1, Assets.bg_dust)
+end
 
 return Assets 

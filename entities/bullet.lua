@@ -9,7 +9,7 @@ Bullet.__index = Bullet
 setmetatable(Bullet, Entity)
 
 
-function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime, killReward)
+function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime, killReward, maxHits)
     local obj = Entity:new(x, y, 2, 4)
 
     obj.color = Color.white
@@ -18,6 +18,8 @@ function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime, killReward)
     obj.sprite = Assets.quads.bullet[1]
     obj.damage = damage
     obj.killReward = killReward or 0
+    obj.hitsLeft = maxHits or 1 -- zombies left to pierce before the bullet dies
+    obj.hitEnemies = {}         -- each zombie takes this bullet's damage once
     obj.lifetime = lifetime
     obj.timer = 0
     obj.ox = 0
@@ -75,17 +77,27 @@ function Bullet:update(dt, world)
     -- already stopped by a wall/crate/door this frame
     if self.toRemove then return end
 
-    -- health > 0 guard: an already-dead enemy can't pay twice (shotgun pellets)
-    local enemyCollided =  world:getEntityCollision(self, 'enemy')
-    if enemyCollided ~= nil and enemyCollided.health > 0 then
-        world:removeEntity(self)
-        enemyCollided.health = enemyCollided.health - self.damage
-        enemyCollided.flash = true
-        world.vfx:bloodSplatter(self.x, self.y, self.angle)
-        Audio.playAt('flesh_hit', self.x, self.y, 1, TUNE.audio.pitchJitter, world)
+    -- pierce: every overlapping zombie is damaged once per bullet; the bullet
+    -- only dies after maxHits total. health > 0 guard: an already-dead enemy
+    -- can't pay twice (shotgun pellets), and corpses don't eat a pierce.
+    for _, e in ipairs(world.entities) do
+        if e.type == 'enemy' and not e.toRemove and e.health > 0
+            and not self.hitEnemies[e] and self:collidesWith(e) then
+            self.hitEnemies[e] = true
+            e.health = e.health - self.damage
+            e.flash = true
+            world.vfx:bloodSplatter(self.x, self.y, self.angle)
+            Audio.playAt('flesh_hit', self.x, self.y, 1, TUNE.audio.pitchJitter, world)
 
-        if enemyCollided.health <= 0 then
-            world.player.money = world.player.money + self.killReward
+            if e.health <= 0 then
+                world.player.money = world.player.money + self.killReward
+            end
+
+            self.hitsLeft = self.hitsLeft - 1
+            if self.hitsLeft <= 0 then
+                world:removeEntity(self)
+                break
+            end
         end
     end
 end

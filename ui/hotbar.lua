@@ -3,17 +3,10 @@
 -- Drawn from Player:drawHud, so it's outside the lighting pass.
 
 local Assets = require('core.assets')
-local HandItem = require('hand_items.hand_item')
 
 local Hotbar = {}
 
 local function drawItemIcon(item, x, y, size)
-    if item.isHealthPack then
-        local s = size * 0.55
-        HandItem.drawMedkitIcon(x + (size - s)/2, y + (size - s)/2, s)
-        return
-    end
-
     -- hotbar shows the bare item; in-hand sprite has the hands baked in
     local quad = item.icon or item.sprite
     local _, _, qw, qh = quad:getViewport()

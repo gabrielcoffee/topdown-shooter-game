@@ -37,7 +37,10 @@ function Crosshair.update(dt, world)
     local moveFactor = player.moveFactor or 0
 
     local target
-    if held and held.isGun then
+    if player.running or (held and held.isKnife) then
+        -- sprint / knife: no aiming, so spread never opens the chips
+        target = K.gapMin
+    elseif held and held.isGun then
         target = K.gapMin + held:currentSpread(moveFactor) * K.spreadToPx
     else
         target = K.gapMin + moveFactor * K.itemMoveGap
@@ -49,7 +52,14 @@ end
 function Crosshair.draw(world)
     local player = world.player
     local held = player.items[player.itemIndex]
-    if held and held.isKnife then return end -- knife has no aim
+
+    -- sprint / knife: aim is disabled, so the crosshair fades instead of vanishing
+    local alpha = 1
+    if player.running then
+        alpha = TUNE.run.crossAlpha
+    elseif held and held.isKnife then
+        alpha = TUNE.crosshair.knifeAlpha
+    end
 
     local K = TUNE.crosshair
     local g = gap or K.gapMin
@@ -83,14 +93,14 @@ function Crosshair.draw(world)
     }
 
     if SETTINGS.crossOutline then
-        love.graphics.setColor(0, 0, 0)
+        love.graphics.setColor(0, 0, 0, alpha)
         for _, c in ipairs(chips) do
             love.graphics.rectangle('fill', c[1] - 1, c[2] - 1, c[3] + 2, c[4] + 2)
         end
     end
 
     local rgb = Crosshair.colorById(SETTINGS.crossColor).rgb
-    love.graphics.setColor(rgb[1], rgb[2], rgb[3])
+    love.graphics.setColor(rgb[1], rgb[2], rgb[3], alpha)
     for _, c in ipairs(chips) do
         love.graphics.rectangle('fill', c[1], c[2], c[3], c[4])
     end

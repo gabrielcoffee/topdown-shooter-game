@@ -1,6 +1,8 @@
--- A live grenade flying toward the aim point. Fuse runs from the throw,
--- so it can blow mid-air or on the ground. Flat damage inside the blast
--- radius (no falloff), same kill-reward flow as bullets.
+-- A live grenade flying toward the aim point (already clamped to
+-- grenade.maxRange by the thrower). It arcs OVER walls — nothing stops the
+-- flight. Fuse runs from the throw, so it can blow mid-air or on the ground.
+-- Flat damage inside the blast radius (no falloff), same kill-reward flow
+-- as bullets.
 
 local Entity = require('entities.entity')
 local Assets = require('core.assets')
@@ -32,18 +34,12 @@ function ThrownGrenade:update(dt, world)
     self.age = self.age + dt
 
     if not self.landed then
+        -- flies over walls: the throw arc clears everything on the way
         local step = TUNE.grenade.throwSpeed * dt
-        local nx = self.x + self.dx * step
-        local ny = self.y + self.dy * step
-
-        -- walls stop it in place; reaching the aim point lands it
-        if world.map:isSolidAt(nx, ny) then
-            self.landed = true
-        else
-            self.x, self.y = nx, ny
-            self.travelled = self.travelled + step
-            if self.travelled >= self.dist then self.landed = true end
-        end
+        self.x = self.x + self.dx * step
+        self.y = self.y + self.dy * step
+        self.travelled = self.travelled + step
+        if self.travelled >= self.dist then self.landed = true end
     end
 
     if self.age >= TUNE.grenade.fuse then

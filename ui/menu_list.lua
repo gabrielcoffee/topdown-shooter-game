@@ -63,6 +63,7 @@ end
 
 local function activate(self)
     local item = self.items[self.selected]
+    if item.enabled and not item.enabled() then return end
     if item.type == 'action' and item.activate then
         Audio.play('shell2', 0.5)
         item.activate()
@@ -127,7 +128,7 @@ function MenuList:update(dt)
         if love.mouse.isDown(1) then
             local item = self.items[self.selected]
             if item.type == 'slider' then
-                setSliderFromMouse(self, self.selected, love.mouse.getX())
+                setSliderFromMouse(self, self.selected, (require('ui.screen').mouse()))
             end
         else
             self.dragging = false
@@ -143,7 +144,9 @@ function MenuList:draw()
     for i, item in ipairs(self.items) do
         local yy = itemY(self, i)
         local isSel = (i == self.selected)
-        local c = isSel and Theme.colors.blood or Theme.colors.text
+        local disabled = item.enabled and not item.enabled()
+        local c = disabled and Theme.colors.barBack
+            or (isSel and Theme.colors.blood or Theme.colors.text)
 
         -- staggered slide-in: each row eases in from the left, delayed by index
         local p = math.min(1, math.max(0,

@@ -23,6 +23,8 @@ All files converted to mono WAV (positional) or stereo OGG (ambient beds), renam
 - **gun_draw** (weapon deploy click): "equipment clicks III" — https://opengameart.org/content/equipment-clicks-iii (bolt-action cock slice)
 - **grenade_draw**: "Gun reload, lock or click sound" — https://opengameart.org/content/gun-reload-lock-or-click-sound
 - **m4a1_shot**: suppressed shot synthesized from the CC0 AR-15 recording (Free Firearm Sound Library) — lowpass + tight envelope + click layer. Replace with a real suppressed recording anytime by overwriting `weapons/m4a1_shot.wav`.
+- **shotgun_pump** (pump-action rack): derived from the CC0 `gun_draw` ("equipment clicks III") — pitched down + doubled into a two-stroke "cha-chunk". Replace with a real shotgun pump recording anytime by overwriting `weapons/shotgun_pump.wav`.
+- **rifle_shell / pistol_shell** (ak/m4 + usp casing-hit): derived from the CC0 brass-drop `shell1-3` — pitched to casing size (pistol brighter, rifle mid). Replace with real recordings anytime by overwriting `weapons/rifle_shell.wav` / `weapons/pistol_shell.wav`.
 
 ## Zombie sounds (empty slot)
 Gabriel records these. Drop mono files into `assets/sounds/zombies/` named:

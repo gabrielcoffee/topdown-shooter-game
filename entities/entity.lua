@@ -3,7 +3,12 @@ local Color = require('core.color')
 local Entity = {}
 Entity.__index = Entity
 
+-- monotonic serial, used only as a stable tiebreaker for the y-sort draw order
+-- so entities sharing a sortY don't flicker back and forth between frames
+local nextSerial = 0
+
 function Entity:new(x, y, width, height)
+    nextSerial = nextSerial + 1
     local obj = {
         x = x or 0,
         y = y or 0,
@@ -16,11 +21,20 @@ function Entity:new(x, y, width, height)
         type = 'default',
         toRemove = false,
         flash = false,
+        sortSerial = nextSerial,
         fillStyle = 'line' -- placeholder circle: 'line' (empty) or 'fill'
     }
 
     setmetatable(obj, Entity)
     return obj
+end
+
+-- Depth anchor for the world's y-sorted draw pass: entities with a smaller
+-- sortY draw first (behind). Default is the sprite's bottom edge (the "feet"),
+-- so something lower on screen renders in front. Props that should be walked
+-- behind past a certain line (crates) override this with that line's Y.
+function Entity:sortY()
+    return self.y + self.height
 end
 
 -- to check if an entity has a parent class (metatable index)
@@ -58,8 +72,13 @@ function Entity:accelToward(dt, dirX, dirY, world)
     self.vy = approach(self.vy, dirY * maxSpeed)
 end
 
--- Collision AABB is the sprite box inset a few px so 32px bodies fit 32px gaps
+-- Collision AABB. Default: the sprite box inset a few px so 32px bodies fit
+-- 32px gaps. An entity can override with an explicit box (colOX/colOY/colW/colH,
+-- offsets from its sprite top-left) when its collider isn't the whole sprite.
 local function collisionBox(self)
+    if self.colW then
+        return self.x + self.colOX, self.y + self.colOY, self.colW, self.colH
+    end
     local inset = TUNE.movement.collisionInset
     return self.x + inset, self.y + inset,
            self.width - inset * 2, self.height - inset * 2
@@ -67,9 +86,12 @@ end
 
 -- Snap out of solid tiles and obstacle entities along one axis
 function Entity:_resolveAxis(world, axis, dt)
-    local inset = TUNE.movement.collisionInset
     local ts = world.map.tileSize
     local bx, by, bw, bh = collisionBox(self)
+    -- how far the collision box sits inside the sprite box; snap-outs below add
+    -- it back so the sprite origin lands right. For a custom box (player's 16x16)
+    -- this is colOX/colOY, not the default inset — using inset drifts the snap.
+    local offX, offY = bx - self.x, by - self.y
 
     -- solid tiles (loop cols/rows the box overlaps, 0-based)
     local c0, c1 = math.floor(bx / ts), math.floor((bx + bw - 0.001) / ts)
@@ -78,12 +100,12 @@ function Entity:_resolveAxis(world, axis, dt)
         for col = c0, c1 do
             if world.map:isSolidAt(col * ts, row * ts) then
                 if axis == 'x' then
-                    if self.vx > 0 then self.x = col * ts - bw - inset
-                    elseif self.vx < 0 then self.x = (col + 1) * ts - inset end
+                    if self.vx > 0 then self.x = col * ts - bw - offX
+                    elseif self.vx < 0 then self.x = (col + 1) * ts - offX end
                     self.vx = 0
                 else
-                    if self.vy > 0 then self.y = row * ts - bh - inset
-                    elseif self.vy < 0 then self.y = (row + 1) * ts - inset end
+                    if self.vy > 0 then self.y = row * ts - bh - offY
+                    elseif self.vy < 0 then self.y = (row + 1) * ts - offY end
                     self.vy = 0
                 end
                 bx, by = collisionBox(self)
@@ -126,12 +148,12 @@ function Entity:_resolveAxis(world, axis, dt)
             end
 
             if axis == 'x' then
-                if self.vx > 0 then self.x = e.x - bw - inset
-                elseif self.vx < 0 then self.x = e.x + e.width - inset end
+                if self.vx > 0 then self.x = e.x - bw - offX
+                elseif self.vx < 0 then self.x = e.x + e.width - offX end
                 if not keepSpeed then self.vx = 0 end
             else
-                if self.vy > 0 then self.y = e.y - bh - inset
-                elseif self.vy < 0 then self.y = e.y + e.height - inset end
+                if self.vy > 0 then self.y = e.y - bh - offY
+                elseif self.vy < 0 then self.y = e.y + e.height - offY end
                 if not keepSpeed then self.vy = 0 end
             end
             bx, by = collisionBox(self)

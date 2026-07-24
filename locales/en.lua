@@ -21,7 +21,17 @@ return {
     ['options.cross_outline'] = 'CROSSHAIR OUTLINE',
     ['options.on']       = 'ON',
     ['options.off']      = 'OFF',
+    ['options.graphics'] = 'GRAPHICS',
     ['options.back']     = 'BACK',
+
+    ['gfx.title']        = 'GRAPHICS',
+    ['gfx.aspect']       = 'ASPECT RATIO',
+    ['gfx.resolution']   = 'RESOLUTION',
+    ['gfx.fullscreen']   = 'FULLSCREEN',
+    ['gfx.crt_ingame']   = 'TV FILTER IN-GAME',
+    ['gfx.native']       = 'NATIVE',
+    ['gfx.apply']        = 'APPLY',
+    ['gfx.unapplied']    = 'UNAPPLIED CHANGES - PRESS APPLY',
 
     ['gameover.title']   = 'YOU DIED',
     ['gameover.restart'] = 'RESTART',

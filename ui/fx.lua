@@ -21,6 +21,13 @@ function Fx.load()
     Fx.refresh()
 end
 
+-- Resize the shader chain's internal buffers to the logical canvas size, so the
+-- CRT/scanline look scales with the game canvas, not the OS window.
+function Fx.resize(w, h)
+    if chain and chain.resize then chain.resize(w, h) end
+    mode = nil -- force setMode to re-apply after a resize
+end
+
 -- (Re)apply tune values — called on load and on the U hot-reload
 function Fx.refresh()
     local t = TUNE.fx

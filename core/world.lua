@@ -7,10 +7,12 @@ local Audio = require('core.audio')
 local Crate = require('entities.crate')
 local Door = require('entities.door')
 local Chest = require('entities.chest')
+local PlayerSpawn = require('entities.player_spawn')
 local Lighting = require('core.lighting')
 local Vfx = require('core.vfx')
 local Waves = require('core.waves')
 local Crosshair = require('ui.crosshair')
+local GrenadeAim = require('ui.grenade_aim')
 
 local World = {}
 World.__index = World
@@ -63,7 +65,16 @@ function World:new()
             obj.lighting:trackOccluder(chest)
         elseif o.type == 'spawn' then
             table.insert(spawnPoints, { x = o.x, y = o.y, door = o.door })
+        elseif o.type == 'playerspawn' then
+            obj.playerSpawn = PlayerSpawn:new(o.x, o.y)
         end
+    end
+
+    -- a PlayerSpawn marker overrides the default room-1-center start
+    if obj.playerSpawn then
+        obj.player.x, obj.player.y =
+            obj.playerSpawn:playerPos(obj.player.width, obj.player.height)
+        obj.currentRoom = obj:roomAt(obj.player:getCenter()) or obj.currentRoom
     end
 
     obj.waves = Waves:new(spawnPoints)
@@ -309,6 +320,7 @@ function World:update(dt)
     self.vfx:update(dt)
     self.lighting:update(dt, self)
     Crosshair.update(dt, self)
+    GrenadeAim.update(dt)
 
     -- ears follow the player; reverb adapts to nearby walls; stingers tick
     local lx, ly = self.player:getCenter()
@@ -335,7 +347,20 @@ function World:draw()
 
         self.vfx:drawUnder() -- ground dust stays below everyone
 
-        for _, entity in ipairs(self.entities) do
+        -- y-sorted draw: entities lower on screen (bigger sortY) render in
+        -- front. Each entity's sortY is its depth anchor (see Entity:sortY).
+        -- sortSerial breaks ties so equal-depth sprites don't flicker.
+        local drawList = self.drawList or {}
+        self.drawList = drawList
+        local n = #self.entities
+        for i = 1, n do drawList[i] = self.entities[i] end
+        for i = #drawList, n + 1, -1 do drawList[i] = nil end
+        table.sort(drawList, function(a, b)
+            local ay, by = a:sortY(), b:sortY()
+            if ay == by then return a.sortSerial < b.sortSerial end
+            return ay < by
+        end)
+        for _, entity in ipairs(drawList) do
             entity:draw()
         end
 
@@ -346,6 +371,7 @@ function World:draw()
             for _, entity in ipairs(self.entities) do
                 entity:drawHitbox()
             end
+            if self.playerSpawn then self.playerSpawn:drawHitbox() end
         end
     end)
 
@@ -355,6 +381,9 @@ function World:draw()
     end
 
     self.waves:drawBanner()
+
+    -- grenade targeting guides (dotted throw arc + blast circle, world-space)
+    GrenadeAim.draw(self)
 
     -- CS-style crosshair replaces the mouse (opens with spread, see ui/crosshair)
     Crosshair.draw(self)

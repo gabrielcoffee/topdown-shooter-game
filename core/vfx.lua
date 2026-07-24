@@ -98,9 +98,9 @@ function Vfx:explosion(x, y)
 end
 
 -- Puffs around the mover's feet, drifting off in random directions
-function Vfx:footDust(x, y)
+function Vfx:footDust(x, y, count)
     self.dust:moveTo(x, y)
-    self.dust:emit(TUNE.fx.dustCount)
+    self.dust:emit(count or TUNE.fx.dustCount)
 end
 
 function Vfx:update(dt)

@@ -1,5 +1,6 @@
 local Assets = require('core.assets')
 local Bullet = require('entities.bullet')
+local ShellCasing = require('entities.shell_casing')
 local HandItem = require('hand_items.hand_item')
 local Audio = require('core.audio')
 local Animation = require('core.animation')
@@ -47,8 +48,25 @@ local function GunStateVariables(maxClip)
         recoil = 0,      -- spread added by firing, recovers after a pause
         sinceShot = 999, -- secs since the last shot (gates recoil recovery)
         kickPos = 0,     -- visual slide-back, 1 = just fired -> 0
-        kickAng = 0      -- visual muzzle-rise, 1 = just fired -> 0
+        kickAng = 0,     -- visual muzzle-rise, 1 = just fired -> 0
+        -- shotgun pump-action (rack between shots + on reload-finish / pickup)
+        pumpActive = false,
+        pumpTimer = 0,      -- secs since the pump started
+        pumpDidRack = false,-- rack SFX/eject already fired this pump
+        pumpEject = false,  -- whether this pump throws a shell
+        pumpAnimTimer = 0,  -- secs left of the pump pose
+        reloadSettle = 0,   -- secs left of the ease from reload pose back to aim
+        -- sprint pose (gun tucked, horizontal, bobbing) + swing back to aim
+        runPose = false,    -- drawing the sprint pose / settling out of it
+        runBobT = 0,        -- bob clock while sprinting
+        runSettle = 0       -- secs left of the swing from run pose to aim
     }
+end
+
+-- Shortest-path angle interpolation (handles the +/-pi wrap).
+local function lerpAngle(a, b, t)
+    local d = (b - a + math.pi) % (2 * math.pi) - math.pi
+    return a + d * t
 end
 
 -- All numbers come from tune.lua (t = one entry of TUNE.guns)
@@ -63,6 +81,7 @@ local function applyTune(obj, t)
     obj.spread = t.spread
     obj.pellets = t.pellets
     obj.killReward = t.killReward
+    obj.maxHits = t.maxHits or 1
     obj.baseSpread = t.baseSpread or 0
     obj.moveSpread = t.moveSpread or 0
     obj.recoilPerShot = t.recoilPerShot or 0
@@ -82,6 +101,8 @@ function Gun:newUSP()
     obj.type = GUNTYPE.semi
     obj.shotSfx = 'usp_shot'
     obj.reloadSfx = 'usp_reload'
+    obj.shellQuad = Assets.quads.shell_pistol[1]
+    obj.shellDrop = { 'pistol_shell' } -- casing-hit-ground SFX
     obj.ox = 4
     obj.oy = 16
     obj.tipLen = 22 -- barrel tip distance from pivot (muzzle/bullet spawn)
@@ -101,6 +122,8 @@ function Gun:newAk47()
     obj.type = GUNTYPE.auto
     obj.shotSfx = 'ak47_shot'
     obj.reloadSfx = 'ak47_reload'
+    obj.shellQuad = Assets.quads.shell_rifle[1]
+    obj.shellDrop = { 'rifle_shell' }
     obj.reloadAnim = Animation:fromGif('assets/ak_reload.gif', false)
     obj.ox = 12 -- reload gif shares the held sprite's coordinate space, same pivot
     obj.oy = 16
@@ -121,6 +144,8 @@ function Gun:newM4A1()
     obj.type = GUNTYPE.auto
     obj.shotSfx = 'm4a1_shot'
     obj.reloadSfx = 'm4a1_reload'
+    obj.shellQuad = Assets.quads.shell_rifle[1]
+    obj.shellDrop = { 'rifle_shell' }
     obj.ox = 12
     obj.oy = 16
     obj.tipLen = 44
@@ -141,6 +166,8 @@ function Gun:newShotgun()
     obj.shotSfx = 'shotgun_shot'
     obj.reloadSfx = 'shotgun_reload' -- break-open + tick, plays before shells go in
     obj.shellSfx = { 'shell1', 'shell2', 'shell3' }
+    obj.shellQuad = Assets.quads.shell_shotgun[1]
+    obj.shellDrop = { 'shell1', 'shell2', 'shell3' } -- brass hull bounce
     obj.reloadOpenTime = TUNE.guns.sawedoff.reloadOpenTime
     obj.ox = 12
     obj.oy = 16
@@ -164,6 +191,37 @@ function Gun:update(dt, px, py, mx, my)
     local GK = TUNE.gunKick
     self.kickPos = math.max(0, self.kickPos - dt / GK.posTime)
     self.kickAng = math.max(0, self.kickAng - dt / GK.angTime)
+    self.reloadSettle = math.max(0, self.reloadSettle - dt)
+
+    -- sprint pose (draw-only): while running the gun holds the tucked pose;
+    -- once the sprint ends it swings to the real aim over run.settleTime
+    if world.player and world.player.running then
+        self.runPose = true
+        self.runBobT = self.runBobT + dt
+        self.runSettle = TUNE.run.settleTime
+    elseif self.runPose then
+        self.runSettle = math.max(0, self.runSettle - dt)
+        if self.runSettle <= 0 then
+            self.runPose = false
+            self.runBobT = 0
+        end
+    end
+
+    -- shotgun pump: a beat after it starts, play the rack SFX + pose (+ eject)
+    if self.pumpActive then
+        local SG = TUNE.guns.sawedoff
+        self.pumpTimer = self.pumpTimer + dt
+        if not self.pumpDidRack and self.pumpTimer >= (SG.pumpDelay or 0) then
+            self.pumpDidRack = true
+            self.pumpAnimTimer = SG.pumpAnimTime or 0
+            Audio.playAt('shotgun_pump', self.x, self.y, 1, TUNE.audio.pitchJitter, world)
+            if self.pumpEject then self:ejectShell() end
+        end
+        if self.pumpDidRack then
+            self.pumpAnimTimer = math.max(0, self.pumpAnimTimer - dt)
+            if self.pumpAnimTimer <= 0 then self.pumpActive = false end
+        end
+    end
 
     if self.canShoot == false then
         self.timer = self.timer + dt
@@ -193,6 +251,8 @@ function Gun:update(dt, px, py, mx, my)
                 Audio.playAt(self.shellSfx[love.math.random(#self.shellSfx)], self.x, self.y)
                 if self.curClip >= self.maxClip or self.bulletsLeft <= 0 then
                     self.reloading = false
+                    self.reloadSettle = TUNE.gunKick.reloadSettleTime
+                    self:pump(false) -- chamber the first shell: rack SFX + pose, no eject
                 end
             end
         elseif self.reloadTimer >= self.reloadingTime then
@@ -201,6 +261,7 @@ function Gun:update(dt, px, py, mx, my)
             self.bulletsLeft = self.bulletsLeft - moved
             self.reloading = false
             self.reloadTimer = 0
+            self.reloadSettle = TUNE.gunKick.reloadSettleTime
         end
     end
 end
@@ -223,25 +284,72 @@ function Gun:reload()
 end
 
 function Gun:cancelReload()
+    if self.reloading then self.reloadSettle = TUNE.gunKick.reloadSettleTime end
     self.reloading = false
     self.reloadOpening = false
     self.reloadTimer = 0
 end
 
+-- Kick a spent casing out of the breech (gun pivot, already near the player).
+function Gun:ejectShell()
+    if not self.shellQuad then return end
+    -- eject "backwards" from the way the player faces: aim right -> shells fly
+    -- left, aim left -> shells fly right (screen-horizontal, ignores aim pitch)
+    local dirX = (math.cos(self.angle) >= 0) and -1 or 1
+    world:addEntity(ShellCasing:new(self.x, self.y, dirX, self.shellQuad, self.shellDrop))
+end
+
+-- Shotgun rack: schedules the pump SFX + pose (and a shell eject if `ejectShell`)
+-- a beat into the window. Used per shot, on reload-finish, and on pickup.
+function Gun:pump(ejectShell)
+    self.pumpActive = true
+    self.pumpTimer = 0
+    self.pumpDidRack = false
+    self.pumpEject = ejectShell and true or false
+    self.pumpAnimTimer = 0
+end
+
 function Gun:draw(facingLeft)
     local GK = TUNE.gunKick
-    local ang = self.angle
+    local sign = facingLeft and 1 or -1
     local dx, dy = 0, 0
 
+    -- reload pose: aim squeezed into a ±reloadBandDeg window centered on
+    -- reloadUpAngle above horizontal
+    local up = math.rad(GK.reloadUpAngle)
+    local center = facingLeft and (math.pi + up) or -up
+    local frac = math.max(-1, math.min(1, -math.sin(self.angle))) -- +1 aim up, -1 down
+    local poseAng = center + sign * math.rad(GK.reloadBandDeg) * frac
+
+    -- normal aim with the per-shot kick (muzzle snaps up, always "up" per facing)
+    local aimAng = self.angle + sign * math.rad(GK.angle) * self.kickAng
+
+    local ang
     if self.reloading then
-        -- fixed pose: barrel held ~30 deg up, pointing the way you face, ignores mouse
-        local up = math.rad(GK.reloadUpAngle)
-        ang = facingLeft and (math.pi + up) or -up
+        ang = poseAng
+    elseif self.reloadSettle > 0 then
+        -- ease from the reload pose back to aim: fast start, gentle land
+        local t = 1 - self.reloadSettle / GK.reloadSettleTime
+        ang = lerpAngle(poseAng, aimAng, 1 - (1 - t) ^ 3)
+    elseif self.runPose then
+        -- sprint: horizontal, tucked back toward the player, 1px bob synced
+        -- to the bob clock; on sprint end swing to the real aim (fast start)
+        local R = TUNE.run
+        local runAng = facingLeft and math.pi or 0
+        local tuck = (facingLeft and 1 or -1) * R.backPx
+        if world.player and world.player.running then
+            ang = runAng
+            dx = tuck
+            dy = ((self.runBobT * R.bobHz) % 1 >= 0.5) and -1 or 0
+        else
+            local t = 1 - self.runSettle / R.settleTime
+            local e = 1 - (1 - t) ^ 3
+            ang = lerpAngle(runAng, aimAng, e)
+            dx = tuck * (1 - e)
+        end
     else
-        -- per-shot kick: muzzle snaps up (sign flips with facing so it's always
-        -- "up"), whole gun slides straight back along the barrel
-        local sign = facingLeft and 1 or -1
-        ang = ang + sign * math.rad(GK.angle) * self.kickAng
+        ang = aimAng
+        -- whole gun slides straight back along the barrel with the kick
         local back = GK.dist * self.kickPos
         dx = -math.cos(self.angle) * back
         dy = -math.sin(self.angle) * back
@@ -252,6 +360,8 @@ function Gun:draw(facingLeft)
     if self.reloading and self.reloadAnim then
         local a = self.reloadAnim
         img, quad = a.image, a.quads[a.index]
+    elseif self.pumpDidRack and self.pumpAnimTimer > 0 then
+        quad = Assets.quads.held_shotgun_pump[1] -- racked pose during the pump
     end
 
     love.graphics.draw(
@@ -326,7 +436,8 @@ function Gun:fire(leftReleased)
                         shotAngle + finalSpread, self.damage,
                         gw,
                         self.bulletLifeTime,
-                        self.killReward
+                        self.killReward,
+                        self.maxHits
                     )
                 )
             end
@@ -337,18 +448,25 @@ function Gun:fire(leftReleased)
                     shotAngle, self.damage,
                     gw,
                     self.bulletLifeTime,
-                    self.killReward
+                    self.killReward,
+                    self.maxHits
                 )
             )
         end
         self.recoil = math.min(self.recoilMax, self.recoil + self.recoilPerShot)
         self.sinceShot = 0
-        self.kickPos = 1 -- trigger visual kick (auto fire re-arms it every shot)
-        self.kickAng = 1
-        if self.type ~= GUNTYPE.semi then -- ak / m4 / shotgun shove the whole body
-            world.player:shotKick(self.angle)
+        self.kickPos = 1 -- slide-back kick on every gun
+        if self.type ~= GUNTYPE.auto then -- muzzle-rise only on pistol + shotgun, not ak/m4
+            self.kickAng = 1
         end
         self.curClip = self.curClip - 1
+
+        -- casing eject: shotgun throws it on the pump beat, others auto-eject now
+        if self.type == GUNTYPE.shotgun then
+            self:pump(true)
+        else
+            self:ejectShell()
+        end
 
         -- sawed-off: barrels empty -> break open and reload right away
         if self.shellSfx and self.curClip <= 0 and self.bulletsLeft > 0 then

@@ -32,6 +32,12 @@ function Player:new(x, y, width, height)
     obj.maxHealth = TUNE.player.maxHealth
     obj.health = obj.maxHealth
     obj.radius = TUNE.player.bodyRadius -- circle vs zombies, smaller than the sprite
+    -- 16x16 AABB in the lower half of the 32px sprite (tiles/obstacles)
+    obj.colOX, obj.colOY = TUNE.player.colOffsetX, TUNE.player.colOffsetY
+    obj.colW, obj.colH = TUNE.player.colSize, TUNE.player.colSize
+    -- head circle: inert for now, reserved for future co-op headshots
+    obj.headRadius = TUNE.player.headRadius
+    obj.headOX, obj.headOY = TUNE.player.headOffsetX, TUNE.player.headOffsetY
     obj.flashTimer = 0                  -- white flash when hit
     obj.dustTimer = 0                   -- next movement dust puff
     obj.hitboxColor = {0, 1, 1} -- cyan: stands out over the sprite
@@ -44,6 +50,9 @@ function Player:new(x, y, width, height)
     obj.rReleased = true
     obj.eReleased = true
 
+    obj.running = false   -- SPRINT state: shift held + moving, no aim/shoot
+    obj.runLocked = false -- firing locks sprint until shift is re-pressed
+
     obj.falling = false
     obj.fallTimer = 0
     obj.invulnTimer = 0
@@ -51,10 +60,6 @@ function Player:new(x, y, width, height)
 
     obj.animState = 'idle'
     obj.animRun = Animation:new(Assets.quads.player, 2, 4, 0.1)
-
-    -- body recoil shove (draw-only): amt 1 -> 0, (dx,dy) = unit dir opposite the shot
-    obj.kickAmt = 0
-    obj.kickDX, obj.kickDY = 0, 0
 
     setmetatable(obj, Player)
     return obj
@@ -152,9 +157,13 @@ function Player:update(dt, world)
         moveX, moveY = moveX * inv, moveY * inv
     end
 
-    -- one walk speed whatever is held; shift walks slower for steadier aim
-    local walking = keyDown('lshift') or keyDown('rshift')
-    self.maxSpeed = self.speed * (walking and TUNE.player.walkSpeedMult or 1)
+    -- SHIFT = SPRINT: faster move + faster run anim, but no aiming/shooting.
+    -- Firing breaks the sprint; shift must be released and re-pressed to run
+    -- again (runLocked). Standing still isn't running.
+    local shiftHeld = keyDown('lshift') or keyDown('rshift')
+    if not shiftHeld then self.runLocked = false end
+    self.running = shiftHeld and not self.runLocked and (moveX ~= 0 or moveY ~= 0)
+    self.maxSpeed = self.speed * (self.running and TUNE.player.runSpeedMult or 1)
     self:accelToward(dt, moveX, moveY, world)
     self:moveAndCollide(dt, world)
 
@@ -170,11 +179,14 @@ function Player:update(dt, world)
     -- spikes / water / mud / hole
     self:applyTileEffects(dt, world)
 
-    -- dust puffs around the feet while actually moving (lunge/shove included)
+    -- dust puffs around the feet while actually moving (lunge/shove included);
+    -- walking kicks up a fraction of the sprint amount
     self.dustTimer = self.dustTimer - dt
     if self.dustTimer <= 0 and self.vx*self.vx + self.vy*self.vy > 400 then
         self.dustTimer = TUNE.fx.dustInterval
-        world.vfx:footDust(self.x + self.width/2, self.y + self.height - 4)
+        local mult = self.running and 1 or TUNE.fx.dustWalkMult
+        local count = math.max(1, math.floor(TUNE.fx.dustCount * mult + 0.5))
+        world.vfx:footDust(self.x + self.width/2, self.y + self.height - 4, count)
     end
 
     -- footsteps: cadence follows actual speed, sound follows the tile material.
@@ -210,6 +222,15 @@ function Player:update(dt, world)
         and not self.lockedInputs.mouse1
     local heldItem = self.items[self.itemIndex]
 
+    -- clicking while sprinting cancels the sprint (locked until shift is
+    -- re-pressed) and snaps the item to the cursor so that first shot aims
+    if leftPressed and self.running then
+        self.running = false
+        self.runLocked = true
+        local pcx, pcy = self:getCenter()
+        heldItem.angle = math.atan2(worldMy - pcy, worldMx - pcx)
+    end
+
     if leftPressed and heldItem.isGun then
         heldItem:fire(self.leftReleased)
     elseif leftPressed and self.leftReleased and heldItem.isKnife then
@@ -223,7 +244,9 @@ function Player:update(dt, world)
     elseif leftPressed and self.leftReleased
         and heldItem.isThrowable and self.grenades > 0 then
         local cx, cy = self:getCenter()
-        world:addEntity(ThrownGrenade:new(cx, cy, worldMx, worldMy))
+        -- lands exactly where the targeting preview says (cursor clamped to maxRange)
+        local tx, ty = require('ui.grenade_aim').target(world)
+        world:addEntity(ThrownGrenade:new(cx, cy, tx, ty))
         self.grenades = self.grenades - 1
         if self.grenades <= 0 then self:selectSlot(3) end
     elseif leftPressed and self.leftReleased and heldItem.isHealthPack
@@ -273,24 +296,25 @@ function Player:update(dt, world)
     if moveX == 0 and moveY == 0 then
         self.animRun:restart()
         self.animState = 'idle'
-    elseif moveX ~= 0 or moveY ~= 0 then
-        self.animRun:update(dt)
+    else
+        local animMult = self.running and TUNE.player.runAnimMult or 1
+        self.animRun:update(dt * animMult)
         self.animState = 'running'
     end
 
     -- ITEMS
-    self.facingLeft = worldMx < self.x + self.width/2
+    -- sprinting: the item points along the run direction (you can't aim at the
+    -- cursor while running) and facing follows the run; otherwise aim at cursor
+    local aimMx, aimMy = worldMx, worldMy
+    if self.running then
+        local pcx, pcy = self:getCenter()
+        aimMx, aimMy = pcx + moveX * 64, pcy + moveY * 64
+        if moveX ~= 0 then self.facingLeft = moveX < 0 end
+    else
+        self.facingLeft = worldMx < self.x + self.width/2
+    end
 
-    self.items[self.itemIndex]:update(dt, self.x, self.y, worldMx, worldMy)
-
-    self.kickAmt = math.max(0, self.kickAmt - dt / TUNE.gunKick.bodyTime)
-end
-
--- Heavy guns shove the body 1px opposite the shot, then it snaps back.
-function Player:shotKick(shotAngle)
-    self.kickDX = -math.cos(shotAngle)
-    self.kickDY = -math.sin(shotAngle)
-    self.kickAmt = 1
+    self.items[self.itemIndex]:update(dt, self.x, self.y, aimMx, aimMy)
 end
 
 -- Sprites can't be whitened with a color tint (tints multiply), so the hit
@@ -346,12 +370,6 @@ function Player:draw()
         love.graphics.setShader(sh)
     end
 
-    -- body recoil: shove sprite + held item together, opposite the shot
-    local kd = TUNE.gunKick.bodyDist * self.kickAmt
-    local kx, ky = math.floor(self.kickDX * kd), math.floor(self.kickDY * kd)
-    love.graphics.push()
-    love.graphics.translate(kx, ky)
-
     if self.animState == 'idle' then
         love.graphics.draw(
             Assets.spritesheet, Assets.quads.player[1],
@@ -371,11 +389,29 @@ function Player:draw()
 
     self.items[self.itemIndex]:draw(facingLeft)
 
-    love.graphics.pop()
-
     if flashing then
         love.graphics.setShader()
     end
+end
+
+-- Head center (sprite-relative). Inert for now; future co-op headshots.
+function Player:headCenter()
+    return self.x + self.headOX, self.y + self.headOY
+end
+
+-- Debug overlay (H): body circle (Entity), the 16x16 AABB, and the head circle
+function Player:drawHitbox()
+    Entity.drawHitbox(self) -- cyan body circle vs zombies
+
+    love.graphics.setLineWidth(1)
+    -- collision AABB (tiles/obstacles)
+    love.graphics.setColor(1, 1, 0, 0.8)
+    love.graphics.rectangle('line', self.x + self.colOX, self.y + self.colOY, self.colW, self.colH)
+    -- head circle (magenta)
+    local hx, hy = self:headCenter()
+    love.graphics.setColor(1, 0.3, 0.9, 0.9)
+    love.graphics.circle('line', hx, hy, self.headRadius)
+    love.graphics.setColor(Color.white())
 end
 
 function Player:drawHud()
@@ -432,7 +468,11 @@ function Player:giveGun(gun)
     self.items[target] = gun
     self.itemIndex = target
     self.lastGunSlot = target
-    Audio.play('gun_draw', 0.7) -- picked up = racked and in hand
+    if gun.id == 'sawedoff' then
+        gun:pump(false) -- shotgun racks on pickup (SFX + pose, no shell)
+    else
+        Audio.play('gun_draw', 0.7) -- picked up = racked and in hand
+    end
     return old
 end
 

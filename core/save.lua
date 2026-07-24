@@ -60,6 +60,10 @@ function Save.loadSettings()
         -- crosshair look (== nil keeps saved false from reading as default)
         crossColor = s.crossColor == 'green' and 'green' or 'white',
         crossOutline = s.crossOutline == nil and true or s.crossOutline,
+        -- graphics
+        resolution = s.resolution or '1920x1080',
+        fullscreen = s.fullscreen == nil and false or s.fullscreen,
+        crtInGame = s.crtInGame == nil and false or s.crtInGame,
     }
 end
 

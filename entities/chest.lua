@@ -8,6 +8,7 @@ local Assets = require('core.assets')
 local Color = require('core.color')
 local Gun = require('hand_items.gun')
 local HandItem = require('hand_items.hand_item')
+local Gif = require('core.gif')
 
 local Chest = {}
 Chest.__index = Chest
@@ -15,8 +16,14 @@ setmetatable(Chest, Entity)
 
 local gunNames = { ak47 = 'AK-47', m4a1 = 'M4A1', sawedoff = 'Sawed-Off' }
 
+-- Sprite is 64x64 but the hitbox is only the bottom 64x32; the top 32px is a
+-- walk-behind cap (same split-depth trick as the crate, one anchor).
+local SPRITE_W, SPRITE_H = 64, 64
+local CAP = SPRITE_H - 32 -- 32px overhang above the hitbox
+
 function Chest:new(x, y)
-    local obj = Entity:new(x, y, TUNE.tiles.size, TUNE.tiles.size)
+    -- box = the 64x32 hitbox (the sprite is drawn CAP px above it, see draw)
+    local obj = Entity:new(x, y, SPRITE_W, SPRITE_H - CAP)
     obj.type = 'chest'
     obj.isObstacle = true
 
@@ -29,9 +36,25 @@ function Chest:new(x, y)
     obj.toastText = nil
     obj.toastTimer = 0
 
+    -- lid animation, driven straight from the gif: frame 1 = closed, last =
+    -- fully open. lidDir +1 opens, -1 closes, 0 = settled.
+    obj.lid = Gif.load('assets/shopbox_open.gif')
+    obj.lidFrame = 1
+    obj.lidTimer = 0
+    obj.lidDir = 0
+
     setmetatable(obj, Chest)
     return obj
 end
+
+-- Depth anchor = top of the hitbox (like the crate): feet below draw in front,
+-- above draw behind and get covered by the whole sprite incl. the cap.
+function Chest:sortY()
+    return self.y
+end
+
+function Chest:openLid()  self.lidDir = 1  end
+function Chest:closeLid() self.lidDir = -1 end
 
 -- quads cycled above the box while spinning
 local spinQuads = { 'pistol', 'ak47', 'm4a1', 'shotgun', 'grenade' }
@@ -84,15 +107,31 @@ function Chest:interact(player, world)
             self.result = self:roll(player)
             self.state = 'spinning'
             self.timer = TUNE.chest.spinTime
+            self:openLid()
         end
     elseif self.state == 'offering' then
         self:giveGun(player)
         self.state = 'idle'
         self.result = nil
+        self:closeLid()
     end
 end
 
 function Chest:update(dt, world)
+    -- advance the lid open/close animation
+    if self.lidDir ~= 0 then
+        self.lidTimer = self.lidTimer + dt
+        local step = TUNE.chest.openTime / (self.lid.frames - 1)
+        while self.lidDir ~= 0 and self.lidTimer >= step do
+            self.lidTimer = self.lidTimer - step
+            self.lidFrame = self.lidFrame + self.lidDir
+            if self.lidFrame <= 1 then self.lidFrame, self.lidDir = 1, 0 end
+            if self.lidFrame >= self.lid.frames then
+                self.lidFrame, self.lidDir = self.lid.frames, 0
+            end
+        end
+    end
+
     if self.toastTimer > 0 then
         self.toastTimer = self.toastTimer - dt
         if self.toastTimer <= 0 then self.toastText = nil end
@@ -114,6 +153,7 @@ function Chest:update(dt, world)
         if self.takeTimer <= 0 then -- money spent, gun lost
             self.state = 'idle'
             self.result = nil
+            self:closeLid()
         end
     end
 end
@@ -150,29 +190,29 @@ function Chest:resolve(world)
     self.toastTimer = 2
     self.state = 'idle'
     self.result = nil
+    self:closeLid()
 end
 
 function Chest:draw()
-    local x, y = math.floor(self.x), math.floor(self.y)
+    local x = math.floor(self.x)
+    local top = math.floor(self.y) - CAP  -- sprite sits CAP px above the hitbox
 
-    love.graphics.setColor(0.45, 0.2, 0.55)
-    love.graphics.rectangle('fill', x, y, self.width, self.height)
-    love.graphics.setColor(0.75, 0.5, 0.9)
-    love.graphics.rectangle('line', x, y, self.width, self.height)
-    love.graphics.rectangle('line', x + 4, y + 4, self.width - 8, self.height - 8)
+    -- the box itself (lid frame from the gif)
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.draw(self.lid.image, self.lid.quads[self.lidFrame], x, top)
 
     love.graphics.setFont(smallFont)
     local cx = x + self.width / 2
 
     if self.state == 'idle' then
         local txt = '$' .. TUNE.chest.cost
-        love.graphics.setColor(Color.black())
-        love.graphics.print(txt, cx - smallFont:getWidth(txt)/2, y - smallFont:getHeight())
+        love.graphics.setColor(1, 0.85, 0.35)
+        love.graphics.print(txt, cx - smallFont:getWidth(txt)/2, top - smallFont:getHeight() - 2)
 
         if self.toastText then
             love.graphics.setColor(1, 0.9, 0.3)
             love.graphics.print(self.toastText,
-                cx - smallFont:getWidth(self.toastText)/2, y - 24)
+                cx - smallFont:getWidth(self.toastText)/2, top - smallFont:getHeight() - 14)
         end
     elseif self.state == 'spinning' then
         -- item sprites flicker above the box, bobbing slightly
@@ -181,20 +221,20 @@ function Chest:draw()
         local bob = math.sin(self.timer * 10) * 2
         love.graphics.setColor(1, 1, 1)
         love.graphics.draw(Assets.spritesheet, quad,
-            math.floor(cx), math.floor(y - 20 + bob), 0, 1, 1, qw/2, qh/2)
+            math.floor(cx), math.floor(top - 14 + bob), 0, 1, 1, qw/2, qh/2)
     elseif self.state == 'offering' then
         local quad = Assets.quads[Gun.quadName(self.result.gunId)][1]
         local _, _, qw, qh = quad:getViewport()
         love.graphics.setColor(1, 1, 1)
         love.graphics.draw(Assets.spritesheet, quad,
-            math.floor(cx), y - 22, 0, 1, 1, qw/2, qh/2)
+            math.floor(cx), top - 16, 0, 1, 1, qw/2, qh/2)
 
         -- shrinking take-window bar
         local frac = self.takeTimer / TUNE.chest.takeWindow
         love.graphics.setColor(0, 0, 0, 0.6)
-        love.graphics.rectangle('fill', x, y - 8, self.width, 3)
+        love.graphics.rectangle('fill', x, top - 6, self.width, 3)
         love.graphics.setColor(1, 0.9, 0.3)
-        love.graphics.rectangle('fill', x, y - 8, self.width * frac, 3)
+        love.graphics.rectangle('fill', x, top - 6, self.width * frac, 3)
     end
 
     love.graphics.setFont(font)

@@ -62,6 +62,10 @@ function options:enter()
             end,
         },
         {
+            label = 'options.graphics', type = 'action',
+            activate = function() State.push('graphics') end,
+        },
+        {
             label = 'options.back', type = 'action',
             activate = function() State.pop() end,
         },

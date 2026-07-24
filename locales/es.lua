@@ -21,7 +21,17 @@ return {
     ['options.cross_outline'] = 'BORDE DE MIRA',
     ['options.on']       = 'SÍ',
     ['options.off']      = 'NO',
+    ['options.graphics'] = 'GRÁFICOS',
     ['options.back']     = 'VOLVER',
+
+    ['gfx.title']        = 'GRÁFICOS',
+    ['gfx.aspect']       = 'PROPORCIÓN',
+    ['gfx.resolution']   = 'RESOLUCIÓN',
+    ['gfx.fullscreen']   = 'PANTALLA COMPLETA',
+    ['gfx.crt_ingame']   = 'FILTRO TV EN JUEGO',
+    ['gfx.native']       = 'NATIVA',
+    ['gfx.apply']        = 'APLICAR',
+    ['gfx.unapplied']    = 'CAMBIOS SIN APLICAR - APLICAR',
 
     ['gameover.title']   = 'HAS MUERTO',
     ['gameover.restart'] = 'REINICIAR',

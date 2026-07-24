@@ -52,6 +52,10 @@ function Lighting.new(map)
 
     local a = TUNE.lighting.ambient
     self.lw = LightWorld({ ambient = { a, a, a } })
+    -- light_world sizes its buffers to the OS window by default, so at fullscreen
+    -- it re-renders every light pass at native resolution — the fullscreen lag.
+    -- Pin them to the fixed logical canvas so cost is constant regardless of res.
+    self.lw:refreshScreenSize(SCREENWIDTH, SCREENHEIGHT)
     self.lw:setShadowBlur(0)      -- hard shadows fit the pixel art + cheap
     self.lw.disableGlow = true    -- plain occluders: glow/material passes are
     self.lw.disableMaterial = true -- fullscreen canvas work for nothing
@@ -140,6 +144,11 @@ function Lighting:update(dt, world)
     end
 
     self.lw:update(dt)
+end
+
+-- Re-pin the light buffers to the logical size (called after a graphics apply)
+function Lighting:resize(w, h)
+    self.lw:refreshScreenSize(w, h)
 end
 
 -- Screen-space translation (camera + shake), applied at draw time
