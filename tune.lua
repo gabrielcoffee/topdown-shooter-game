@@ -8,6 +8,7 @@ return {
         runSpeedMult = 1.5,   -- shift held + moving: SPRINT speed (can't aim/shoot while running)
         runAnimMult = 1.5,    -- run animation plays this much faster than the walk cycle
         startMoney = 0,
+        maxMoney = 9999,      -- hard cap on cash (kills, /money, everything)
         fallTime = 0.5,       -- secs of falling anim before hole respawn
         holeInvulnTime = 2,   -- secs of invincibility after hole respawn
         blinkInterval = 0.1,  -- sprite blink rate while invincible
@@ -144,10 +145,10 @@ return {
     },
 
     chest = {
-        cost = 150,           -- ~10 kills
+        cost = 200,           -- ~13 kills
         spinTime = 2.0,       -- secs of sprite cycling after paying
         spinCycleTime = 0.08, -- secs per sprite during the spin
-        takeWindow = 5.0,     -- secs to press E and take a rolled gun
+        takeWindow = 8.0,     -- secs to press E and take a rolled gun
         openTime = 0.25,      -- secs for the lid open (and close) animation
         interactPad = 32,     -- px around the 64x32 box where E buys/takes
         -- loot odds; invalid categories (grenades full, medkit held) are
@@ -157,15 +158,18 @@ return {
 
     hotbar = { slotSize = 56, gap = 8, bottomMargin = 16 },
 
-    dev = { enabled = true }, -- master switch for the chat console (T / `)
+    dev = { enabled = true }, -- master switch for the chat console (T)
     chat = {
         showTime = 8,   -- secs a line stays on screen before fading (chat closed)
         fadeTime = 1,   -- secs of the fade-out at the end of showTime
         maxVisible = 8, -- most lines drawn at once
         maxLog = 50,    -- lines kept in memory (scrollback + sent history)
     },
-    droppedGun = { interactPad = 4,   -- px around a dropped gun where E picks it up
-                   dropOffset = 40 }, -- px in front of the player where drops land
+    droppedGun = { interactPad = 4,    -- px around a dropped gun where E picks it up
+                   dropOffset = 40,    -- px in front of the player where drops land
+                   lifetime = 8,       -- secs a gun stays on the ground before vanishing
+                   blinkTime = 2,      -- secs of blinking at the end of that life
+                   blinkInterval = 0.15 }, -- secs per blink on/off step
 
     bullet = { speed = 540 },
 

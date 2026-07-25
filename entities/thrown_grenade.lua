@@ -63,7 +63,7 @@ function ThrownGrenade:explode(world)
                     e.flash = true
                     world.vfx:bloodSplatter(ex, ey, math.atan2(ey - self.y, ex - self.x))
                     if e.health <= 0 then
-                        world.player.money = world.player.money + TUNE.grenade.killReward
+                        world.player:addMoney(TUNE.grenade.killReward)
                     end
                 elseif e.type == 'crate' then
                     e.health = e.health - damage

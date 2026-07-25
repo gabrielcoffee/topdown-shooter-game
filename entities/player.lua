@@ -49,6 +49,7 @@ function Player:new(x, y, width, height)
     obj.leftReleased = true
     obj.rReleased = true
     obj.eReleased = true
+    obj.gReleased = true
 
     obj.running = false   -- SPRINT state: shift held + moving, no aim/shoot
     obj.runLocked = false -- firing locks sprint until shift is re-pressed
@@ -311,6 +312,11 @@ function Player:update(dt, world)
     end
     self.eReleased = not ePressed
 
+    -- G drops the gun in hand (it lands in front and expires on the ground)
+    local gPressed = not typing and love.keyboard.isDown('g')
+    if gPressed and self.gReleased then self:dropHeldGun(world) end
+    self.gReleased = not gPressed
+
     -- ANIMATIONS
     if moveX == 0 and moveY == 0 then
         self.animRun:restart()
@@ -481,6 +487,28 @@ function Player:drawHud()
     end
 end
 
+-- Cash in, cash out. Every gain funnels through here so the cap holds
+-- everywhere (kills, chest, /money, which also takes negatives).
+function Player:addMoney(n)
+    self.money = math.max(0, math.min(self.money + n, TUNE.player.maxMoney))
+end
+
+-- G: throw the held gun on the ground. Falls back to the other gun slot,
+-- else the knife. The dropped gun keeps its ammo and expires on its own.
+function Player:dropHeldGun(world)
+    local slot = self.itemIndex
+    if slot ~= 1 and slot ~= 2 then return end
+    local gun = self.items[slot]
+    if not gun then return end
+
+    gun:cancelReload()
+    require('entities.dropped_gun').dropNear(world, gun, self)
+    self.items[slot] = nil
+
+    local other = (slot == 1) and 2 or 1
+    self:selectSlot(self.items[other] and other or 3)
+end
+
 -- Put a gun in the hotbar and hold it. Target slot: empty gun slot first
 -- (2 then 1), else the gun in hand, else the last gun slot held.
 -- Returns the gun that got replaced (nil if the slot was empty).
@@ -530,7 +558,7 @@ end
 
 function Player:restore(data)
     self.health = data.health or self.health
-    self.money = data.money or self.money
+    self.money = math.max(0, math.min(data.money or self.money, TUNE.player.maxMoney))
 
     -- pre-hotbar saves only carry health/money; keep the default loadout
     if not data.gunSlots then return end

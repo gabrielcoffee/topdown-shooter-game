@@ -101,7 +101,7 @@ function Bullet:checkHits(world)
             Audio.playAt('flesh_hit', self.x, self.y, 1, TUNE.audio.pitchJitter, world)
 
             if e.health <= 0 then
-                world.player.money = world.player.money + self.killReward
+                world.player:addMoney(self.killReward)
             end
 
             self.hitsLeft = self.hitsLeft - 1

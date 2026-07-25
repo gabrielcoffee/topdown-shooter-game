@@ -35,7 +35,8 @@ end
 function playing:update(dt)
     -- OS cursor off in gameplay: the crosshair IS the cursor. Set every frame
     -- so popping back from pause/options (which show the cursor) restores it.
-    love.mouse.setVisible(false)
+    -- The chat needs a real pointer to select text with, so it gets one back.
+    love.mouse.setVisible(Chat.open)
 
     self.startFade = math.max(0, (self.startFade or 0) - dt)
 
@@ -64,6 +65,20 @@ function playing:textinput(t)
     Chat.textinput(t)
 end
 
+-- While the console is open the mouse belongs to it (text selection); the
+-- player already ignores clicks whenever Chat.open.
+function playing:mousepressed(x, y, btn)
+    Chat.mousepressed(x, y, btn)
+end
+
+function playing:mousemoved(x, y)
+    Chat.mousemoved(x, y)
+end
+
+function playing:mousereleased(x, y, btn)
+    Chat.mousereleased(x, y, btn)
+end
+
 function playing:keypressed(key)
     if Chat.open then
         Chat.keypressed(key)
@@ -72,10 +87,9 @@ function playing:keypressed(key)
 
     if key == 'escape' then
         State.push('paused')
-    elseif (key == 't' or key == '`')
-        and TUNE.dev and TUNE.dev.enabled then
-        -- Enter dropped as an open key: too easy to hit mid-wave, and it
-        -- kills all gameplay input until Esc
+    elseif key == 't' and TUNE.dev and TUNE.dev.enabled then
+        -- T is the only opener: Enter and ` were too easy to hit mid-wave,
+        -- and they kill all gameplay input until Esc
         Chat.openChat()
     elseif key == 'h' then
         showHitboxes = not showHitboxes

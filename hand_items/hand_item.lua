@@ -73,7 +73,7 @@ function HandItem:swing(aimAngle, player, world)
 
                 hit = true
                 if e.health <= 0 then
-                    player.money = player.money + self.killReward
+                    player:addMoney(self.killReward)
                     killed = true
                 end
             end
