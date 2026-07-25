@@ -177,15 +177,32 @@ function Gun:newShotgun()
     return obj
 end
 
-function Gun:update(dt, px, py, mx, my)
-    HandItem.update(self, dt, px, py, mx, my)
-
+-- Cooldowns that keep ticking even while the gun is holstered (called for
+-- every gun the player carries): the fire gate and recoil recovery. The
+-- timer carries its overshoot into the next interval — re-zeroing it rounded
+-- every shot up to a whole frame and made real fire rate fps-dependent
+-- (AK at 60fps fired ~8.6 rps instead of its tuned 10).
+function Gun:tickCooldowns(dt)
     -- recoil holds while firing; recovery only starts recoilDelay after the
     -- last shot (otherwise recovery between shots eats every shot's gain)
     self.sinceShot = self.sinceShot + dt
     if self.sinceShot >= self.recoilDelay then
         self.recoil = math.max(0, self.recoil - self.recoilRecover * dt)
     end
+
+    if not self.canShoot then
+        self.timer = self.timer + dt
+        if self.timer >= self.bulletDelay then
+            self.canShoot = true
+            self.timer = self.timer - self.bulletDelay
+        end
+    end
+end
+
+function Gun:update(dt, px, py, mx, my)
+    HandItem.update(self, dt, px, py, mx, my)
+
+    self:tickCooldowns(dt)
 
     -- visual kick decays: slide-back fast, muzzle-rise slower (both draw-only)
     local GK = TUNE.gunKick
@@ -223,15 +240,6 @@ function Gun:update(dt, px, py, mx, my)
         end
     end
 
-    if self.canShoot == false then
-        self.timer = self.timer + dt
-    end
-
-    if self.timer >= self.bulletDelay then
-        self.canShoot = true
-        self.timer = 0
-    end
-
     if self.reloading then
         self.reloadTimer = self.reloadTimer + dt
         if self.reloadAnim then
@@ -251,6 +259,7 @@ function Gun:update(dt, px, py, mx, my)
                 Audio.playAt(self.shellSfx[love.math.random(#self.shellSfx)], self.x, self.y)
                 if self.curClip >= self.maxClip or self.bulletsLeft <= 0 then
                     self.reloading = false
+                    self.reloadSrc = nil -- done: cancelReload must not stop a later reuse
                     self.reloadSettle = TUNE.gunKick.reloadSettleTime
                     self:pump(false) -- chamber the first shell: rack SFX + pose, no eject
                 end
@@ -260,6 +269,7 @@ function Gun:update(dt, px, py, mx, my)
             self.curClip = self.curClip + moved
             self.bulletsLeft = self.bulletsLeft - moved
             self.reloading = false
+            self.reloadSrc = nil -- done: cancelReload must not stop a later reuse
             self.reloadTimer = 0
             self.reloadSettle = TUNE.gunKick.reloadSettleTime
         end
@@ -279,7 +289,7 @@ function Gun:reload()
         self.reloadAnim:restart()
     end
     if self.reloadSfx then
-        Audio.playAt(self.reloadSfx, self.x, self.y)
+        self.reloadSrc = Audio.playAt(self.reloadSfx, self.x, self.y)
     end
 end
 
@@ -288,6 +298,12 @@ function Gun:cancelReload()
     self.reloading = false
     self.reloadOpening = false
     self.reloadTimer = 0
+    -- the reload SFX stops with the reload (it used to play out, and a
+    -- re-reload layered a second copy on top)
+    if self.reloadSrc then
+        pcall(self.reloadSrc.stop, self.reloadSrc)
+        self.reloadSrc = nil
+    end
 end
 
 -- Kick a spent casing out of the breech (gun pivot, already near the player).
@@ -412,12 +428,25 @@ function Gun:fire(leftReleased)
         -- held cells are padded (64 wide) beyond the gun art
         local gw = self.tipLen
 
+        -- hugging a wall the muzzle pokes past it (M4's 44px tip beats a 32px
+        -- wall): walk pivot->tip and pull the spawn + flash back to the near
+        -- side of the first solid, so nothing fires from inside/behind walls
+        local cosA, sinA = math.cos(self.angle), math.sin(self.angle)
+        local d = 4
+        while d <= gw do
+            if world.map:isSolidAt(self.x + cosA * d, self.y + sinA * d) then
+                gw = math.max(0, d - 4)
+                break
+            end
+            d = d + 4
+        end
+
         self.canShoot = false
         Audio.playAt(self.shotSfx, self.x, self.y) -- once per trigger pull, not per pellet
 
         -- muzzle juice: flash light + sparks
-        local mx = self.x + math.cos(self.angle) * gw
-        local my = self.y + math.sin(self.angle) * gw
+        local mx = self.x + cosA * gw
+        local my = self.y + sinA * gw
         local mb = TUNE.lighting.muzzleBright
         world.lighting:flash(mx, my, mb, mb * 0.8, mb * 0.45,
             TUNE.lighting.muzzleRange, TUNE.lighting.muzzleTime)
@@ -437,7 +466,8 @@ function Gun:fire(leftReleased)
                         gw,
                         self.bulletLifeTime,
                         self.killReward,
-                        self.maxHits
+                        self.maxHits,
+                        i == 1 -- one muzzle-flash anim per blast, not 14 stacked
                     )
                 )
             end
@@ -449,7 +479,8 @@ function Gun:fire(leftReleased)
                     gw,
                     self.bulletLifeTime,
                     self.killReward,
-                    self.maxHits
+                    self.maxHits,
+                    true
                 )
             )
         end

@@ -6,18 +6,6 @@ local Crate = {}
 Crate.__index = Crate
 setmetatable(Crate, Entity)
 
--- The sprite is 48px tall but the hitbox is only the bottom 32x32. Drawing it
--- 16px above the hitbox gives a 16px cap that entities walk behind.
-local SPRITE_H = 48
-local CAP = SPRITE_H - 32 -- 16px overhang above the hitbox
-
--- Depth anchor = top of the hitbox. Anything whose feet are below this line
--- (bigger sortY) draws in front of the crate; anything above draws behind and
--- gets covered by the whole sprite, including the cap. One anchor, both cases.
-function Crate:sortY()
-    return self.y
-end
-
 function Crate:new(x, y)
     local obj = Entity:new(x, y, TUNE.crate.size, TUNE.crate.size)
     obj.type = 'crate'
@@ -89,7 +77,7 @@ end
 
 function Crate:draw()
     local dx = math.floor(self.x)
-    local dy = math.floor(self.y) - CAP -- sprite sits 16px above the hitbox
+    local dy = math.floor(self.y)
 
     love.graphics.setColor(Color.white())
     love.graphics.draw(Assets.spritesheet, Assets.quads.crate[1], dx, dy)

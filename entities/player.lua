@@ -57,6 +57,8 @@ function Player:new(x, y, width, height)
     obj.fallTimer = 0
     obj.invulnTimer = 0
     obj.lockedInputs = {} -- buttons held when falling: dead until released
+    obj.slotHeld = {}     -- per-slot key state, so holding a number can't re-select
+    obj.switchTimer = 0   -- deploy lockout after a weapon swap (blocks quick-switch)
 
     obj.animState = 'idle'
     obj.animRun = Animation:new(Assets.quads.player, 2, 4, 0.1)
@@ -81,6 +83,7 @@ function Player:selectSlot(i)
         outgoing:cancelReload()
     end
     self.itemIndex = i
+    self.switchTimer = TUNE.player.switchDelay -- deploy: can't act instantly
     if i == 1 or i == 2 then self.lastGunSlot = i end
 
     -- CS-style deploy sound for whatever lands in hand
@@ -128,6 +131,9 @@ function Player:update(dt, world)
     end
     if self.flashTimer > 0 then
         self.flashTimer = self.flashTimer - dt
+    end
+    if self.switchTimer > 0 then
+        self.switchTimer = self.switchTimer - dt
     end
 
     -- locked buttons free up once released
@@ -202,11 +208,14 @@ function Player:update(dt, world)
         Audio.playAt(world.map:surfaceAt(cx, cy), cx, cy, A.stepGain, A.pitchJitter, world)
     end
 
-    -- Change item in hand (hotbar slots 1-5)
+    -- Change item in hand (hotbar slots 1-5); edge-gated so a held key can't
+    -- re-select every frame (deploy-sound spam + reload churn)
     for i = 1, 5 do
-        if not typing and love.keyboard.isDown(tostring(i)) then
+        local down = not typing and love.keyboard.isDown(tostring(i))
+        if down and not self.slotHeld[i] then
             self:selectSlot(i)
         end
+        self.slotHeld[i] = down
     end
 
     -- mouse in world coords; the camera is clamped at map edges, so use it
@@ -231,9 +240,13 @@ function Player:update(dt, world)
         heldItem.angle = math.atan2(worldMy - pcy, worldMx - pcx)
     end
 
-    if leftPressed and heldItem.isGun then
+    -- deploy lockout: right after a swap the new item can't act yet, so
+    -- alternating two guns can't beat either gun's own fire rate
+    local deploying = self.switchTimer > 0
+
+    if leftPressed and not deploying and heldItem.isGun then
         heldItem:fire(self.leftReleased)
-    elseif leftPressed and self.leftReleased and heldItem.isKnife then
+    elseif leftPressed and not deploying and self.leftReleased and heldItem.isKnife then
         -- swing at the mouse; small lunge makes it aggressive (and risky)
         local pcx, pcy = self:getCenter()
         local aim = math.atan2(worldMy - pcy, worldMx - pcx)
@@ -241,7 +254,7 @@ function Player:update(dt, world)
             self.vx = self.vx + math.cos(aim) * TUNE.knife.lungeSpeed
             self.vy = self.vy + math.sin(aim) * TUNE.knife.lungeSpeed
         end
-    elseif leftPressed and self.leftReleased
+    elseif leftPressed and not deploying and self.leftReleased
         and heldItem.isThrowable and self.grenades > 0 then
         local cx, cy = self:getCenter()
         -- lands exactly where the targeting preview says (cursor clamped to maxRange)
@@ -249,7 +262,7 @@ function Player:update(dt, world)
         world:addEntity(ThrownGrenade:new(cx, cy, tx, ty))
         self.grenades = self.grenades - 1
         if self.grenades <= 0 then self:selectSlot(3) end
-    elseif leftPressed and self.leftReleased and heldItem.isHealthPack
+    elseif leftPressed and not deploying and self.leftReleased and heldItem.isHealthPack
         and self.health < self.maxHealth then
         self.health = math.min(self.maxHealth, self.health + TUNE.healthpack.healAmount)
         self.items[5] = nil
@@ -315,6 +328,14 @@ function Player:update(dt, world)
     end
 
     self.items[self.itemIndex]:update(dt, self.x, self.y, aimMx, aimMy)
+
+    -- holstered guns keep cooling down (fire gate + recoil recovery), so
+    -- swapping can't freeze a gun's timers in a favorable state
+    for i, item in pairs(self.items) do
+        if item.isGun and i ~= self.itemIndex then
+            item:tickCooldowns(dt)
+        end
+    end
 end
 
 -- Sprites can't be whitened with a color tint (tints multiply), so the hit
@@ -512,8 +533,10 @@ function Player:restore(data)
         local g = data.gunSlots[i]
         local gun = g and Gun.newById(g.id)
         if gun then
-            gun.curClip = g.curClip or gun.curClip
-            gun.bulletsLeft = g.bulletsLeft or gun.bulletsLeft
+            -- clamp to the CURRENT tune values: a save written before a clip
+            -- was shrunk in tune.lua must not restore 30 rounds into a 25 mag
+            gun.curClip = math.max(0, math.min(g.curClip or gun.curClip, gun.maxClip))
+            gun.bulletsLeft = math.max(0, g.bulletsLeft or gun.bulletsLeft)
         end
         self.items[i] = gun or nil
     end

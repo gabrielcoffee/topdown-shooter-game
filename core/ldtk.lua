@@ -65,10 +65,22 @@ function Ldtk.load(path)
 
         for _, layer in ipairs(lv.layerInstances or {}) do
             if layer.__type == 'IntGrid' and #layer.intGridCsv > 0 then
+                -- the whole pipeline assumes 32px cells; a layer created at
+                -- another grid size would silently scramble the world grid
+                assert(layer.__gridSize == ts, ('%s / %s: layer grid is %spx, '
+                    .. 'must be %dpx — fix the layer in LDtk'):format(
+                    lv.identifier, layer.__identifier, tostring(layer.__gridSize), ts))
                 for i, id in ipairs(layer.intGridCsv) do
                     local c = (i - 1) % layer.__cWid + 1
                     local r = math.floor((i - 1) / layer.__cWid) + 1
-                    grid[rowOff + r][colOff + c] = id
+                    -- 0 (empty) only carves ground out of void — a second
+                    -- IntGrid layer's empty cells must not erase the first
+                    -- layer's walls
+                    local row = grid[rowOff + r]
+                    if row and row[colOff + c] ~= nil
+                        and (id ~= 0 or row[colOff + c] == Ldtk.VOID) then
+                        row[colOff + c] = id
+                    end
                 end
             elseif layer.__type == 'Entities' then
                 for _, e in ipairs(layer.entityInstances) do

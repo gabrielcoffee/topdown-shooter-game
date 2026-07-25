@@ -63,6 +63,10 @@ local srcGain = {}    -- Source -> per-play gain (for live volume updates)
 setmetatable(srcGain, { __mode = 'k' })
 local srcNoFade = {}  -- Source -> true: this play ignores the run-start fade (UI cues)
 setmetatable(srcNoFade, { __mode = 'k' })
+local srcWorld = {}   -- Source -> true: world one-shot (freezes with the pause)
+setmetatable(srcWorld, { __mode = 'k' })
+local pausedWorld = {} -- sources paused by the pause muffle, resumed on unpause
+local muffled = false  -- pause-muffle state, read by applyVolumes (bed duck)
 
 -- run-start fade-in: multiplies every gameplay volume, rises 0 -> 1 over dur
 local fade = { mult = 1, t = 0, dur = 0 }
@@ -145,19 +149,6 @@ local function grabSource(name)
     return best
 end
 
--- Straight walk over the tile grid: is a solid wall between a and b?
-local function wallBetween(map, ax, ay, bx, by)
-    local dx, dy = bx - ax, by - ay
-    local dist = math.sqrt(dx * dx + dy * dy)
-    if dist < 1 then return false end
-    local steps = math.ceil(dist / 16) -- half-tile sampling
-    for i = 1, steps - 1 do
-        local t = i / steps
-        if map:isSolidAt(ax + dx * t, ay + dy * t) then return true end
-    end
-    return false
-end
-
 -- Flat sound pinned to the listener (menus, own-body cues).
 -- noFade: plays at full volume even during the run-start fade (start cue).
 function Audio.play(name, gain, noFade)
@@ -172,8 +163,10 @@ function Audio.play(name, gain, noFade)
     src:setPitch(1)
     srcGain[src] = gain or 1
     srcNoFade[src] = noFade or nil
+    srcWorld[src] = nil
     src:setVolume(Audio.master * Audio.sfx * (gain or 1) * (noFade and 1 or fade.mult))
     src:play()
+    return src
 end
 
 -- World sound at a position: pans, attenuates, echoes, muffles behind walls.
@@ -191,7 +184,7 @@ function Audio.playAt(name, x, y, gain, jitter, world)
         -- muffle when a wall stands between the sound and the ear
         world = world or _G.world
         if world and world.map
-            and wallBetween(world.map, listener.x, listener.y, x, y) then
+            and world.map:wallBetween(listener.x, listener.y, x, y) then
             src:setFilter({ type = 'lowpass', volume = 1, highgain = A.occlusionHighgain })
         else
             src:setFilter()
@@ -202,8 +195,10 @@ function Audio.playAt(name, x, y, gain, jitter, world)
     src:setPitch(jitter and (1 + (love.math.random() * 2 - 1) * jitter) or 1)
     srcGain[src] = gain or 1
     srcNoFade[src] = nil
+    srcWorld[src] = true
     src:setVolume(Audio.master * Audio.sfx * (gain or 1) * fade.mult)
     src:play()
+    return src
 end
 
 -- Once per frame from World:update: moves the ears + adapts the room reverb
@@ -270,7 +265,9 @@ local function applyVolumes()
         end
     end
     if ambience.bed then
-        ambience.bed:setVolume(Audio.master * Audio.music * TUNE.audio.bedGain * fade.mult)
+        -- the pause duck survives volume changes made from the pause menu
+        ambience.bed:setVolume(Audio.master * Audio.music * TUNE.audio.bedGain * fade.mult
+            * (muffled and TUNE.audio.muffleDuck or 1))
     end
 end
 
@@ -309,18 +306,33 @@ function Audio.update(dt)
         A.stingerGain, A.pitchJitter)
 end
 
--- GTA-style pause muffle: lowpass + duck everything currently audible.
--- UI sounds played after this (pause menu clicks) stay crisp.
+-- GTA-style pause muffle. World one-shots (reloads, casings, growls) PAUSE
+-- with the game — a 2.5s reload sound must not play out while its reload
+-- timer is frozen — and resume where they stopped. The ambience bed keeps
+-- running lowpassed + ducked so the pause still has a sound floor, and UI
+-- sounds played after this (pause menu clicks) stay crisp.
 function Audio.setMuffled(m)
     local A = TUNE.audio
-    for _, pool in pairs(pools) do
-        for _, s in ipairs(pool) do
-            if s:isPlaying() then
-                if m then
-                    pcall(s.setFilter, s, { type = 'lowpass', volume = 1, highgain = A.muffleHighgain })
-                else
-                    pcall(s.setFilter, s)
+    muffled = m
+    if m then
+        for _, pool in pairs(pools) do
+            for _, s in ipairs(pool) do
+                if s:isPlaying() then
+                    if srcWorld[s] then
+                        s:pause()
+                        table.insert(pausedWorld, s)
+                    else
+                        pcall(s.setFilter, s, { type = 'lowpass', volume = 1, highgain = A.muffleHighgain })
+                    end
                 end
+            end
+        end
+    else
+        for _, s in ipairs(pausedWorld) do pcall(s.play, s) end
+        pausedWorld = {}
+        for _, pool in pairs(pools) do
+            for _, s in ipairs(pool) do
+                if s:isPlaying() then pcall(s.setFilter, s) end
             end
         end
     end

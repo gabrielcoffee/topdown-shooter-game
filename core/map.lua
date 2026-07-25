@@ -65,6 +65,20 @@ function Map:isSolidAt(px, py)
     return t == 'solid' or t == 'void'
 end
 
+-- Straight walk over the tile grid: is a solid wall between a and b?
+-- Shared LOS test: audio occlusion, knife swings, grenade blasts.
+function Map:wallBetween(ax, ay, bx, by)
+    local dx, dy = bx - ax, by - ay
+    local dist = math.sqrt(dx * dx + dy * dy)
+    if dist < 1 then return false end
+    local steps = math.ceil(dist / 16) -- half-tile sampling
+    for i = 1, steps - 1 do
+        local t = i / steps
+        if self:isSolidAt(ax + dx * t, ay + dy * t) then return true end
+    end
+    return false
+end
+
 -- Footstep material at a pixel: level's surfaces map keyed by tile type,
 -- 'dirt' when the level doesn't say
 function Map:surfaceAt(px, py)

@@ -144,6 +144,18 @@ function Enemy:followPlayer(dt, world)
 end
 
 function Enemy:update(dt, world)
+    -- dead: stop acting immediately — no posthumous step or contact hit.
+    -- Threshold matches the killReward checks (<= 0), so fractional spike
+    -- damage can't strand a 0.x hp zombie between the two rules.
+    if self.health <= 0 then
+        if not self.toRemove then
+            self.toRemove = true
+            local dx, dy = self:getCenter()
+            Audio.playAt('zombie_death', dx, dy, 1, TUNE.audio.pitchJitter, world)
+        end
+        return
+    end
+
     self:followPlayer(dt, world)
 
     -- spikes hurt, water/mud slow, holes kill
@@ -163,6 +175,10 @@ function Enemy:update(dt, world)
         and not world.player.godMode then
         world.player.health = world.player.health - self.damage
         world.player.flashTimer = TUNE.player.hitFlashTime
+        -- brief post-hit invuln: an encircling pack can't stack 3-4 contact
+        -- hits in the same beat and one-shot a full-health player
+        world.player.invulnTimer = math.max(world.player.invulnTimer,
+            TUNE.player.contactInvulnTime)
         self.attackTimer = 0
         Audio.playAt('zombie_attack', cx, cy, 1, TUNE.audio.pitchJitter, world)
     end
@@ -175,11 +191,6 @@ function Enemy:update(dt, world)
         Audio.playAt('zombie_growl', cx, cy, 1, TUNE.audio.pitchJitter, world)
     end
 
-    if self.health < 1 then
-        self.toRemove = true
-        local dx, dy = self:getCenter()
-        Audio.playAt('zombie_death', dx, dy, 1, TUNE.audio.pitchJitter, world)
-    end
 end
 
 function Enemy:draw()

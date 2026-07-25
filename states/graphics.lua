@@ -55,8 +55,18 @@ function graphics:enter()
             label = 'gfx.apply', type = 'action',
             enabled = function() return dirty(self) end,
             activate = function()
+                local prev = {}
+                for _, f in ipairs(FIELDS) do prev[f] = SETTINGS[f] end
+                -- crtInGame is a draw-time flag: applying it alone must not
+                -- churn the window (setMode re-centers + flickers)
+                local modeChanged = p.resolution ~= SETTINGS.resolution
+                    or p.fullscreen ~= SETTINGS.fullscreen
                 for _, f in ipairs(FIELDS) do SETTINGS[f] = p[f] end
-                Screen.apply(SETTINGS)
+                if modeChanged and not Screen.apply(SETTINGS) then
+                    -- the window refused the mode: roll everything back
+                    for _, f in ipairs(FIELDS) do SETTINGS[f], p[f] = prev[f], prev[f] end
+                    Screen.apply(SETTINGS)
+                end
                 Save.saveSettings(SETTINGS)
             end,
         },

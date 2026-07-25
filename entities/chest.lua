@@ -193,6 +193,18 @@ function Chest:resolve(world)
     self:closeLid()
 end
 
+-- H overlay: solid 64x32 box + the interact zone where E works
+function Chest:drawHitbox()
+    love.graphics.setLineWidth(1)
+    love.graphics.setColor(0, 1, 0, 0.9)
+    love.graphics.rectangle('line', self.x, self.y, self.width, self.height)
+    local pad = TUNE.chest.interactPad
+    love.graphics.setColor(1, 0.9, 0.3, 0.6)
+    love.graphics.rectangle('line', self.x - pad, self.y - pad,
+        self.width + pad * 2, self.height + pad * 2)
+    love.graphics.setColor(Color.white())
+end
+
 function Chest:draw()
     local x = math.floor(self.x)
     local top = math.floor(self.y) - CAP  -- sprite sits CAP px above the hitbox

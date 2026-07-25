@@ -14,9 +14,10 @@ local options = {}
 options.overlay = true
 options.fxMode = 'overlay'
 
+-- volumes apply live on every tick; the disk write happens on key/mouse
+-- release instead (a slider drag used to write settings.lua ~60x per second)
 local function apply()
     Audio.setVolumes(SETTINGS.master, SETTINGS.sfx, SETTINGS.music)
-    Save.saveSettings(SETTINGS)
 end
 
 local function volumeItem(labelKey, field)
@@ -88,11 +89,18 @@ function options:keypressed(key)
         State.pop()
     else
         self.list:keypressed(key)
+        if key == 'left' or key == 'right' or key == 'a' or key == 'd'
+            or key == 'return' or key == 'kpenter' or key == 'space' then
+            Save.saveSettings(SETTINGS) -- discrete edits persist as they happen
+        end
     end
 end
 
 function options:mousepressed(x, y, btn) self.list:mousepressed(x, y, btn) end
 function options:mousemoved(x, y) self.list:mousemoved(x, y) end
-function options:mousereleased(x, y, btn) self.list:mousereleased(x, y, btn) end
+function options:mousereleased(x, y, btn)
+    self.list:mousereleased(x, y, btn)
+    Save.saveSettings(SETTINGS) -- end of a drag/click: persist once
+end
 
 return options

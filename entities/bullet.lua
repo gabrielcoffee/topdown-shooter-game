@@ -9,7 +9,7 @@ Bullet.__index = Bullet
 setmetatable(Bullet, Entity)
 
 
-function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime, killReward, maxHits)
+function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime, killReward, maxHits, showMuzzle)
     local obj = Entity:new(x, y, 2, 4)
 
     obj.color = Color.white
@@ -30,31 +30,45 @@ function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime, killReward, max
     obj.x = obj.x + (obj.dx * muzzleOffset)
     obj.y = obj.y + (obj.dy * muzzleOffset)
 
-    obj.animMuzzle = Animation:new(Assets.quads.muzzle, 1, 3, 0.017)
-    
+    -- shotgun blasts pass showMuzzle=false for all but one pellet: 14 flash
+    -- animations stacked on the same pixel were pure allocation waste
+    obj.animMuzzle = (showMuzzle ~= false)
+        and Animation:new(Assets.quads.muzzle, 1, 3, 0.017) or nil
+
     setmetatable(obj, Bullet)
     return obj
 end
 
 function Bullet:update(dt, world)
- 
-    if self.timer ~= 0 then
-        self.x = self.x + ((self.dx * self.speed) * dt)
-        self.y = self.y + ((self.dy * self.speed) * dt)
-    end
-
+    -- The first update samples only the spawn point (muzzle-touch kills keep
+    -- working). After that the flight is swept in <=8px substeps, so no wall,
+    -- crate or small zombie can fit between two samples — at 540px/s a single
+    -- point-check per frame skipped 21px runners below ~26fps.
+    local dist = (self.timer == 0) and 0 or self.speed * dt
     self.timer = self.timer + dt
+    if self.animMuzzle then self.animMuzzle:update(dt) end
 
-    if self.timer >= self.lifetime then
+    repeat
+        local step = math.min(dist, 8)
+        self.x = self.x + self.dx * step
+        self.y = self.y + self.dy * step
+        dist = dist - step
+        self:checkHits(world)
+    until dist <= 0 or self.toRemove
+
+    if not self.toRemove and self.timer >= self.lifetime then
         world:removeEntity(self)
     end
+end
 
-    self.animMuzzle:update(dt)
-
+-- One collision pass at the current position: wall, then obstacles, then
+-- zombies (with pierce)
+function Bullet:checkHits(world)
     -- walls stop bullets (bullet_hit samples are wall-impact sounds)
     if world.map:isSolidAt(self.x, self.y) then
         world:removeEntity(self)
         Audio.playAt('bullet_hit', self.x, self.y, 1, TUNE.audio.pitchJitter, world)
+        return
     end
 
     -- crates take damage, doors just stop bullets (sfx for both come later)
@@ -70,12 +84,9 @@ function Bullet:update(dt, world)
                     world:removeEntity(e)
                 end
             end
-            break
+            return
         end
     end
-
-    -- already stopped by a wall/crate/door this frame
-    if self.toRemove then return end
 
     -- pierce: every overlapping zombie is damaged once per bullet; the bullet
     -- only dies after maxHits total. health > 0 guard: an already-dead enemy
@@ -96,7 +107,7 @@ function Bullet:update(dt, world)
             self.hitsLeft = self.hitsLeft - 1
             if self.hitsLeft <= 0 then
                 world:removeEntity(self)
-                break
+                return
             end
         end
     end
@@ -105,7 +116,7 @@ end
 function Bullet:draw()
     love.graphics.setColor(Color.white())
 
-    if self.timer < 0.07 then
+    if self.animMuzzle and self.timer < 0.07 then
 
         self.animMuzzle:draw(
             self.x, self.y,

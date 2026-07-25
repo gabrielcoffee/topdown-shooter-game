@@ -176,6 +176,7 @@ end
 
 function Chat.textinput(t)
     if not Chat.open or Chat.swallowFrame then return end
+    if #Chat.buffer >= 64 then return end -- longest real command is ~20 chars
     Chat.buffer = Chat.buffer .. t:lower()
     Chat.histIndex = nil
     refreshSuggestions()
@@ -273,12 +274,15 @@ function Chat.draw()
 
     if Chat.open then
         -- input line
+        local boxW = math.floor(SCREENWIDTH * 0.4)
         love.graphics.setColor(0, 0, 0, 0.6)
-        love.graphics.rectangle('fill', x - 4, inputY - 3,
-            math.floor(SCREENWIDTH * 0.4), lineH)
+        love.graphics.rectangle('fill', x - 4, inputY - 3, boxW, lineH)
         local caret = (Chat.blink % 1 < 0.5) and '_' or ''
         love.graphics.setColor(1, 1, 1)
+        -- clip to the box so a full buffer can't draw across the screen
+        love.graphics.setScissor(x - 4, inputY - 3, boxW, lineH)
         love.graphics.print('> ' .. Chat.buffer .. caret, x, inputY)
+        love.graphics.setScissor()
 
         -- suggestion popup right above the input line (over the log, like MC)
         local n = #Chat.suggestions

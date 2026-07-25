@@ -73,9 +73,8 @@ Assets.quads = {
     shell_rifle   = loadQuads(212, 4, 8, 8, 1), -- ak47 + m4a1
     shell_pistol  = loadQuads(228, 4, 8, 8, 1), -- usp
 
-    -- crate: 32x48 sprite, but only the bottom 32x32 is the hitbox. The top
-    -- 16px is a walk-behind cap (see Crate:sortY / Crate:draw).
-    crate = loadQuads(0, 256, 32, 48, 1),
+    -- crate: flat 32x32 top-down sprite, hitbox = sprite box
+    crate = loadQuads(32, 224, 32, 32, 1),
 
     aim = loadQuads(128, 0, 16, 16, 1),
     bullet = loadQuads(144, 0, 4, 2, 1),

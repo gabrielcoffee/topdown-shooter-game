@@ -31,15 +31,42 @@ local function serialize(v, indent)
     error('cannot serialize a ' .. t)
 end
 
+-- bumped when the shape of a save table changes; loaders can branch on it
+local FORMAT_VERSION = 1
+
+-- Crash-safe write: the new content goes to <name>.tmp first and must load
+-- back cleanly before it replaces the real file; the previous good file is
+-- kept as <name>.bak (love.filesystem has no rename, so this is the closest
+-- to atomic). A crash mid-write can only ever lose the newest snapshot.
+-- Note: stamps data.version on the passed table.
 local function writeFile(name, data)
-    love.filesystem.write(name, 'return ' .. serialize(data))
+    data.version = FORMAT_VERSION
+    local body = 'return ' .. serialize(data)
+
+    local tmp = name .. '.tmp'
+    if not love.filesystem.write(tmp, body) then return end
+    local chunk = love.filesystem.load(tmp)
+    if not chunk then return end
+    local ok, parsed = pcall(chunk)
+    if not ok or type(parsed) ~= 'table' then return end -- never install garbage
+
+    local old = love.filesystem.getInfo(name) and love.filesystem.read(name)
+    if old then love.filesystem.write(name .. '.bak', old) end
+    love.filesystem.write(name, body)
+    love.filesystem.remove(tmp)
 end
 
+-- Read the main file; if it's missing or corrupt, quietly fall back to .bak
 local function readFile(name)
-    if not love.filesystem.getInfo(name) then return nil end
-    local chunk = love.filesystem.load(name)
-    local ok, data = pcall(chunk)
-    if ok and type(data) == 'table' then return data end
+    for _, candidate in ipairs({ name, name .. '.bak' }) do
+        if love.filesystem.getInfo(candidate) then
+            local chunk = love.filesystem.load(candidate)
+            if chunk then
+                local ok, data = pcall(chunk)
+                if ok and type(data) == 'table' then return data end
+            end
+        end
+    end
     return nil
 end
 
@@ -83,6 +110,7 @@ end
 
 function Save.deleteRun()
     love.filesystem.remove(RUN_FILE)
+    love.filesystem.remove(RUN_FILE .. '.bak') -- a dead run must not resurrect
 end
 
 return Save

@@ -54,21 +54,30 @@ end
 function Screen.apply(settings)
     Screen.setLogical()
 
+    -- stay on whatever display the window currently lives on — a hardcoded
+    -- index yanks the window to that monitor on every apply (and only worked
+    -- on single-display machines because LOVE clamps out-of-range indexes)
+    local curDisplay = select(3, love.window.getPosition()) or 1
+
     local flags = {
         fullscreen = settings.fullscreen or false,
         fullscreentype = 'desktop',
         resizable = true,
+        -- never let a drag-resize go shorter than the 960px logical canvas:
+        -- light passes only cover the window height -> uncovered blue bar
+        minwidth = 1280,
+        minheight = 960,
         vsync = 1,
         highdpi = false,
-        display = 2,
+        display = curDisplay,
     }
     local w, h
     if settings.fullscreen then
-        w, h = love.window.getDesktopDimensions(flags.display)
+        w, h = love.window.getDesktopDimensions(curDisplay)
     else
         w, h = parseRes(settings.resolution)
     end
-    love.window.setMode(w, h, flags)
+    local ok = love.window.setMode(w, h, flags)
     Screen.recompute()
 
     -- rebuild everything baked against the (possibly new) logical size
@@ -81,6 +90,8 @@ function Screen.apply(settings)
     if world and world.lighting then
         world.lighting:resize(SCREENWIDTH, SCREENHEIGHT)
     end
+
+    return ok -- callers can roll back if the window refused the mode
 end
 
 -- Bind the logical canvas as the render target.

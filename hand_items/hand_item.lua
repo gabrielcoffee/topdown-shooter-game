@@ -56,8 +56,11 @@ function HandItem:swing(aimAngle, player, world)
             local dx, dy = ecx - pcx, ecy - pcy
             local dist = math.sqrt(dx*dx + dy*dy)
 
+            -- reach + arc + line of sight: range (44) beats a tile (32), so
+            -- without the wall test the knife stabbed through thin walls
             if dist - e.radius <= K.range
-                and math.abs(angleDiff(math.atan2(dy, dx), aimAngle)) <= math.rad(K.arcDeg) / 2 then
+                and math.abs(angleDiff(math.atan2(dy, dx), aimAngle)) <= math.rad(K.arcDeg) / 2
+                and not world.map:wallBetween(pcx, pcy, ecx, ecy) then
 
                 local nx, ny = 1, 0
                 if dist > 0 then nx, ny = dx/dist, dy/dist end

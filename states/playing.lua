@@ -16,7 +16,14 @@ function playing:enter(opts)
     Chat.close()
     world = World:new()
     if opts.run then
-        world:restore(opts.run)
+        -- a hand-edited or outdated run.lua must not crash Continue: dump the
+        -- bad save and fall back to a fresh run
+        local ok, err = pcall(world.restore, world, opts.run)
+        if not ok then
+            print('[save] bad run file, starting fresh: ' .. tostring(err))
+            require('core.save').deleteRun()
+            world = World:new()
+        end
     end
     -- run start: audio + image rise from black together; the wave banner
     -- waits out the same window (waves pregame hold)
@@ -65,8 +72,10 @@ function playing:keypressed(key)
 
     if key == 'escape' then
         State.push('paused')
-    elseif (key == 't' or key == '`' or key == 'return')
+    elseif (key == 't' or key == '`')
         and TUNE.dev and TUNE.dev.enabled then
+        -- Enter dropped as an open key: too easy to hit mid-wave, and it
+        -- kills all gameplay input until Esc
         Chat.openChat()
     elseif key == 'h' then
         showHitboxes = not showHitboxes

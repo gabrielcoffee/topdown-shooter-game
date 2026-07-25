@@ -20,6 +20,8 @@ return {
         headOffsetX = 16,     -- head center, px from sprite left (centered)
         headOffsetY = 8,      -- head center, px from sprite top  (upper area)
         hitFlashTime = 0.12,  -- secs the sprite flashes white when hit
+        contactInvulnTime = 0.4, -- secs of invulnerability after a zombie contact hit
+        switchDelay = 0.3,    -- secs after a weapon swap before it can act (blocks quick-switch)
     },
 
     movement = {
@@ -155,7 +157,7 @@ return {
 
     hotbar = { slotSize = 56, gap = 8, bottomMargin = 16 },
 
-    dev = { enabled = true }, -- master switch for the chat console (T / ` / Enter)
+    dev = { enabled = true }, -- master switch for the chat console (T / `)
     chat = {
         showTime = 8,   -- secs a line stays on screen before fading (chat closed)
         fadeTime = 1,   -- secs of the fade-out at the end of showTime
@@ -290,6 +292,7 @@ return {
 
     waves = {
         quotaBase = 3,          -- zombies in wave w = this + w*(w+1)/2 -> 4, 6, 9, 13, 18, 24...
+        maxAlive = 24,          -- live-zombie cap (CoD uses 24); the rest of the quota queues up
 
         lifeBase = 20,          -- wave-1 zombie life, before the type multiplier
         lifePerWave = 20,       -- +this per wave while wave <= lifeLinearUntil

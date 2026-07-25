@@ -88,6 +88,7 @@ function MenuList:keypressed(key)
 end
 
 function MenuList:mousemoved(x, y)
+    if self.dragging then return end -- a drag in progress can't re-target
     for i = 1, #self.items do
         if itemHovered(self, i, x, y) and self.selected ~= i then
             self.selected = i
@@ -108,8 +109,15 @@ function MenuList:mousepressed(x, y, btn)
         if itemHovered(self, i, x, y) then
             self.selected = i
             if item.type == 'slider' then
-                setSliderFromMouse(self, i, x)
-                self.dragging = true
+                -- only clicks on the bar itself (small pad) grab it: the hover
+                -- band spans the whole row, and a click on the label used to
+                -- clamp to 0 and slam the volume to zero
+                local sx, _, sw = sliderRect(self, i)
+                if x >= sx - 8 and x <= sx + sw + 8 then
+                    setSliderFromMouse(self, i, x)
+                    self.dragging = true
+                    self.dragIndex = i -- the drag stays on this row, whatever hovers
+                end
             else
                 activate(self)
             end
@@ -126,9 +134,10 @@ function MenuList:update(dt)
     self.animT = self.animT + dt
     if self.dragging then
         if love.mouse.isDown(1) then
-            local item = self.items[self.selected]
-            if item.type == 'slider' then
-                setSliderFromMouse(self, self.selected, (require('ui.screen').mouse()))
+            local i = self.dragIndex or self.selected
+            local item = self.items[i]
+            if item and item.type == 'slider' then
+                setSliderFromMouse(self, i, (require('ui.screen').mouse()))
             end
         else
             self.dragging = false

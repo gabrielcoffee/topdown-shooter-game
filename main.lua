@@ -35,7 +35,19 @@ function love.load()
     State.switch('menu')
 
     for _, a in ipairs(arg) do
-        if a == 'fpsprobe' then
+        if a == 'autotest' then
+            -- headless smoke test: jump into a run, hitboxes on, screenshot
+            -- to the save dir after ~1.5s, then quit
+            State.switch('playing')
+            _G.showHitboxes = true
+            _G._autotest = { frames = 0 }
+        elseif a == 'shotgun' then
+            _G._autotest_shotgun = true
+            function love.errorhandler(msg)
+                io.stderr:write('CRASH: ' .. tostring(msg) .. '\n')
+                os.exit(1)
+            end
+        elseif a == 'fpsprobe' then
             SETTINGS.fullscreen = true
             Screen.apply(SETTINGS)
             State.switch('playing')
@@ -50,9 +62,32 @@ function love.load()
 end
 
 function love.update(dt)
+    -- a window drag / load hitch delivers one huge dt; clamp it so bullets,
+    -- movement and timers never integrate a step bigger than a 30fps frame
+    dt = math.min(dt, 1/30)
     flux.update(dt)
     Fx.update(dt)
     State.update(dt)
+    if _autotest then
+        _autotest.frames = _autotest.frames + 1
+        if _autotest_shotgun and _autotest.frames == 30 then
+            local Gun = require('hand_items.gun')
+            world.player:giveGun(Gun.newById('sawedoff'))
+        elseif _autotest_shotgun and _autotest.frames >= 60 then
+            local held = world.player.items[world.player.itemIndex]
+            if held and held.curClip == 7 then
+                held:fire(true)
+                if held.curClip < 7 then
+                    io.stderr:write(('SHOTGUN_TEST fired frame=%d\n'):format(_autotest.frames))
+                end
+            end
+        end
+        if _autotest.frames == 90 then
+            love.graphics.captureScreenshot('autotest.png')
+        elseif _autotest.frames > 93 then
+            love.event.quit()
+        end
+    end
     if _fps then
         _fps.t = _fps.t + dt; _fps.n = _fps.n + 1
         if _fps.t >= 1 then

@@ -6,6 +6,11 @@ local Path = {}
 
 local SQRT2 = math.sqrt(2)
 
+-- Bail after this many expanded nodes: an unreachable-but-walkable goal would
+-- otherwise flood the whole grid with O(n^2) linear min-scans — per zombie,
+-- every repath. Callers treat a nil path as "walk straight at the player".
+local MAX_EXPANDED = 400
+
 local function key(col, row)
     return col .. ',' .. row
 end
@@ -57,6 +62,7 @@ function Path.find(map, blocked, startCol, startRow, goalCol, goalRow)
     local gScore = { [startKey] = 0 }
     local cameFrom = {}
     local closed = {}
+    local expanded = 0
 
     while #open > 0 do
         -- linear min-scan: grid is small (~1200 tiles), no heap needed
@@ -81,6 +87,8 @@ function Path.find(map, blocked, startCol, startRow, goalCol, goalRow)
 
         if not closed[curKey] then
             closed[curKey] = true
+            expanded = expanded + 1
+            if expanded > MAX_EXPANDED then return nil end
 
             for dc = -1, 1 do
                 for dr = -1, 1 do

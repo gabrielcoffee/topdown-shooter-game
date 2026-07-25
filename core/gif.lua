@@ -266,7 +266,12 @@ function Gif.load(path)
     if not cache[path] then
         local data, err = love.filesystem.read(path)
         assert(data, ('could not read %s: %s'):format(path, tostring(err)))
-        cache[path] = decode(data)
+        -- a truncated/corrupt gif dies deep in byte arithmetic; name the file
+        local ok, decoded = pcall(decode, data)
+        if not ok then
+            error(('bad gif %s: %s'):format(path, tostring(decoded)), 2)
+        end
+        cache[path] = decoded
     end
     return cache[path]
 end

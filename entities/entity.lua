@@ -161,6 +161,28 @@ function Entity:_resolveAxis(world, axis, dt)
     end
 end
 
+-- Positional correction (separation pushes, knockbacks): move by (dx,dy) but
+-- clip against solids/obstacles exactly like normal movement, so no push can
+-- ever leave this entity inside a wall. If a wall blocks the correction the
+-- entity simply absorbs less of it. Gameplay velocity is preserved — the
+-- vx/vy writes are only direction hints for _resolveAxis' face snapping.
+function Entity:nudge(world, dx, dy)
+    local svx, svy = self.vx, self.vy
+    if dx ~= 0 then
+        self.x = self.x + dx
+        self.vx = dx
+        self:_resolveAxis(world, 'x', 0)
+    end
+    if dy ~= 0 then
+        self.y = self.y + dy
+        self.vy = dy
+        self:_resolveAxis(world, 'y', 0)
+    end
+    self.vx, self.vy = svx, svy
+    self.x = math.max(0, math.min(self.x, world.mapW - self.width))
+    self.y = math.max(0, math.min(self.y, world.mapH - self.height))
+end
+
 -- Axis-separated movement: walls block, box slides along them
 function Entity:moveAndCollide(dt, world)
     self.x = self.x + self.vx * dt

@@ -25,7 +25,6 @@ return {
     ['options.back']     = 'VOLVER',
 
     ['gfx.title']        = 'GRÁFICOS',
-    ['gfx.aspect']       = 'PROPORCIÓN',
     ['gfx.resolution']   = 'RESOLUCIÓN',
     ['gfx.fullscreen']   = 'PANTALLA COMPLETA',
     ['gfx.crt_ingame']   = 'FILTRO TV EN JUEGO',

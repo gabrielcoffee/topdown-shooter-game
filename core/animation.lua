@@ -66,21 +66,27 @@ function Animation:update(dt)
 
     if self.ended or self.paused then return end
 
+    -- consume whole frames and carry the remainder — zeroing the timer made
+    -- every animation run slower than its tuned duration (the reload gif
+    -- lagged the actual reload timer by a few tenths of a second)
     local frameTime = self.delays and self.delays[self.index] or self.timeBetweenFrames
-    if self.timer > frameTime then
-        self.timer = 0
+    while self.timer > frameTime do
+        self.timer = self.timer - frameTime
         self.index = self.index + 1
 
         if self.index > self.to then
-            
             if self.loop then
                 self.index = self.from
                 self.turn = self.turn + 1
             else
-                self.index = self.totalFrames
+                self.index = self.to
                 self.ended = true
+                return
             end
         end
+
+        frameTime = self.delays and self.delays[self.index] or self.timeBetweenFrames
+        if not frameTime or frameTime <= 0 then return end -- bad delay: don't spin
     end
 end
 

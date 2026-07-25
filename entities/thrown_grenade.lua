@@ -55,7 +55,9 @@ function ThrownGrenade:explode(world)
         if not e.toRemove then
             local ex, ey = e:getCenter()
             local d = math.sqrt((ex - self.x)^2 + (ey - self.y)^2)
-            if d <= radius then
+            -- blast needs line of sight from where it landed: the throw arcs
+            -- over walls by design, but the explosion doesn't blow through them
+            if d <= radius and not world.map:wallBetween(self.x, self.y, ex, ey) then
                 if e.type == 'enemy' and e.health > 0 then
                     e.health = e.health - damage
                     e.flash = true
