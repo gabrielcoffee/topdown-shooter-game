@@ -57,6 +57,9 @@ function Player:new(x, y, width, height)
     obj.fallTimer = 0
     obj.invulnTimer = 0
     obj.lockedInputs = {} -- buttons held when falling: dead until released
+    -- the click that started this run (menu / retry button) can still be held
+    -- when the world spawns — it must not become shot #1
+    if love.mouse.isDown(1) then obj.lockedInputs.mouse1 = true end
     obj.slotHeld = {}     -- per-slot key state, so holding a number can't re-select
     obj.switchTimer = 0   -- deploy lockout after a weapon swap (blocks quick-switch)
 
@@ -136,9 +139,12 @@ function Player:update(dt, world)
         self.switchTimer = self.switchTimer - dt
     end
 
-    -- locked buttons free up once released
+    -- locked buttons free up once released (no and/or here: false isDown(1)
+    -- would fall through into keyboard.isDown('mouse1') and crash)
     for k in pairs(self.lockedInputs) do
-        local held = (k == 'mouse1') and love.mouse.isDown(1) or love.keyboard.isDown(k)
+        local held
+        if k == 'mouse1' then held = love.mouse.isDown(1)
+        else held = love.keyboard.isDown(k) end
         if not held then self.lockedInputs[k] = nil end
     end
 

@@ -12,6 +12,12 @@ paused.fxMode = 'overlay'
 
 function paused:exit()
     Audio.setMuffled(false)
+    -- RESUME clicked with the mouse: that same press is still down on the
+    -- frame the world unfreezes and would fire the gun — dead until released
+    -- (same lock the hole-fall uses)
+    if world and world.player and love.mouse.isDown(1) then
+        world.player.lockedInputs.mouse1 = true
+    end
 end
 
 function paused:enter()
