@@ -90,6 +90,7 @@ return {
         openSpeed = 18,   -- how fast the gap chases its target (higher = snappier)
         itemMoveGap = 8,  -- max extra gap while moving with grenade/medkit
         knifeAlpha = 0.4, -- crosshair opacity with the knife out (gap stays closed)
+        ghostAlpha = 0.4, -- opacity of the out-of-reach marker at the real mouse pos
     },
 
     -- per-shot gun kick (draw-only, doesn't touch where bullets go)

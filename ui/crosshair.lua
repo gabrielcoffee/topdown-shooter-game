@@ -49,38 +49,11 @@ function Crosshair.update(dt, world)
     gap = gap + (target - gap) * math.min(1, K.openSpeed * dt)
 end
 
-function Crosshair.draw(world)
-    local player = world.player
-    local held = player.items[player.itemIndex]
-
-    -- sprint / knife: aim is disabled, so the crosshair fades instead of vanishing
-    local alpha = 1
-    if player.running then
-        alpha = TUNE.run.crossAlpha
-    elseif held and held.isKnife then
-        alpha = TUNE.crosshair.knifeAlpha
-    end
-
+-- One 4-chip crosshair at screen (x, y) with gap g and the given opacity
+local function drawChips(x, y, g, alpha)
     local K = TUNE.crosshair
-    local g = gap or K.gapMin
-    local mx, my = require('ui.screen').mouse()
-
-    -- the crosshair never sits past the bullet's actual reach
-    if held and held.isGun then
-        local pcx, pcy = player:getCenter()
-        local sx = (pcx - world.camX) * SCALE
-        local sy = (pcy - world.camY) * SCALE
-        local reach = (held.tipLen + TUNE.bullet.speed * held.bulletLifeTime) * SCALE
-        local dx, dy = mx - sx, my - sy
-        local dist = math.sqrt(dx * dx + dy * dy)
-        if dist > reach then
-            mx = sx + dx / dist * reach
-            my = sy + dy / dist * reach
-        end
-    end
-
     love.graphics.push()
-    love.graphics.translate(mx, my)
+    love.graphics.translate(x, y)
     love.graphics.scale(SCALE, SCALE)
 
     -- right / left chips lie flat, top / bottom stand upright
@@ -106,6 +79,45 @@ function Crosshair.draw(world)
     end
 
     love.graphics.pop()
+end
+
+function Crosshair.draw(world)
+    local player = world.player
+    local held = player.items[player.itemIndex]
+
+    -- sprint / knife: aim is disabled, so the crosshair fades instead of vanishing
+    local alpha = 1
+    if player.running then
+        alpha = TUNE.run.crossAlpha
+    elseif held and held.isKnife then
+        alpha = TUNE.crosshair.knifeAlpha
+    end
+
+    local K = TUNE.crosshair
+    local g = gap or K.gapMin
+    local mx, my = require('ui.screen').mouse()
+
+    -- the crosshair never sits past the bullet's actual reach; when the mouse
+    -- is further out, a faded no-spread copy marks the real mouse position
+    local ghostX, ghostY
+    if held and held.isGun then
+        local pcx, pcy = player:getCenter()
+        local sx = (pcx - world.camX) * SCALE
+        local sy = (pcy - world.camY) * SCALE
+        local reach = (held.tipLen + TUNE.bullet.speed * held.bulletLifeTime) * SCALE
+        local dx, dy = mx - sx, my - sy
+        local dist = math.sqrt(dx * dx + dy * dy)
+        if dist > reach then
+            ghostX, ghostY = mx, my
+            mx = sx + dx / dist * reach
+            my = sy + dy / dist * reach
+        end
+    end
+
+    drawChips(mx, my, g, alpha)
+    if ghostX then
+        drawChips(ghostX, ghostY, K.gapMin, alpha * K.ghostAlpha)
+    end
     love.graphics.setColor(1, 1, 1)
 end
 
