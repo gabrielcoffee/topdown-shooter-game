@@ -29,6 +29,7 @@ function World:new()
         ambience = levelDef.ambience,
         transition = nil, -- set while the camera pans between rooms
         openedDoors = {}, -- door id -> true once bought; gates spawn points
+        visitedRooms = {}, -- room name -> true once entered; gates spawn points
         gameOver = false
     }
 
@@ -75,6 +76,13 @@ function World:new()
         obj.player.x, obj.player.y =
             obj.playerSpawn:playerPos(obj.player.width, obj.player.height)
         obj.currentRoom = obj:roomAt(obj.player:getCenter()) or obj.currentRoom
+    end
+    obj.visitedRooms[obj.currentRoom.name] = true
+
+    -- each spawn point belongs to a room; only visited rooms spawn zombies
+    local half = TUNE.tiles.size / 2
+    for _, sp in ipairs(spawnPoints) do
+        sp.roomName = obj:roomAt(sp.x + half, sp.y + half).name
     end
 
     obj.waves = Waves:new(spawnPoints)
@@ -298,6 +306,7 @@ function World:update(dt)
         self.lighting:update(dt, self) -- torches keep flickering during the pan
         if k >= 1 then
             self.currentRoom = tr.room
+            self.visitedRooms[tr.room.name] = true
             self.transition = nil
         end
         return
@@ -425,12 +434,14 @@ function World:serialize()
     return {
         wave = self.waves.wave,
         openedDoors = self.openedDoors,
+        visitedRooms = self.visitedRooms,
         player = self.player:serialize(),
     }
 end
 
 function World:restore(data)
     self.openedDoors = data.openedDoors or {}
+    self.visitedRooms = data.visitedRooms or self.visitedRooms
     -- doors bought in the saved run stay open
     for _, e in ipairs(self.entities) do
         if e.type == 'door' and e.id and self.openedDoors[e.id] then
@@ -441,6 +452,7 @@ function World:restore(data)
     self.player:restore(data.player or {})
     -- saved runs can end in any room
     self.currentRoom = self:roomAt(self.player:getCenter())
+    self.visitedRooms[self.currentRoom.name] = true
 end
 
 return World

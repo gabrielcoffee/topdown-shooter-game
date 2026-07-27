@@ -82,11 +82,13 @@ function Waves:slamBanner()
     flux.to(self, TUNE.fx.titleSlamTime, { bannerY = 190 }):ease('quartin')
 end
 
--- Points behind an unopened door stay inactive
+-- Points behind an unopened door, or in a room the player has never
+-- entered, stay inactive
 function Waves:activePoints(world)
     local active = {}
     for _, sp in ipairs(self.spawnPoints) do
-        if not sp.door or world.openedDoors[sp.door] then
+        if (not sp.door or world.openedDoors[sp.door])
+            and (not sp.roomName or world.visitedRooms[sp.roomName]) then
             table.insert(active, sp)
         end
     end

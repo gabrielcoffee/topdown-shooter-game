@@ -54,6 +54,7 @@ local function newTyped(x, y, wave, t, color)
     obj.health = waveLife(wave or 1) * t.lifeMult
     obj.color = color
     obj.breaksCrates = t.breaksCrates or false
+    obj.losShortcut = t.losShortcut or false
 
     -- wall-collision box capped so big sprites (slow, 48px) still fit 1-tile
     -- gaps and can reach wall-adjacent waypoints; combat circle stays size/2
@@ -84,6 +85,42 @@ local function dirTo(fromX, fromY, toX, toY)
     return dx / length, dy / length, length
 end
 
+-- LOS shortcut check: march the zombie's collision box along the line in 8px
+-- steps against solid tiles and obstacle entities. Runs only on repath ticks
+-- (every repathTime), and a clear line SKIPS that tick's A* — net cheaper.
+-- Crate-breakers ignore crates here: they would chew through anyway.
+local function losClear(world, x0, y0, x1, y1, halfW, ignoreCrates)
+    local dx, dy = x1 - x0, y1 - y0
+    local dist = math.sqrt(dx*dx + dy*dy)
+    if dist < 1 then return true end
+
+    local obs = {}
+    for _, e in ipairs(world.entities) do
+        if e.isObstacle and not e.toRemove
+            and not (ignoreCrates and e.type == 'crate') then
+            table.insert(obs, e)
+        end
+    end
+
+    local steps = math.ceil(dist / 8)
+    for i = 0, steps do
+        local px, py = x0 + dx * i / steps, y0 + dy * i / steps
+        if world.map:isSolidAt(px - halfW, py - halfW)
+            or world.map:isSolidAt(px + halfW, py - halfW)
+            or world.map:isSolidAt(px - halfW, py + halfW)
+            or world.map:isSolidAt(px + halfW, py + halfW) then
+            return false
+        end
+        for _, e in ipairs(obs) do
+            if px + halfW > e.x and px - halfW < e.x + e.width
+                and py + halfW > e.y and py - halfW < e.y + e.height then
+                return false
+            end
+        end
+    end
+    return true
+end
+
 function Enemy:followPlayer(dt, world)
     local ts = world.map.tileSize
     local cx, cy = self:getCenter()
@@ -97,8 +134,15 @@ function Enemy:followPlayer(dt, world)
     self.repathTimer = self.repathTimer - dt
     if self.repathTimer <= 0 then
         self.repathTimer = TUNE.zombies.repathTime
-        self.path = Path.find(world.map, world:blockedTiles(self.breaksCrates),
-            myCol, myRow, pCol, pRow)
+        -- clear line of sight: nil path lands in the beeline branch below,
+        -- so the zombie walks straight instead of tracing grid corners
+        if self.losShortcut and losClear(world, cx, cy, pcx, pcy,
+                (self.colW or self.width) / 2 + 1, self.breaksCrates) then
+            self.path = nil
+        else
+            self.path = Path.find(world.map, world:blockedTiles(self.breaksCrates),
+                myCol, myRow, pCol, pRow)
+        end
         self.pathIndex = 1
     end
 
@@ -186,7 +230,7 @@ function Enemy:update(dt, world)
         Audio.playAt('zombie_attack', cx, cy, 1, TUNE.audio.pitchJitter, world)
     end
 
-    -- crate smashing (fast/runner only): their A* walks through crate tiles,
+    -- crate smashing (breaksCrates types): their A* walks through crate tiles,
     -- so when one physically blocks them they beat on it until it breaks.
     -- Shares attackTimer with the player hit — a zombie in reach of the
     -- player (checked above, resets the timer) always prefers the player.

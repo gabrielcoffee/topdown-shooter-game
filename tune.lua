@@ -291,10 +291,12 @@ return {
         crateDamage = 20,     -- damage per hit when a crate-breaker smashes a crate
 
         -- breaksCrates: paths straight through crates and smashes whatever
-        -- blocks the way; false = A* treats crates as walls and goes around
-        slow   = { speed = 30, lifeMult = 1,    size = 48, breaksCrates = false },
+        -- blocks the way; false = A* treats crates as walls and goes around.
+        -- losShortcut: clear straight line to the player = walk it directly
+        -- (no A*, no grid corners); blocked line falls back to normal A*
+        slow   = { speed = 30, lifeMult = 1,    size = 48, breaksCrates = true, losShortcut = true },
         fast   = { speed = 60, lifeMult = 0.5,  size = 32, breaksCrates = true },
-        runner = { speed = 90, lifeMult = 0.25, size = 21, breaksCrates = true },
+        runner = { speed = 90, lifeMult = 0.25, size = 21, breaksCrates = false },
     },
 
     waves = {
