@@ -38,6 +38,19 @@ local function pickType(w)
     return 'fast'
 end
 
+-- Weighted power-up kind for a carrier zombie
+local function pickPowerup()
+    local total = 0
+    for _, w in pairs(TUNE.powerups.weights) do total = total + w end
+    local pick = love.math.random() * total
+    local chosen
+    for kind, w in pairs(TUNE.powerups.weights) do
+        pick = pick - w
+        if pick <= 0 then chosen = kind break end
+    end
+    return chosen
+end
+
 local function liveEnemies(world)
     local n = 0
     for _, e in ipairs(world.entities) do
@@ -55,6 +68,7 @@ function Waves:new(spawnPoints)
         spawnTimer = 0,
         spawnPoints = spawnPoints,
         bannerY = -160,
+        carriersThisWave = 0, -- power-up carriers spawned this wave (capped)
     }
     setmetatable(obj, Waves)
     return obj
@@ -66,6 +80,7 @@ function Waves:startWave(n)
     self.state = 'wave_start'
     self.timer = TUNE.waves.startIntermission
     self.remaining = (n == 0) and 0 or quotaFor(n) -- wave 0: sandbox, no zombies
+    self.carriersThisWave = 0
     self:slamBanner()
 end
 
@@ -109,6 +124,15 @@ function Waves:spawnOne(world)
     if t == 'slow' then e = Enemy:newSlow(x, y, self.wave)
     elseif t == 'normal' then e = Enemy:newNormal(x, y, self.wave)
     else e = Enemy:newFast(x, y, self.wave) end
+
+    -- fast (runner) zombies may carry a power-up: they glow and drop it
+    -- on death; capped per wave so late hordes don't rain pickups
+    if t == 'fast' and self.carriersThisWave < TUNE.powerups.maxPerWave
+        and love.math.random() < TUNE.powerups.carrierChance then
+        e.carrier = pickPowerup()
+        self.carriersThisWave = self.carriersThisWave + 1
+    end
+
     world:addEntity(e)
 end
 

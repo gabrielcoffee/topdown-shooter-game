@@ -59,7 +59,8 @@ local zombieFactories = {
 }
 
 local commandNames = { 'money', 'give', 'drop', 'god', 'ungod', 'heal', 'ammo',
-                       'wave', 'spawn', 'help', 'clear' }
+                       'wave', 'spawn', 'mode', 'wallbuy', 'powerup',
+                       'help', 'clear' }
 
 -- run(arg) -> log text, isError
 local commands = {
@@ -70,10 +71,20 @@ local commands = {
         p:addMoney(n)
         return ('%+d -> $%d'):format(p.money - before, p.money)
     end },
-    give = { argKind = 'gun', run = function(arg)
+    give = { argKind = 'giveable', run = function(arg)
+        local p = world.player
+        if arg == 'grenade' then
+            p.grenades = math.min(TUNE.grenade.maxCarry, p.grenades + 1)
+            return 'grenades: ' .. p.grenades
+        elseif arg == 'molotov' then
+            p.molotovs = math.min(TUNE.molotov.maxCarry, p.molotovs + 1)
+            return 'molotovs: ' .. p.molotovs
+        end
         local gun = arg and Gun.newById(arg)
-        if not gun then return 'usage: /give <usp|ak47|m4a1|shotgun>', true end
-        world.player:giveGun(gun)
+        if not gun then
+            return 'usage: /give <usp|ak47|m4a1|shotgun|grenade|molotov>', true
+        end
+        p:giveGun(gun)
         return 'gave ' .. gun.name
     end },
     drop = { argKind = 'gun', run = function(arg)
@@ -97,11 +108,7 @@ local commands = {
     ammo = { run = function()
         for i = 1, 2 do
             local gun = world.player.items[i]
-            if gun then
-                gun:cancelReload()
-                gun.curClip = gun.maxClip
-                gun.bulletsLeft = TUNE.guns[gun.id].reserve or gun.maxClip * 3
-            end
+            if gun then gun:refill() end
         end
         return 'ammo refilled'
     end },
@@ -128,6 +135,41 @@ local commands = {
         world:addEntity(factory(x, y, world.waves.wave))
         return 'spawned ' .. arg .. ' zombie'
     end },
+    wallbuy = { argKind = 'gun', run = function(arg)
+        if not (arg and TUNE.wallbuy.prices[arg]) then
+            return 'usage: /wallbuy <usp|ak47|m4a1|shotgun>', true
+        end
+        local GunWall = require('entities.gun_wall')
+        local p = world.player
+        local cx, cy = p:getCenter()
+        local ts = TUNE.tiles.size
+        local off = TUNE.droppedGun.dropOffset * (p.facingLeft and -1 or 1)
+        -- snap to the tile grid in front of the player
+        local x = math.floor((cx + off) / ts) * ts
+        local y = math.floor(cy / ts) * ts
+        local wall = GunWall:new(x, y, arg)
+        world:addEntity(wall)
+        world.lighting:trackOccluder(wall)
+        return 'wall buy: ' .. arg .. ' ($' .. wall.price .. ')'
+    end },
+    powerup = { argKind = 'powerup', run = function(arg)
+        if not (arg and TUNE.powerups.weights[arg]) then
+            return 'usage: /powerup <nuke|maxammo|instakill|freeze|doublepoints>', true
+        end
+        local Powerup = require('entities.powerup')
+        local p = world.player
+        local cx, cy = p:getCenter()
+        local off = TUNE.droppedGun.dropOffset * (p.facingLeft and -1 or 1)
+        world:addEntity(Powerup:new(cx + off, cy, arg))
+        return 'dropped ' .. arg
+    end },
+    mode = { argKind = 'mode', run = function(arg)
+        if arg ~= 'kills' and arg ~= 'hits' then
+            return 'usage: /mode <kills|hits>  (now: ' .. world.economy .. ')', true
+        end
+        world.economy = arg
+        return 'economy mode: ' .. arg
+    end },
     help = { run = function()
         local out = {}
         for _, n in ipairs(commandNames) do table.insert(out, '/' .. n) end
@@ -142,8 +184,11 @@ local commands = {
 
 local argOptions = {
     gun = Gun.ids,
+    giveable = { 'usp', 'ak47', 'm4a1', 'shotgun', 'grenade', 'molotov' },
     zombie = { 'slow', 'normal', 'fast' },
     wave = { 'skip' },
+    mode = { 'kills', 'hits' },
+    powerup = { 'nuke', 'maxammo', 'instakill', 'freeze', 'doublepoints' },
 }
 
 -- Prefix filter over the token being typed. The leading slash is optional;

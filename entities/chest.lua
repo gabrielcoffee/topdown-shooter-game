@@ -14,8 +14,6 @@ local Chest = {}
 Chest.__index = Chest
 setmetatable(Chest, Entity)
 
-local gunNames = { ak47 = 'AK-47', m4a1 = 'M4A1', shotgun = 'Shotgun' }
-
 -- Sprite is 64x64 but the hitbox is only the bottom 64x32; the top 32px is a
 -- walk-behind cap (same split-depth trick as the crate, one anchor).
 local SPRITE_W, SPRITE_H = 64, 64
@@ -56,8 +54,11 @@ end
 function Chest:openLid()  self.lidDir = 1  end
 function Chest:closeLid() self.lidDir = -1 end
 
--- quads cycled above the box while spinning
-local spinQuads = { 'pistol', 'ak47', 'm4a1', 'shotgun', 'grenade' }
+-- quads cycled above the box while spinning (tint = molotov placeholder)
+local spinQuads = {
+    { q = 'pistol' }, { q = 'ak47' }, { q = 'm4a1' }, { q = 'shotgun' },
+    { q = 'grenade' }, { q = 'grenade', tint = { 1, 0.5, 0.15 } },
+}
 
 -- Weighted pick over categories that can currently help the player.
 -- Owned-gun rolls become an ammo refill for that gun.
@@ -66,6 +67,8 @@ function Chest:roll(player)
     for key, w in pairs(TUNE.chest.weights) do
         local valid = true
         if key == 'grenade' and player.grenades >= TUNE.grenade.maxCarry then
+            valid = false
+        elseif key == 'molotov' and player.molotovs >= TUNE.molotov.maxCarry then
             valid = false
         elseif key == 'healthpack' and player.items[5] ~= nil then
             valid = false
@@ -82,7 +85,7 @@ function Chest:roll(player)
         if pick <= 0 then chosen = key break end
     end
 
-    if chosen == 'grenade' or chosen == 'healthpack' then
+    if chosen == 'grenade' or chosen == 'molotov' or chosen == 'healthpack' then
         return { kind = chosen }
     end
 
@@ -90,10 +93,10 @@ function Chest:roll(player)
     for i = 1, 2 do
         local owned = player.items[i]
         if owned and owned.id == chosen then
-            return { kind = 'refill', gunId = chosen, name = gunNames[chosen] }
+            return { kind = 'refill', gunId = chosen, name = Gun.names[chosen] }
         end
     end
-    return { kind = 'gun', gunId = chosen, name = gunNames[chosen] }
+    return { kind = 'gun', gunId = chosen, name = Gun.names[chosen] }
 end
 
 function Chest:giveGun(player)
@@ -102,8 +105,7 @@ end
 
 function Chest:interact(player, world)
     if self.state == 'idle' then
-        if player.money >= TUNE.chest.cost then
-            player.money = player.money - TUNE.chest.cost
+        if player:trySpend(TUNE.chest.cost) then
             self.result = self:roll(player)
             self.state = 'spinning'
             self.timer = TUNE.chest.spinTime
@@ -172,16 +174,15 @@ function Chest:resolve(world)
     if r.kind == 'refill' then
         for i = 1, 2 do
             local gun = player.items[i]
-            if gun and gun.id == r.gunId then
-                gun:cancelReload()
-                gun.curClip = gun.maxClip
-                gun.bulletsLeft = TUNE.guns[gun.id].reserve or gun.maxClip * 3
-            end
+            if gun and gun.id == r.gunId then gun:refill() end
         end
         self.toastText = T('hud.chest_refill', r.name)
     elseif r.kind == 'grenade' then
         player.grenades = math.min(TUNE.grenade.maxCarry, player.grenades + 1)
         self.toastText = T('hud.chest_grenade')
+    elseif r.kind == 'molotov' then
+        player.molotovs = math.min(TUNE.molotov.maxCarry, player.molotovs + 1)
+        self.toastText = T('hud.chest_molotov')
     elseif r.kind == 'healthpack' then
         player.items[5] = HandItem:newHealthPack()
         self.toastText = T('hud.chest_health')
@@ -228,10 +229,13 @@ function Chest:draw()
         end
     elseif self.state == 'spinning' then
         -- item sprites flicker above the box, bobbing slightly
-        local quad = Assets.quads[spinQuads[self.spinQuad]][1]
+        local entry = spinQuads[self.spinQuad]
+        local quad = Assets.quads[entry.q][1]
         local _, _, qw, qh = quad:getViewport()
         local bob = math.sin(self.timer * 10) * 2
-        love.graphics.setColor(1, 1, 1)
+        local t = entry.tint
+        if t then love.graphics.setColor(t[1], t[2], t[3])
+        else love.graphics.setColor(1, 1, 1) end
         love.graphics.draw(Assets.spritesheet, quad,
             math.floor(cx), math.floor(top - 14 + bob), 0, 1, 1, qw/2, qh/2)
     elseif self.state == 'offering' then

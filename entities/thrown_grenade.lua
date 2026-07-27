@@ -48,8 +48,11 @@ function ThrownGrenade:update(dt, world)
 end
 
 function ThrownGrenade:explode(world)
-    local radius = TUNE.grenade.blastRadius
-    local damage = TUNE.grenade.damage
+    local G = TUNE.grenade
+    local radius = G.blastRadius
+    local damage = G.damage
+    local econ = { hitReward = G.hitReward, killReward = G.killReward,
+                   killBonus = G.killBonus }
 
     for _, e in ipairs(world.entities) do
         if not e.toRemove then
@@ -59,12 +62,8 @@ function ThrownGrenade:explode(world)
             -- over walls by design, but the explosion doesn't blow through them
             if d <= radius and not world.map:wallBetween(self.x, self.y, ex, ey) then
                 if e.type == 'enemy' and e.health > 0 then
-                    e.health = e.health - damage
-                    e.flash = true
+                    e:takeDamage(damage, world, econ)
                     world.vfx:bloodSplatter(ex, ey, math.atan2(ey - self.y, ex - self.x))
-                    if e.health <= 0 then
-                        world.player:addMoney(TUNE.grenade.killReward)
-                    end
                 elseif e.type == 'crate' then
                     e.health = e.health - damage
                     e.flash = true

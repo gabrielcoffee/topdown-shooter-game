@@ -77,6 +77,32 @@ function Enemy:newFast(x, y, wave)
     return newTyped(x, y, wave, TUNE.zombies.fast, Color.yellow)
 end
 
+-- Every player-weapon hit funnels through here: applies the damage, pays
+-- money per the run's economy mode, honors the instakill power-up. econ =
+-- the weapon's payout numbers { hitReward, killReward, killBonus }; nil
+-- (spikes, holes) hurts without paying and without instakill.
+-- Returns true if this hit killed. Call sites keep their own juice
+-- (blood, knockback, hitstop) — this owns health, flash and money only.
+function Enemy:takeDamage(amount, world, econ)
+    if self.health <= 0 then return false end
+    if econ and world.buffs and world.buffs.instakill > 0 then
+        amount = self.health
+    end
+    self.health = self.health - amount
+    self.flash = true
+    local killed = self.health <= 0
+    if econ then
+        local p = world.player
+        if world.economy == 'hits' then
+            p:addMoney(econ.hitReward or 0)
+            if killed then p:addMoney(econ.killBonus or 0) end
+        elseif killed then
+            p:addMoney(econ.killReward or 0)
+        end
+    end
+    return killed
+end
+
 -- Normalized direction toward a world point
 local function dirTo(fromX, fromY, toX, toY)
     local dx, dy = toX - fromX, toY - fromY
@@ -198,8 +224,24 @@ function Enemy:update(dt, world)
         if not self.toRemove then
             self.toRemove = true
             local dx, dy = self:getCenter()
-            Audio.playAt('zombie_death', dx, dy, 1, TUNE.audio.pitchJitter, world)
+            -- nukedSilent: a nuke wipe skips per-zombie SFX (audio pool
+            -- flood) and carriers caught in it don't drop fresh power-ups
+            if not self.nukedSilent then
+                Audio.playAt('zombie_death', dx, dy, 1, TUNE.audio.pitchJitter, world)
+                if self.carrier then
+                    world:addEntity(
+                        require('entities.powerup'):new(dx, dy, self.carrier))
+                end
+            end
         end
+        return
+    end
+
+    -- freeze power-up: statues — no movement, no attacks, no growls.
+    -- Knockback zeroed so a knife shove doesn't resume on thaw.
+    if world.buffs and world.buffs.freeze > 0 then
+        self.vx, self.vy = 0, 0
+        self.kbx, self.kby = 0, 0
         return
     end
 
@@ -258,7 +300,27 @@ function Enemy:update(dt, world)
 end
 
 function Enemy:draw()
+    -- power-up carrier: pulsing gold glow under the body
+    if self.carrier then
+        local cx, cy = self:getCenter()
+        local pulse = 1 + 0.15
+            * math.sin(love.timer.getTime() * TUNE.powerups.carrierPulseSpeed)
+        love.graphics.setBlendMode('add')
+        love.graphics.setColor(1, 0.85, 0.25, 0.35)
+        love.graphics.circle('fill', cx, cy, self.radius * 1.3 * pulse)
+        love.graphics.setBlendMode('alpha')
+        love.graphics.setColor(1, 1, 1)
+    end
+
     Entity.draw(self)
+
+    -- frozen: icy tint over the body
+    if world and world.buffs and world.buffs.freeze > 0 then
+        local cx, cy = self:getCenter()
+        love.graphics.setColor(0.35, 0.75, 1, 0.45)
+        love.graphics.circle('fill', cx, cy, self.radius)
+        love.graphics.setColor(1, 1, 1)
+    end
 
     -- Shows the enemy health
     local hp = math.ceil(self.health)

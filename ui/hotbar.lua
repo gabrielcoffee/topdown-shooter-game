@@ -49,19 +49,31 @@ function Hotbar.draw(player)
         if item then
             -- greyed out when unusable (no grenades left)
             local a = valid and 1 or 0.25
-            love.graphics.setColor(1, 1, 1, a)
+            local tint = item.iconTint
+            if tint then -- molotov placeholder: grenade art tinted orange
+                love.graphics.setColor(tint[1], tint[2], tint[3], a)
+            else
+                love.graphics.setColor(1, 1, 1, a)
+            end
             drawItemIcon(item, x, y0, size)
 
-            -- corner counters: clip for guns, count for grenades
+            -- corner counters: clip for guns, count for throwables
             love.graphics.setColor(1, 1, 1, math.max(a, 0.5))
             if item.isGun then
                 local txt = tostring(item.curClip)
                 love.graphics.print(txt,
                     x + size - smallFont:getWidth(txt) - 4, y0 + size - 12)
             elseif item.isThrowable then
-                local txt = 'x' .. player.grenades
+                local txt = 'x' .. player:throwableCount()
                 love.graphics.print(txt,
                     x + size - smallFont:getWidth(txt) - 4, y0 + size - 12)
+                -- the stowed throwable's count sits bottom-left, dimmed
+                local other = player.throwableType == 'molotov'
+                    and player.grenades or player.molotovs
+                if other > 0 then
+                    love.graphics.setColor(1, 1, 1, 0.35)
+                    love.graphics.print('x' .. other, x + 4, y0 + size - 12)
+                end
             end
         end
 

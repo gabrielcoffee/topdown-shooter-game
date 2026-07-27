@@ -7,6 +7,7 @@ local Audio = require('core.audio')
 local Crate = require('entities.crate')
 local Door = require('entities.door')
 local Chest = require('entities.chest')
+local GunWall = require('entities.gun_wall')
 local PlayerSpawn = require('entities.player_spawn')
 local Lighting = require('core.lighting')
 local Vfx = require('core.vfx')
@@ -17,7 +18,8 @@ local GrenadeAim = require('ui.grenade_aim')
 local World = {}
 World.__index = World
 
-function World:new()
+function World:new(opts)
+    opts = opts or {}
     local levelDef = Ldtk.load('maps/level1.ldtk')
 
     local obj = {
@@ -30,6 +32,12 @@ function World:new()
         transition = nil, -- set while the camera pans between rooms
         openedDoors = {}, -- door id -> true once bought (persists in saves)
         visitedRooms = {}, -- room name -> true once entered; gates spawn points
+        -- money model for this run ('kills' | 'hits'); menu passes it in,
+        -- the SETTINGS fallback covers U-reload and gameover restart
+        economy = opts.economy or (SETTINGS and SETTINGS.economy) or 'kills',
+        -- timed power-up buffs, secs left (0 = off)
+        buffs = { instakill = 0, freeze = 0, doublepoints = 0 },
+        pickupToast = nil, -- { text, t } power-up pickup banner
         gameOver = false
     }
 
@@ -64,6 +72,10 @@ function World:new()
             local chest = Chest:new(o.x, o.y)
             obj:addEntity(chest)
             obj.lighting:trackOccluder(chest)
+        elseif o.type == 'gunwall' then
+            local wall = GunWall:new(o.x, o.y, o.gun, o.price)
+            obj:addEntity(wall)
+            obj.lighting:trackOccluder(wall)
         elseif o.type == 'spawn' then
             table.insert(spawnPoints, { x = o.x, y = o.y })
         elseif o.type == 'playerspawn' then
@@ -224,6 +236,18 @@ function World:getTouchingChest(player)
     end
 end
 
+-- Wall buy the player's box (padded) is touching, if any
+function World:getTouchingGunWall(player)
+    local pad = TUNE.wallbuy.interactPad
+    for _, e in ipairs(self.entities) do
+        if e.type == 'gunwall' and not e.toRemove
+            and player.x < e.x + e.width + pad and player.x + player.width > e.x - pad
+            and player.y < e.y + e.height + pad and player.y + player.height > e.y - pad then
+            return e
+        end
+    end
+end
+
 -- Dropped gun the player's box (padded) is touching, if any
 function World:getTouchingDroppedGun(player)
     local pad = TUNE.droppedGun.interactPad
@@ -316,6 +340,15 @@ function World:update(dt)
     if self.hitstop and self.hitstop > 0 then
         self.hitstop = self.hitstop - dt
         return
+    end
+
+    -- power-up buff timers run down in real time
+    for k, v in pairs(self.buffs) do
+        if v > 0 then self.buffs[k] = math.max(0, v - dt) end
+    end
+    if self.pickupToast then
+        self.pickupToast.t = self.pickupToast.t - dt
+        if self.pickupToast.t <= 0 then self.pickupToast = nil end
     end
 
     for _, entity in ipairs(self.entities) do
@@ -419,6 +452,28 @@ function World:draw()
         entity:drawHud()
     end
 
+    -- active power-up buffs stack under the money readout
+    local by = 110
+    for _, k in ipairs({ 'instakill', 'freeze', 'doublepoints' }) do
+        if self.buffs[k] > 0 then
+            love.graphics.setColor(1, 0.85, 0.3)
+            love.graphics.print(
+                T('hud.buff_timer', T('powerup.' .. k), math.ceil(self.buffs[k])),
+                20, by)
+            by = by + 28
+        end
+    end
+    love.graphics.setColor(1, 1, 1)
+
+    -- power-up pickup banner, fading out
+    if self.pickupToast then
+        local pt = self.pickupToast
+        love.graphics.setColor(1, 0.85, 0.3, math.min(1, pt.t))
+        love.graphics.print(pt.text,
+            SCREENWIDTH / 2 - font:getWidth(pt.text) / 2, SCREENHEIGHT / 2 - 160)
+        love.graphics.setColor(1, 1, 1)
+    end
+
     self.waves:drawBanner()
 
     -- grenade targeting guides (dotted throw arc + blast circle, world-space)
@@ -433,6 +488,8 @@ end
 function World:serialize()
     return {
         wave = self.waves.wave,
+        economy = self.economy,
+        buffs = self.buffs,
         openedDoors = self.openedDoors,
         visitedRooms = self.visitedRooms,
         player = self.player:serialize(),
@@ -440,6 +497,12 @@ function World:serialize()
 end
 
 function World:restore(data)
+    self.economy = data.economy or self.economy
+    if data.buffs then
+        for k in pairs(self.buffs) do
+            self.buffs[k] = data.buffs[k] or 0
+        end
+    end
     self.openedDoors = data.openedDoors or {}
     self.visitedRooms = data.visitedRooms or self.visitedRooms
     -- doors bought in the saved run stay open

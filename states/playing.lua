@@ -14,7 +14,7 @@ playing.fxMode = 'game'
 function playing:enter(opts)
     opts = opts or {}
     Chat.close()
-    world = World:new()
+    world = World:new(opts)
     if opts.run then
         -- a hand-edited or outdated run.lua must not crash Continue: dump the
         -- bad save and fall back to a fresh run
@@ -22,7 +22,7 @@ function playing:enter(opts)
         if not ok then
             print('[save] bad run file, starting fresh: ' .. tostring(err))
             require('core.save').deleteRun()
-            world = World:new()
+            world = World:new(opts)
         end
     end
     -- run start: audio + image rise from black together; the wave banner
@@ -99,7 +99,7 @@ function playing:keypressed(key)
         TUNE = require('tune')
         Fx.refresh()
         require('core.gif').clearCache() -- edited gifs get re-decoded too
-        world = World:new()
+        world = World:new({ economy = world.economy }) -- restart keeps the mode
         Audio.playAmbience(world.ambience)
     end
 end

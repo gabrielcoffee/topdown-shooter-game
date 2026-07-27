@@ -10,13 +10,20 @@ local GrenadeAim = {}
 local flowPhase = 0 -- px the arc dots have marched (wraps at dot spacing)
 local spinPhase = 0 -- radians the blast circle has rotated
 
+-- Numbers for whichever throwable is out; aim cosmetics (dot spacing etc.)
+-- always come from the grenade block
+local function tuneFor(world)
+    return world.player.throwableType == 'molotov' and TUNE.molotov
+        or TUNE.grenade
+end
+
 function GrenadeAim.update(dt)
     local G = TUNE.grenade
     flowPhase = (flowPhase + G.aimFlowSpeed * dt) % G.aimDotSpacing
     spinPhase = (spinPhase + G.aimSpinSpeed * dt) % (math.pi * 2)
 end
 
--- Where the grenade would land right now: cursor clamped to maxRange.
+-- Where the throwable would land right now: cursor clamped to maxRange.
 -- The player's throw calls this too, so the preview is never a lie.
 function GrenadeAim.target(world)
     local mx, my = require('ui.screen').mouse()
@@ -26,7 +33,7 @@ function GrenadeAim.target(world)
     local pcx, pcy = world.player:getCenter()
     local dx, dy = wx - pcx, wy - pcy
     local dist = math.sqrt(dx * dx + dy * dy)
-    local maxR = TUNE.grenade.maxRange
+    local maxR = tuneFor(world).maxRange
     if dist > maxR then
         wx = pcx + dx / dist * maxR
         wy = pcy + dy / dist * maxR
@@ -37,7 +44,7 @@ end
 function GrenadeAim.draw(world)
     local player = world.player
     local held = player.items[player.itemIndex]
-    if not (held and held.isThrowable and player.grenades > 0) then return end
+    if not (held and held.isThrowable and player:throwableCount() > 0) then return end
 
     local G = TUNE.grenade
     local pcx, pcy = player:getCenter()
@@ -63,7 +70,7 @@ function GrenadeAim.draw(world)
     end
 
     -- blast circle: evenly spaced dots, whole ring rotating slowly
-    local r = G.blastRadius
+    local r = tuneFor(world).blastRadius
     local dots = math.max(8, math.floor(2 * math.pi * r / G.aimDotSpacing))
     for i = 1, dots do
         local a = spinPhase + (i / dots) * math.pi * 2

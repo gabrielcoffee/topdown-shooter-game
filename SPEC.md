@@ -99,28 +99,40 @@ Wave 1 life: slow 40, normal 20, fast 10.
 
 ## Economy
 
-- Money per kill, by the **weapon that landed the killing blow** (not zombie type). Money is both currency and score.
-  - TUNE: kill reward knife = `50`
-  - TUNE: kill reward pistol = `20`
-  - TUNE: kill reward AK / M4 / shotgun = `10`
-  - TUNE: kill reward grenade = `10`
-- HUD shows money under HP. Doors (and later shops) spend it.
+Two modes, picked in the main menu (MONEY: ON KILLS / ON HITS), persisted in settings and per run-save. Money is both currency and score either way. All numbers live in `TUNE.guns.*` / `knife` / `grenade` / `molotov` (`killReward`, `hitReward`, `killBonus`).
+
+- **ON KILLS** (default): money per kill, by the **weapon that landed the killing blow** (knife 60, pistol 25, AK/M4/shotgun 20, grenade/molotov 15).
+- **ON HITS** (CoD-style): money per damaging hit (pistol 6, AK 4, M4 5, shotgun 1/pellet, knife 20, grenade 5, molotov 2/burn tick) + a kill bonus (knife 50, shotgun 20, rest 10). Knife stays the top earner — the risk play.
+- HUD shows money under HP. Doors, the mystery box and gun wall-buys spend it (`Player:trySpend`).
+
+## Gun wall-buys — CoD-style
+
+`GunWall` entities placed in LDtk (fields: `gun`, optional `price` override). `E` buys the gun; already own it → `E` buys an ammo refill at `price × wallbuy.ammoFactor` (0.5). Replaced gun drops on the ground. TUNE: usp 150, ak47 700, m4a1 600, shotgun 500.
+
+## Power-ups — dropped by glowing runners
+
+Fast zombies may spawn carrying one (TUNE: `powerups.carrierChance` 0.25, max 2/wave) — gold glow, drops on death, walk over to grab, despawns in 20s. Kinds: **nuke** (kill all, +$400), **max ammo** (full guns + grenades), **insta-kill** (30s), **freeze** (zombies frozen 10s), **double points** (30s, ×2).
+
+## Molotov — second throwable
+
+Shares slot 4 with the grenade; pressing `4` again cycles. Breaks on landing, fire spreads to the grenade's radius over 0.6s, burns 5s, ticks 60 dmg/s with line-of-sight (never through walls). Max carry 2, rolls from the mystery box.
 
 ## Mystery Box — BO2-style chest in the arena (replaces the shop NPCs)
 
 A chest placed via the map's object layer. Touch + `E` with enough money → pay, ~2s of item sprites cycling above the box, then the reward. Reusable forever, no game pause.
 
-- TUNE: box cost = `150` (~10 kills)
+- TUNE: box cost = `300` (the gamble; wall-buys are the reliable option)
 - TUNE: spin time = `2.0`s, take window = `5.0`s, interact key = `e`
 
 **Loot table** (TUNE: chest weights; invalid categories dropped and the rest renormalized — grenades never roll at 3/3, med kit never rolls while slot 5 is full):
 
 | Roll      | Weight | What happens                                                        |
 |-----------|--------|---------------------------------------------------------------------|
-| AK-47     | 15     | Gun floats above the box; press `E` within the take window to take it, else lost (money stays spent). Goes to the empty gun slot, else replaces the gun in hand / last-held gun slot. |
-| M4A1      | 15     | same                                                                |
-| Shotgun   | 10     | same                                                                |
-| Grenade   | 30     | +1 grenade, auto-collected at spin end                              |
+| AK-47     | 10     | Gun floats above the box; press `E` within the take window to take it, else lost (money stays spent). Goes to the empty gun slot, else replaces the gun in hand / last-held gun slot. |
+| M4A1      | 10     | same                                                                |
+| Shotgun   | 5      | same (rarest — it hangs on a wall now)                              |
+| Grenade   | 25     | +1 grenade, auto-collected at spin end                              |
+| Molotov   | 20     | +1 molotov, auto-collected at spin end (never rolls at 2/2)         |
 | Med kit   | 30     | fills slot 5, auto-collected at spin end                            |
 
 - Rolling a gun you already own = **full ammo refill** for it, auto-collected (no take window). USP never rolls.
@@ -167,6 +179,6 @@ If any of these come up mid-build, the answer is no. They go to SEQUEL.md if the
 - Multiplayer
 - Story content beyond flavor text
 - Additional maps / arenas
-- Additional weapons beyond the existing 6
+- Additional weapons beyond the existing 7 (molotov added by request, 2026-07-27)
 - Shop NPCs / shop menus (replaced by the mystery box, 2026-07-21)
 - Armor (was item-shop only; no home after the shop cut)

@@ -9,7 +9,7 @@ Bullet.__index = Bullet
 setmetatable(Bullet, Entity)
 
 
-function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime, killReward, maxHits, showMuzzle)
+function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime, econ, maxHits, showMuzzle)
     local obj = Entity:new(x, y, 2, 4)
 
     obj.color = Color.white
@@ -17,7 +17,7 @@ function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime, killReward, max
     obj.angle = angle
     obj.sprite = Assets.quads.bullet[1]
     obj.damage = damage
-    obj.killReward = killReward or 0
+    obj.econ = econ             -- payout numbers, spent by Enemy:takeDamage
     obj.hitsLeft = maxHits or 1 -- zombies left to pierce before the bullet dies
     obj.hitEnemies = {}         -- each zombie takes this bullet's damage once
     obj.lifetime = lifetime
@@ -95,14 +95,9 @@ function Bullet:checkHits(world)
         if e.type == 'enemy' and not e.toRemove and e.health > 0
             and not self.hitEnemies[e] and self:collidesWith(e) then
             self.hitEnemies[e] = true
-            e.health = e.health - self.damage
-            e.flash = true
+            e:takeDamage(self.damage, world, self.econ)
             world.vfx:bloodSplatter(self.x, self.y, self.angle)
             Audio.playAt('flesh_hit', self.x, self.y, 1, TUNE.audio.pitchJitter, world)
-
-            if e.health <= 0 then
-                world.player:addMoney(self.killReward)
-            end
 
             self.hitsLeft = self.hitsLeft - 1
             if self.hitsLeft <= 0 then

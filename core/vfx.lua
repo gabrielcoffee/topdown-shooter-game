@@ -63,6 +63,22 @@ function Vfx.new()
     local da = TUNE.fx.dustOpacity
     self.dust:setColors(1, 1, 1, da) -- one stop = constant alpha, no fade
 
+    -- molotov ground fire: placeholder red/orange licks rising off the burn
+    -- area; FirePatch bursts this every frame sized to its current radius
+    self.fire = love.graphics.newParticleSystem(dot, 900)
+    self.fire:setParticleLifetime(0.25, 0.6)
+    self.fire:setDirection(-math.pi / 2) -- flames rise
+    self.fire:setSpread(0.5)
+    self.fire:setSpeed(15, 45)
+    self.fire:setLinearAcceleration(0, -30, 0, -60)
+    self.fire:setSizes(1.2, 0.8, 0.2)
+    self.fire:setSizeVariation(1)
+    self.fire:setColors(
+        1, 0.9, 0.4, 1,
+        1, 0.4, 0.1, 0.85,
+        0.5, 0.1, 0.05, 0
+    )
+
     self.boom = love.graphics.newParticleSystem(dot, 300)
     self.boom:setParticleLifetime(0.15, 0.5)
     self.boom:setSpread(math.pi * 2)
@@ -97,6 +113,13 @@ function Vfx:explosion(x, y)
     self.boom:emit(60)
 end
 
+-- One frame's worth of flames over a burning circle (molotov fire patch)
+function Vfx:fireBurst(x, y, radius)
+    self.fire:moveTo(x, y)
+    self.fire:setEmissionArea('uniform', radius, radius)
+    self.fire:emit(math.max(2, math.ceil(radius / 8)))
+end
+
 -- Puffs around the mover's feet, drifting off in random directions
 function Vfx:footDust(x, y, count)
     self.dust:moveTo(x, y)
@@ -108,6 +131,7 @@ function Vfx:update(dt)
     self.sparks:update(dt)
     self.boom:update(dt)
     self.dust:update(dt)
+    self.fire:update(dt)
 end
 
 -- Ground-level effects, drawn before entities so they stay under them
@@ -122,6 +146,7 @@ function Vfx:draw()
     love.graphics.setBlendMode('add')
     love.graphics.draw(self.sparks)
     love.graphics.draw(self.boom)
+    love.graphics.draw(self.fire)
     love.graphics.setBlendMode('alpha')
     love.graphics.setColor(1, 1, 1)
 end

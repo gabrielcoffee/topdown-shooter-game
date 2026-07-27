@@ -28,6 +28,8 @@ function Player:new(x, y, width, height)
     obj.itemIndex = 1
     obj.lastGunSlot = 1
     obj.grenades = 0
+    obj.molotovs = 0
+    obj.throwableType = 'grenade' -- which throwable slot 4 shows ('grenade'|'molotov')
 
     obj.maxHealth = TUNE.player.maxHealth
     obj.health = obj.maxHealth
@@ -71,12 +73,44 @@ function Player:new(x, y, width, height)
     return obj
 end
 
--- Slots 1/2 need a gun in them, 4 needs grenades left, 5 needs a med kit.
--- Knife (3) is the permanent fallback and is always valid.
+-- Slots 1/2 need a gun in them, 4 needs any throwable left, 5 needs a med
+-- kit. Knife (3) is the permanent fallback and is always valid.
 function Player:slotValid(i)
     if i == 3 then return true end
-    if i == 4 then return self.grenades > 0 end
+    if i == 4 then return self.grenades > 0 or self.molotovs > 0 end
     return self.items[i] ~= nil
+end
+
+-- Count of the throwable currently out in slot 4
+function Player:throwableCount()
+    return self.throwableType == 'molotov' and self.molotovs or self.grenades
+end
+
+local function throwableItem(kind)
+    return HandItem:newGrenade(kind == 'molotov' and 'molotov' or nil)
+end
+
+-- Pressing 4 while slot 4 is already out flips grenade <-> molotov
+-- (only onto a type with ammo left)
+function Player:cycleThrowable()
+    local other = self.throwableType == 'grenade' and 'molotov' or 'grenade'
+    local count = other == 'molotov' and self.molotovs or self.grenades
+    if count <= 0 then return end
+    self.throwableType = other
+    self.items[4] = throwableItem(other)
+    Audio.play('grenade_draw', 0.7)
+end
+
+-- Keep slot 4 pointing at a loaded throwable: if the current type ran dry
+-- and the other has ammo, flip over (throwing the last one, chest rewards)
+function Player:syncThrowable()
+    if self:throwableCount() > 0 then return end
+    local other = self.throwableType == 'grenade' and 'molotov' or 'grenade'
+    local count = other == 'molotov' and self.molotovs or self.grenades
+    if count > 0 then
+        self.throwableType = other
+        self.items[4] = throwableItem(other)
+    end
 end
 
 function Player:selectSlot(i)
@@ -215,12 +249,19 @@ function Player:update(dt, world)
         Audio.playAt(world.map:surfaceAt(cx, cy), cx, cy, A.stepGain, A.pitchJitter, world)
     end
 
+    -- a throwable type that ran dry flips slot 4 to the loaded one
+    self:syncThrowable()
+
     -- Change item in hand (hotbar slots 1-5); edge-gated so a held key can't
     -- re-select every frame (deploy-sound spam + reload churn)
     for i = 1, 5 do
         local down = not typing and love.keyboard.isDown(tostring(i))
         if down and not self.slotHeld[i] then
-            self:selectSlot(i)
+            if i == 4 and self.itemIndex == 4 then
+                self:cycleThrowable() -- 4 again = swap grenade/molotov
+            else
+                self:selectSlot(i)
+            end
         end
         self.slotHeld[i] = down
     end
@@ -262,13 +303,19 @@ function Player:update(dt, world)
             self.vy = self.vy + math.sin(aim) * TUNE.knife.lungeSpeed
         end
     elseif leftPressed and not deploying and self.leftReleased
-        and heldItem.isThrowable and self.grenades > 0 then
+        and heldItem.isThrowable and self:throwableCount() > 0 then
         local cx, cy = self:getCenter()
         -- lands exactly where the targeting preview says (cursor clamped to maxRange)
         local tx, ty = require('ui.grenade_aim').target(world)
-        world:addEntity(ThrownGrenade:new(cx, cy, tx, ty))
-        self.grenades = self.grenades - 1
-        if self.grenades <= 0 then self:selectSlot(3) end
+        if self.throwableType == 'molotov' then
+            world:addEntity(require('entities.thrown_molotov'):new(cx, cy, tx, ty))
+            self.molotovs = self.molotovs - 1
+        else
+            world:addEntity(ThrownGrenade:new(cx, cy, tx, ty))
+            self.grenades = self.grenades - 1
+        end
+        self:syncThrowable() -- last of this type: flip to the other if loaded
+        if not self:slotValid(4) then self:selectSlot(3) end
     elseif leftPressed and not deploying and self.leftReleased and heldItem.isHealthPack
         and self.health < self.maxHealth then
         self.health = math.min(self.maxHealth, self.health + TUNE.healthpack.healAmount)
@@ -285,16 +332,20 @@ function Player:update(dt, world)
     end
     self.rReleased = not rPressed
 
-    -- E interactions: chest > dropped gun > door when touching several
+    -- E interactions: chest > dropped gun > wall buy > door when touching several
     self.touchingChest = world:getTouchingChest(self)
     self.touchingDroppedGun = (not self.touchingChest)
         and world:getTouchingDroppedGun(self) or nil
-    self.touchingDoor = (not self.touchingChest and not self.touchingDroppedGun)
-        and world:getTouchingDoor(self) or nil
+    self.touchingGunWall = (not self.touchingChest and not self.touchingDroppedGun)
+        and world:getTouchingGunWall(self) or nil
+    self.touchingDoor = (not self.touchingChest and not self.touchingDroppedGun
+        and not self.touchingGunWall) and world:getTouchingDoor(self) or nil
     local ePressed = not typing and love.keyboard.isDown('e')
     if ePressed and self.eReleased then
         if self.touchingChest then
             self.touchingChest:interact(self, world)
+        elseif self.touchingGunWall then
+            self.touchingGunWall:interact(self, world)
         elseif self.touchingDroppedGun then
             local dg = self.touchingDroppedGun
             local old = self:giveGun(dg.gun)
@@ -304,8 +355,7 @@ function Player:update(dt, world)
                 local DroppedGun = require('entities.dropped_gun')
                 world:addEntity(DroppedGun:new(dg.x, dg.y, old))
             end
-        elseif self.touchingDoor and self.money >= self.touchingDoor.price then
-            self.money = self.money - self.touchingDoor.price
+        elseif self.touchingDoor and self:trySpend(self.touchingDoor.price) then
             world:openDoor(self.touchingDoor)
             self.touchingDoor = nil
         end
@@ -470,6 +520,25 @@ function Player:drawHud()
         end
     elseif self.touchingDroppedGun then
         prompt = T('hud.gun_pickup', self.touchingDroppedGun.gun.name)
+    elseif self.touchingGunWall then
+        local w = self.touchingGunWall
+        local name = require('hand_items.gun').names[w.gunId] or w.gunId
+        local owned = w:ownedGun(self)
+        if owned then
+            if owned:ammoFull() then
+                prompt = T('hud.wallbuy_full', name)
+            elseif self.money >= w.ammoPrice then
+                prompt = T('hud.wallbuy_ammo', name, w.ammoPrice)
+            else
+                prompt = T('hud.wallbuy_poor', w.ammoPrice)
+                red = true
+            end
+        elseif self.money >= w.price then
+            prompt = T('hud.wallbuy_buy', name, w.price)
+        else
+            prompt = T('hud.wallbuy_poor', w.price)
+            red = true
+        end
     elseif self.touchingDoor then
         local d = self.touchingDoor
         prompt = T('hud.door_open', d.price)
@@ -488,9 +557,20 @@ function Player:drawHud()
 end
 
 -- Cash in, cash out. Every gain funnels through here so the cap holds
--- everywhere (kills, chest, /money, which also takes negatives).
+-- everywhere (kills, chest, /money, which also takes negatives). Double
+-- points multiplies every gain, CoD-style (kills, hits, even the nuke).
 function Player:addMoney(n)
+    if n > 0 and world and world.buffs and world.buffs.doublepoints > 0 then
+        n = n * TUNE.powerups.doubleMult
+    end
     self.money = math.max(0, math.min(self.money + n, TUNE.player.maxMoney))
+end
+
+-- Every purchase funnels through here (doors, chest, wall buys)
+function Player:trySpend(n)
+    if self.money < n then return false end
+    self.money = self.money - n
+    return true
 end
 
 -- G: throw the held gun on the ground. Falls back to the other gun slot,
@@ -551,6 +631,8 @@ function Player:serialize()
         itemIndex = self.itemIndex,
         lastGunSlot = self.lastGunSlot,
         grenades = self.grenades,
+        molotovs = self.molotovs,
+        throwableType = self.throwableType,
         hasHealthPack = self.items[5] ~= nil,
         gunSlots = gunSlots,
     }
@@ -576,6 +658,11 @@ function Player:restore(data)
     end
     self.items[5] = data.hasHealthPack and HandItem:newHealthPack() or nil
     self.grenades = data.grenades or 0
+    self.molotovs = data.molotovs or 0
+    self.throwableType = data.throwableType == 'molotov' and 'molotov' or 'grenade'
+    self.items[4] = HandItem:newGrenade(
+        self.throwableType == 'molotov' and 'molotov' or nil)
+    self:syncThrowable()
     self.lastGunSlot = data.lastGunSlot or 1
 
     self.itemIndex = 3 -- knife fallback, then try the saved slot

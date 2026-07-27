@@ -12,6 +12,9 @@ setmetatable(Gun, HandItem)
 -- Ordered list + factory by id: single source for chest, console, save restore
 Gun.ids = { 'usp', 'ak47', 'm4a1', 'shotgun' }
 
+-- Display names by id (chest toasts, wall-buy prompts, console output)
+Gun.names = { usp = 'USP-45', ak47 = 'AK-47', m4a1 = 'M4A1', shotgun = 'Shotgun' }
+
 function Gun.newById(id)
     if id == 'sawedoff' then id = 'shotgun' end -- pre-rename saves
     if id == 'usp' then return Gun:newUSP() end
@@ -80,7 +83,9 @@ local function applyTune(obj, t)
     obj.bulletDelay = t.bulletDelay
     obj.spread = t.spread
     obj.pellets = t.pellets
-    obj.killReward = t.killReward
+    -- payout numbers ride on every bullet; Enemy:takeDamage spends them
+    obj.econ = { hitReward = t.hitReward, killReward = t.killReward,
+                 killBonus = t.killBonus }
     obj.maxHits = t.maxHits or 1
     obj.baseSpread = t.baseSpread or 0
     obj.moveSpread = t.moveSpread or 0
@@ -294,6 +299,20 @@ function Gun:reload()
     end
 end
 
+-- Magazine + reserve back to tuned full: chest refill, /ammo, wall-buy
+-- ammo, max-ammo power-up all land here
+function Gun:refill()
+    self:cancelReload()
+    self.curClip = self.maxClip
+    self.bulletsLeft = TUNE.guns[self.id].reserve or self.maxClip * 3
+end
+
+-- Anything left to top up? (wall-buy refuses to charge for full ammo)
+function Gun:ammoFull()
+    local full = TUNE.guns[self.id].reserve or self.maxClip * 3
+    return self.curClip >= self.maxClip and self.bulletsLeft >= full
+end
+
 function Gun:cancelReload()
     if self.reloading then self.reloadSettle = TUNE.gunKick.reloadSettleTime end
     self.reloading = false
@@ -466,7 +485,7 @@ function Gun:fire(leftReleased)
                         shotAngle + finalSpread, self.damage,
                         gw,
                         self.bulletLifeTime,
-                        self.killReward,
+                        self.econ,
                         self.maxHits,
                         i == 1 -- one muzzle-flash anim per blast, not 14 stacked
                     )
@@ -479,7 +498,7 @@ function Gun:fire(leftReleased)
                     shotAngle, self.damage,
                     gw,
                     self.bulletLifeTime,
-                    self.killReward,
+                    self.econ,
                     self.maxHits,
                     true
                 )

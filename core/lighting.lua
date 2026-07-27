@@ -67,6 +67,7 @@ function Lighting.new(map)
     self.flashes = {}  -- { light = <light>, t = secs left }
     self.tracked = {}  -- entity -> occluder body (crates, doors)
     self.torches = {}  -- { light = <light>, phase = <noise offset> }
+    self.points = {}   -- persistent flickering lights (fire patches)
 
     if map then
         local ts = map.tileSize
@@ -113,6 +114,28 @@ function Lighting:flash(x, y, r, g, b, range, time)
     table.insert(self.flashes, { light = light, t = time })
 end
 
+-- Persistent flickering point light (fire patch); caller keeps the handle
+-- and must removePoint it when done
+function Lighting:addPoint(x, y, r, g, b, range)
+    local p = {
+        light = self.lw:newLight(x, y, r, g, b, range),
+        baseRange = range,
+        phase = love.math.random() * 100,
+    }
+    table.insert(self.points, p)
+    return p
+end
+
+function Lighting:removePoint(p)
+    for i, q in ipairs(self.points) do
+        if q == p then
+            self.lw:remove(q.light)
+            table.remove(self.points, i)
+            return
+        end
+    end
+end
+
 function Lighting:update(dt, world)
     local px, py = world.player:getCenter()
     self.playerLight:setPosition(px, py)
@@ -141,6 +164,12 @@ function Lighting:update(dt, world)
     for _, torch in ipairs(self.torches) do
         local n = love.math.noise(t + torch.phase) - 0.5
         torch.light:setRange(TUNE.lighting.torchRange * (1 + n * TUNE.lighting.torchFlickerDepth))
+    end
+
+    -- persistent points flicker like torches
+    for _, p in ipairs(self.points) do
+        local n = love.math.noise(t + p.phase) - 0.5
+        p.light:setRange(p.baseRange * (1 + n * TUNE.lighting.torchFlickerDepth))
     end
 
     self.lw:update(dt)

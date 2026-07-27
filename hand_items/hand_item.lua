@@ -18,7 +18,9 @@ function HandItem:newKnife()
         static = true,
         isKnife = true,
         damage = TUNE.knife.damage,
-        killReward = TUNE.knife.killReward,
+        econ = { hitReward = TUNE.knife.hitReward,
+                 killReward = TUNE.knife.killReward,
+                 killBonus = TUNE.knife.killBonus },
 
         cdTimer = 0,    -- secs until the next swing is allowed
         swingTimer = 0, -- secs left of the visual sweep
@@ -65,17 +67,13 @@ function HandItem:swing(aimAngle, player, world)
                 local nx, ny = 1, 0
                 if dist > 0 then nx, ny = dx/dist, dy/dist end
 
-                e.health = e.health - self.damage
-                e.flash = true
+                local dead = e:takeDamage(self.damage, world, self.econ)
                 e.kbx = nx * K.knockback
                 e.kby = ny * K.knockback
                 world.vfx:bloodSplatter(ecx - nx * e.radius, ecy - ny * e.radius, math.atan2(dy, dx))
 
                 hit = true
-                if e.health <= 0 then
-                    player:addMoney(self.killReward)
-                    killed = true
-                end
+                killed = killed or dead
             end
         end
     end
@@ -87,19 +85,21 @@ function HandItem:swing(aimAngle, player, world)
     return true
 end
 
-function HandItem:newGrenade(type)
+-- Slot-4 throwable. kind 'he' (default) or 'molotov'; the molotov reuses the
+-- grenade art tinted orange until real sprites exist.
+function HandItem:newGrenade(kind)
+    kind = kind or 'he'
     local obj = {
-        name = 'M67 Frag',
+        name = kind == 'molotov' and 'Molotov' or 'M67 Frag',
         x = 0, y = 0,
         ox = 4, oy = 15,
         angle = 0,
         sprite = Assets.quads.held_grenade[1],
         icon = Assets.quads.grenade[1],
+        iconTint = kind == 'molotov' and { 1, 0.55, 0.2 } or nil,
         static = true,
-        type = type or 'he',
+        throwKind = kind,
         isThrowable = true,
-        damage = TUNE.grenade.damage,
-        killReward = TUNE.grenade.killReward
     }
 
     setmetatable(obj, HandItem)
@@ -152,11 +152,16 @@ function HandItem:draw(facingLeft)
         return
     end
 
+    if self.iconTint then -- molotov placeholder: same art, orange tint
+        local t = self.iconTint
+        love.graphics.setColor(t[1], t[2], t[3])
+    end
     love.graphics.draw(
         Assets.spritesheet, self.sprite,
         math.floor(self.x), math.floor(self.y),
         self.angle, 1, facingLeft and -1 or 1, self.ox, self.oy
     )
+    love.graphics.setColor(1, 1, 1)
 end
 
 function HandItem:drawHud()

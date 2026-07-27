@@ -23,5 +23,12 @@ Ship date: **August 2, 2026**. A step is done only when built **and** playtested
 - [ ] Step 12: Tuning pass (Gabriel) — playtested: _no_
 - [ ] Step 13: Ship build on itch — playtested: _no_
 
+## Post-plan additions (2026-07-27)
+- [ ] Economy modes: kills (default) vs hits+kill-bonus, menu selector — **built 2026-07-27**, playtested: _no_
+- [ ] Gun wall-buys (GunWall LDtk entity; Gabriel places them) — **built 2026-07-27**, playtested: _no_
+- [ ] Power-up drops from glowing runners (nuke/maxammo/instakill/freeze/doublepoints) — **built 2026-07-27**, playtested: _no_
+- [ ] Molotov + ground fire (slot 4 cycles with grenade) — **built 2026-07-27**, playtested: _no_
+- [ ] Pierce buff (pistol/shotgun 3, AK/M4 4) + economy rebalance — **built 2026-07-27**, playtested: _no_
+
 ## Playtest notes log
 (append dated impressions here — these drive TUNE values)

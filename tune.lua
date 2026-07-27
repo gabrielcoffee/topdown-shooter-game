@@ -64,11 +64,16 @@ return {
         --   recoilDelay   = secs after the last shot before recovery starts
         --   recoilRecover = recoil lost per second once recovering
         --   maxHits       = zombies one bullet can damage before it stops (pierces maxHits-1)
-        usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 2,   bulletLife = 0.5, killReward = 20, maxHits = 2,
+        --   killReward    = $ on the killing blow (KILLS economy mode)
+        --   hitReward     = $ per damaging hit, killBonus = $ extra on the kill (HITS mode)
+        usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 2,   bulletLife = 0.5,
+                   killReward = 25, hitReward = 6, killBonus = 10, maxHits = 3,
                    baseSpread = 0.008, moveSpread = 0.120, recoilPerShot = 0.030, recoilMax = 0.15, recoilDelay = 0.30, recoilRecover = 0.40 },
-        ak47   = { damage = 40, clip = 30, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10, maxHits = 3,
+        ak47   = { damage = 40, clip = 30, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7,
+                   killReward = 20, hitReward = 4, killBonus = 10, maxHits = 4,
                    baseSpread = 0.012, moveSpread = 0.220, recoilPerShot = 0.035, recoilMax = 0.30, recoilDelay = 0.25, recoilRecover = 0.45 },
-        m4a1   = { damage = 35, clip = 25, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7, killReward = 10, maxHits = 3,
+        m4a1   = { damage = 35, clip = 25, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7,
+                   killReward = 20, hitReward = 5, killBonus = 10, maxHits = 4,
                    baseSpread = 0.010, moveSpread = 0.200, recoilPerShot = 0.030, recoilMax = 0.26, recoilDelay = 0.25, recoilRecover = 0.45 },
         -- reloadTime = secs PER SHELL; reloadOpenTime = break-open sound before first shell
         -- spread here is the fixed pellet cone; aim spread shifts the whole cone
@@ -78,7 +83,8 @@ return {
         shotgun = { damage = 10, clip = 7, bulletDelay = 0.5, reloadTime = 0.5, bulletLife = 0.7,
                      reloadOpenTime = 0.4, reserve = 32,
                      pumpDelay = 0.12, pumpAnimTime = 0.22,
-                     pellets = 14, spread = 0.20, killReward = 10, maxHits = 2, -- damage is per pellet
+                     pellets = 14, spread = 0.20, maxHits = 3, -- damage is per pellet
+                     killReward = 20, hitReward = 1, killBonus = 20, -- hitReward is per PELLET hit
                      baseSpread = 0.025, moveSpread = 0.180, recoilPerShot = 0.080, recoilMax = 0.16, recoilDelay = 0.40, recoilRecover = 0.40 },
     },
 
@@ -114,7 +120,8 @@ return {
         settleTime = 0.085, -- secs to swing from run pose to real aim (~5 frames)
     },
 
-    knife   = { damage = 60,  killReward = 50,
+    knife   = { damage = 60,  killReward = 60, hitReward = 20, killBonus = 50,
+                -- knife finish pays most in BOTH modes: risk close = get paid
                 range = 44,          -- arc reach from player center, px
                 arcDeg = 110,        -- swing arc width, degrees (aiming matters)
                 cooldown = 0.5,      -- secs between swings
@@ -124,7 +131,7 @@ return {
                 knockbackDecay = 8,  -- higher = shove stops sooner
                 hitstop = 0.04,      -- secs the world freezes on connect
                 hitstopKill = 0.09 },-- bigger freeze when the swing kills
-    grenade = { damage = 120, killReward = 10,
+    grenade = { damage = 120, killReward = 15, hitReward = 5, killBonus = 10,
                 throwSpeed = 240,  -- px/sec toward the aim point
                 fuse = 1.2,        -- secs from throw to blast
                 blastRadius = 80,  -- world px; flat damage inside
@@ -137,7 +144,38 @@ return {
                 aimFlowSpeed = 60,   -- px/s the arc dots march toward the landing point
                 aimSpinSpeed = 0.5 },-- rad/s the blast circle spins
 
+    -- thrown bottle, breaks on landing; fire spreads from there to blastRadius
+    -- and burns for burnTime, ticking tickDamage per second per zombie inside
+    -- (line of sight checked — fire never burns through solid walls)
+    molotov = { tickDamage = 60, tickInterval = 1, burnTime = 5, -- 60/s x 5 = 300 total
+                blastRadius = 80,  -- same area as the grenade
+                maxRange = 240, throwSpeed = 240,
+                spreadTime = 0.6,  -- secs the fire takes to grow from the impact to full radius
+                maxCarry = 2,      -- stronger per unit than grenades (3)
+                killReward = 15, hitReward = 2, killBonus = 10 }, -- hitReward per burn tick
+
     healthpack = { healAmount = 50 },
+
+    -- CoD-style wall buys (GunWall entities placed in LDtk; gun + optional price)
+    wallbuy = { interactPad = 4,
+                ammoFactor = 0.5, -- ammo refill price = gun price x this
+                prices = { usp = 150, ak47 = 700, m4a1 = 600, shotgun = 500 } },
+
+    -- power-up drops: fast (runner) zombies may spawn glowing with one and
+    -- drop it on death; walk over the drop to grab it
+    powerups = {
+        carrierChance = 0.25, -- chance a fast zombie spawns carrying one
+        maxPerWave = 2,       -- carrier cap per wave
+        weights = { nuke = 20, maxammo = 25, instakill = 20, freeze = 15, doublepoints = 20 },
+        lifetime = 20,        -- secs the drop stays on the ground
+        blinkTime = 3, blinkInterval = 0.15,
+        pickupPad = 6,        -- px around the drop where walking over grabs it
+        nukeMoney = 400,      -- flat cash for a nuke (both modes)
+        instakillTime = 30,   -- secs every weapon one-shots
+        freezeTime = 10,      -- secs zombies can't move or attack
+        doublePointsTime = 30, doubleMult = 2,
+        carrierPulseSpeed = 6, -- glow ring pulse, rad/s
+    },
 
     start = { -- run start (Play / New Game / retry)
         sound = 'shotgun_pump', -- cue on the menu click (any name core/audio knows)
@@ -146,7 +184,7 @@ return {
     },
 
     chest = {
-        cost = 200,           -- ~13 kills
+        cost = 300,           -- the gamble; wall buys are the reliable option
         spinTime = 2.0,       -- secs of sprite cycling after paying
         spinCycleTime = 0.08, -- secs per sprite during the spin
         takeWindow = 8.0,     -- secs to press E and take a rolled gun
@@ -154,7 +192,8 @@ return {
         interactPad = 32,     -- px around the 64x32 box where E buys/takes
         -- loot odds; invalid categories (grenades full, medkit held) are
         -- dropped and the rest renormalized. Rolling an owned gun = ammo refill.
-        weights = { ak47 = 15, m4a1 = 15, shotgun = 10, grenade = 30, healthpack = 30 },
+        -- guns rare (shotgun rarest) since they hang on walls now
+        weights = { ak47 = 10, m4a1 = 10, shotgun = 5, grenade = 25, molotov = 20, healthpack = 30 },
     },
 
     hotbar = { slotSize = 56, gap = 8, bottomMargin = 16 },
