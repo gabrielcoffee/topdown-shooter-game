@@ -1,7 +1,6 @@
 -- Minecraft-style chat console: bottom-left, game keeps running while typing.
 -- T opens it (gated by TUNE.dev.enabled in playing.lua), Esc or Enter close
--- it. Every command starts with a slash, so the line opens pre-filled with
--- "/". Recent lines linger and fade like Minecraft chat; while open the full
+-- it. The line opens empty; commands work with or without a leading slash. Recent lines linger and fade like Minecraft chat; while open the full
 -- recent log shows solid.
 --
 -- The input line is a real text field: caret, arrow keys, word jumps, shift
@@ -147,16 +146,19 @@ local argOptions = {
     wave = { 'skip' },
 }
 
--- Prefix filter over the token being typed. Anything that doesn't start with
--- a slash isn't a command, so it suggests nothing.
+-- Prefix filter over the token being typed. The leading slash is optional;
+-- suggestions mirror whichever style is being typed.
 local function computeSuggestions(buffer)
     local out = {}
-    local body = buffer:match('^/(.*)$')
-    if not body then return out end
+    if buffer == '' then return out end
+    local slash = buffer:sub(1, 1) == '/'
+    local body = slash and buffer:sub(2) or buffer
     local cmd, rest = body:match('^(%S+)%s+(.*)$')
     if not cmd then
         for _, name in ipairs(commandNames) do
-            if name:sub(1, #body) == body then table.insert(out, '/' .. name) end
+            if name:sub(1, #body) == body then
+                table.insert(out, slash and ('/' .. name) or name)
+            end
         end
     else
         local c = commands[cmd]
@@ -254,8 +256,8 @@ end
 
 function Chat.openChat()
     Chat.open = true
-    Chat.buffer = '/'   -- every command starts with a slash
-    Chat.caret = 1
+    Chat.buffer = ''    -- opens empty; the slash is optional
+    Chat.caret = 0
     Chat.anchor = nil
     Chat.scrollX = 0
     Chat.histIndex = nil
@@ -301,18 +303,14 @@ local function runLine(line)
     if #Chat.history > TUNE.chat.maxLog then table.remove(Chat.history, 1) end
 
     Chat.post('> ' .. line)
-    local body = line:match('^/(.*)$')
-    local cmd, arg
-    if body then cmd, arg = body:match('^(%S+)%s*(%S*)') end
-    if not cmd then
-        Chat.post('commands start with a slash - try /help', true)
-        return
-    end
+    local body = line:match('^/(.*)$') or line -- slash optional
+    local cmd, arg = body:match('^(%S+)%s*(%S*)')
+    if not cmd then return end
     local c = commands[cmd]
     if c then
         Chat.post(c.run(arg ~= '' and arg or nil))
     else
-        Chat.post('unknown command: /' .. cmd .. ' (try /help)', true)
+        Chat.post('unknown command: ' .. cmd .. ' (try help)', true)
     end
 end
 
@@ -327,7 +325,7 @@ local function moveHistory(d)
     end
     if Chat.histIndex > n then
         Chat.histIndex = nil
-        Chat.buffer = '/'
+        Chat.buffer = ''
     else
         Chat.histIndex = math.max(1, Chat.histIndex)
         Chat.buffer = Chat.history[Chat.histIndex]
@@ -339,7 +337,7 @@ end
 
 -- Replace the token being typed with a suggestion
 local function applyCompletion(sel)
-    local cmd = Chat.buffer:match('^(/%S+)%s')
+    local cmd = Chat.buffer:match('^(/?%S+)%s') -- keep the command, slash or not
     Chat.buffer = cmd and (cmd .. ' ' .. sel) or (sel .. ' ')
     Chat.caret = #Chat.buffer
     Chat.anchor = nil
