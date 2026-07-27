@@ -32,10 +32,10 @@ end
 
 local function pickType(w)
     local wt = weightsFor(w)
-    local roll = love.math.random() * (wt.slow + wt.fast + wt.runner)
+    local roll = love.math.random() * (wt.slow + wt.normal + wt.fast)
     if roll < wt.slow then return 'slow' end
-    if roll < wt.slow + wt.fast then return 'fast' end
-    return 'runner'
+    if roll < wt.slow + wt.normal then return 'normal' end
+    return 'fast'
 end
 
 local function liveEnemies(world)
@@ -82,13 +82,11 @@ function Waves:slamBanner()
     flux.to(self, TUNE.fx.titleSlamTime, { bannerY = 190 }):ease('quartin')
 end
 
--- Points behind an unopened door, or in a room the player has never
--- entered, stay inactive
+-- Points in a room the player has never entered stay inactive
 function Waves:activePoints(world)
     local active = {}
     for _, sp in ipairs(self.spawnPoints) do
-        if (not sp.door or world.openedDoors[sp.door])
-            and (not sp.roomName or world.visitedRooms[sp.roomName]) then
+        if not sp.roomName or world.visitedRooms[sp.roomName] then
             table.insert(active, sp)
         end
     end
@@ -109,8 +107,8 @@ function Waves:spawnOne(world)
 
     local e
     if t == 'slow' then e = Enemy:newSlow(x, y, self.wave)
-    elseif t == 'fast' then e = Enemy:newFast(x, y, self.wave)
-    else e = Enemy:newRunner(x, y, self.wave) end
+    elseif t == 'normal' then e = Enemy:newNormal(x, y, self.wave)
+    else e = Enemy:newFast(x, y, self.wave) end
     world:addEntity(e)
 end
 

@@ -15,7 +15,7 @@ Rule: game playable end-to-end as early as possible — Phase 1 closes the loop,
 6. Mystery box chest (random loot: guns / grenades / med kit)
 
 ## Phase 3 — Variety
-7. 3 zombie types (slow / fast / runner)
+7. 3 zombie types (slow / normal / fast)
 8. Knife works (melee fallback)
 9. Grenade works
 10. Arena bounds

@@ -55,8 +55,8 @@ end
 
 local zombieFactories = {
     slow = function(x, y, w) return Enemy:newSlow(x, y, w) end,
+    normal = function(x, y, w) return Enemy:newNormal(x, y, w) end,
     fast = function(x, y, w) return Enemy:newFast(x, y, w) end,
-    runner = function(x, y, w) return Enemy:newRunner(x, y, w) end,
 }
 
 local commandNames = { 'money', 'give', 'drop', 'god', 'ungod', 'heal', 'ammo',
@@ -73,13 +73,13 @@ local commands = {
     end },
     give = { argKind = 'gun', run = function(arg)
         local gun = arg and Gun.newById(arg)
-        if not gun then return 'usage: /give <usp|ak47|m4a1|sawedoff>', true end
+        if not gun then return 'usage: /give <usp|ak47|m4a1|shotgun>', true end
         world.player:giveGun(gun)
         return 'gave ' .. gun.name
     end },
     drop = { argKind = 'gun', run = function(arg)
         local gun = arg and Gun.newById(arg)
-        if not gun then return 'usage: /drop <usp|ak47|m4a1|sawedoff>', true end
+        if not gun then return 'usage: /drop <usp|ak47|m4a1|shotgun>', true end
         DroppedGun.dropNear(world, gun, world.player)
         return 'dropped ' .. gun.name
     end },
@@ -119,7 +119,7 @@ local commands = {
     end },
     spawn = { argKind = 'zombie', run = function(arg)
         local factory = arg and zombieFactories[arg]
-        if not factory then return 'usage: /spawn <slow|fast|runner>', true end
+        if not factory then return 'usage: /spawn <slow|normal|fast>', true end
         local t = TUNE.zombies[arg]
         local p = world.player
         local cx, cy = p:getCenter()
@@ -143,7 +143,7 @@ local commands = {
 
 local argOptions = {
     gun = Gun.ids,
-    zombie = { 'slow', 'fast', 'runner' },
+    zombie = { 'slow', 'normal', 'fast' },
     wave = { 'skip' },
 }
 

@@ -72,7 +72,7 @@ function love.update(dt)
         _autotest.frames = _autotest.frames + 1
         if _autotest_shotgun and _autotest.frames == 30 then
             local Gun = require('hand_items.gun')
-            world.player:giveGun(Gun.newById('sawedoff'))
+            world.player:giveGun(Gun.newById('shotgun'))
         elseif _autotest_shotgun and _autotest.frames >= 60 then
             local held = world.player.items[world.player.itemIndex]
             if held and held.curClip == 7 then

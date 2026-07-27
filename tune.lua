@@ -75,7 +75,7 @@ return {
         -- pump-action: bulletDelay is the rack gate between shots; pumpDelay =
         -- beat into that window where the rack SFX+shell-eject+pose fires,
         -- pumpAnimTime = how long the pump pose is shown
-        sawedoff = { damage = 10, clip = 7, bulletDelay = 0.5, reloadTime = 0.5, bulletLife = 0.7,
+        shotgun = { damage = 10, clip = 7, bulletDelay = 0.5, reloadTime = 0.5, bulletLife = 0.7,
                      reloadOpenTime = 0.4, reserve = 32,
                      pumpDelay = 0.12, pumpAnimTime = 0.22,
                      pellets = 14, spread = 0.20, killReward = 10, maxHits = 2, -- damage is per pellet
@@ -153,7 +153,7 @@ return {
         interactPad = 32,     -- px around the 64x32 box where E buys/takes
         -- loot odds; invalid categories (grenades full, medkit held) are
         -- dropped and the rest renormalized. Rolling an owned gun = ammo refill.
-        weights = { ak47 = 15, m4a1 = 15, sawedoff = 10, grenade = 30, healthpack = 30 },
+        weights = { ak47 = 15, m4a1 = 15, shotgun = 10, grenade = 30, healthpack = 30 },
     },
 
     hotbar = { slotSize = 56, gap = 8, bottomMargin = 16 },
@@ -294,9 +294,9 @@ return {
         -- blocks the way; false = A* treats crates as walls and goes around.
         -- losShortcut: clear straight line to the player = walk it directly
         -- (no A*, no grid corners); blocked line falls back to normal A*
-        slow   = { speed = 30, lifeMult = 1,    size = 48, breaksCrates = true, losShortcut = true },
-        fast   = { speed = 60, lifeMult = 0.5,  size = 32, breaksCrates = true },
-        runner = { speed = 90, lifeMult = 0.25, size = 21, breaksCrates = false },
+        slow   = { speed = 30, lifeMult = 1,    size = 48, losShortcut = true },
+        normal = { speed = 60, lifeMult = 0.5,  size = 32, breaksCrates = true },
+        fast   = { speed = 90, lifeMult = 0.25, size = 21, breaksCrates = true },
     },
 
     waves = {
@@ -316,9 +316,9 @@ return {
 
         -- spawn mix: last entry whose fromWave <= wave applies
         weights = {
-            { fromWave = 1, slow = 70, fast = 30, runner = 0 },
-            { fromWave = 4, slow = 40, fast = 45, runner = 15 },
-            { fromWave = 8, slow = 20, fast = 45, runner = 35 },
+            { fromWave = 1, slow = 70, normal = 30, fast = 0 },
+            { fromWave = 4, slow = 40, normal = 45, fast = 15 },
+            { fromWave = 8, slow = 20, normal = 45, fast = 35 },
         },
     },
 }

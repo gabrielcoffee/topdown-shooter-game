@@ -14,7 +14,7 @@ local Chest = {}
 Chest.__index = Chest
 setmetatable(Chest, Entity)
 
-local gunNames = { ak47 = 'AK-47', m4a1 = 'M4A1', sawedoff = 'Sawed-Off' }
+local gunNames = { ak47 = 'AK-47', m4a1 = 'M4A1', shotgun = 'Shotgun' }
 
 -- Sprite is 64x64 but the hitbox is only the bottom 64x32; the top 32px is a
 -- walk-behind cap (same split-depth trick as the crate, one anchor).

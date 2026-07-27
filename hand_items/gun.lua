@@ -10,18 +10,18 @@ Gun.__index = Gun
 setmetatable(Gun, HandItem)
 
 -- Ordered list + factory by id: single source for chest, console, save restore
-Gun.ids = { 'usp', 'ak47', 'm4a1', 'sawedoff' }
+Gun.ids = { 'usp', 'ak47', 'm4a1', 'shotgun' }
 
 function Gun.newById(id)
+    if id == 'sawedoff' then id = 'shotgun' end -- pre-rename saves
     if id == 'usp' then return Gun:newUSP() end
     if id == 'ak47' then return Gun:newAk47() end
     if id == 'm4a1' then return Gun:newM4A1() end
-    if id == 'sawedoff' then return Gun:newShotgun() end
+    if id == 'shotgun' then return Gun:newShotgun() end
 end
 
--- gun id -> spritesheet quad name (ids mostly match, two exceptions)
+-- gun id -> spritesheet quad name (ids match except the pistol)
 function Gun.quadName(id)
-    if id == 'sawedoff' then return 'shotgun' end
     if id == 'usp' then return 'pistol' end
     return id
 end
@@ -156,11 +156,11 @@ function Gun:newM4A1()
 end
 
 function Gun:newShotgun()
-    local obj = GunStateVariables(TUNE.guns.sawedoff.clip)
-    applyTune(obj, TUNE.guns.sawedoff)
+    local obj = GunStateVariables(TUNE.guns.shotgun.clip)
+    applyTune(obj, TUNE.guns.shotgun)
 
-    obj.name = 'Sawed-Off'
-    obj.id = 'sawedoff'
+    obj.name = 'Shotgun'
+    obj.id = 'shotgun'
     obj.sprite = Assets.quads.held_shotgun[1]
     obj.icon = Assets.quads.shotgun[1]
     obj.type = GUNTYPE.shotgun
@@ -169,7 +169,7 @@ function Gun:newShotgun()
     obj.shellSfx = { 'shell1', 'shell2', 'shell3' }
     obj.shellQuad = Assets.quads.shell_shotgun[1]
     obj.shellDrop = { 'shell1', 'shell2', 'shell3' } -- brass hull bounce
-    obj.reloadOpenTime = TUNE.guns.sawedoff.reloadOpenTime
+    obj.reloadOpenTime = TUNE.guns.shotgun.reloadOpenTime
     obj.ox = 12
     obj.oy = 16
     obj.tipLen = 28
@@ -227,7 +227,7 @@ function Gun:update(dt, px, py, mx, my)
 
     -- shotgun pump: a beat after it starts, play the rack SFX + pose (+ eject)
     if self.pumpActive then
-        local SG = TUNE.guns.sawedoff
+        local SG = TUNE.guns.shotgun
         self.pumpTimer = self.pumpTimer + dt
         if not self.pumpDidRack and self.pumpTimer >= (SG.pumpDelay or 0) then
             self.pumpDidRack = true
@@ -500,7 +500,7 @@ function Gun:fire(leftReleased)
             self:ejectShell()
         end
 
-        -- sawed-off: barrels empty -> break open and reload right away
+        -- shotgun: barrels empty -> break open and reload right away
         if self.shellSfx and self.curClip <= 0 and self.bulletsLeft > 0 then
             self:reload()
         end

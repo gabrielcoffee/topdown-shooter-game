@@ -28,7 +28,7 @@ function World:new()
         rooms = levelDef.rooms,
         ambience = levelDef.ambience,
         transition = nil, -- set while the camera pans between rooms
-        openedDoors = {}, -- door id -> true once bought; gates spawn points
+        openedDoors = {}, -- door id -> true once bought (persists in saves)
         visitedRooms = {}, -- room name -> true once entered; gates spawn points
         gameOver = false
     }
@@ -65,7 +65,7 @@ function World:new()
             obj:addEntity(chest)
             obj.lighting:trackOccluder(chest)
         elseif o.type == 'spawn' then
-            table.insert(spawnPoints, { x = o.x, y = o.y, door = o.door })
+            table.insert(spawnPoints, { x = o.x, y = o.y })
         elseif o.type == 'playerspawn' then
             obj.playerSpawn = PlayerSpawn:new(o.x, o.y)
         end

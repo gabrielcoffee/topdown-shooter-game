@@ -523,7 +523,7 @@ function Player:giveGun(gun)
     self.items[target] = gun
     self.itemIndex = target
     self.lastGunSlot = target
-    if gun.id == 'sawedoff' then
+    if gun.id == 'shotgun' then
         gun:pump(false) -- shotgun racks on pickup (SFX + pose, no shell)
     else
         Audio.play('gun_draw', 0.7) -- picked up = racked and in hand

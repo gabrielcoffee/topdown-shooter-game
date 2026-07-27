@@ -69,12 +69,12 @@ function Enemy:newSlow(x, y, wave)
     return newTyped(x, y, wave, TUNE.zombies.slow, Color.red)
 end
 
-function Enemy:newFast(x, y, wave)
-    return newTyped(x, y, wave, TUNE.zombies.fast, Color.magenta)
+function Enemy:newNormal(x, y, wave)
+    return newTyped(x, y, wave, TUNE.zombies.normal, Color.magenta)
 end
 
-function Enemy:newRunner(x, y, wave)
-    return newTyped(x, y, wave, TUNE.zombies.runner, Color.yellow)
+function Enemy:newFast(x, y, wave)
+    return newTyped(x, y, wave, TUNE.zombies.fast, Color.yellow)
 end
 
 -- Normalized direction toward a world point

@@ -43,7 +43,7 @@ function Bullet:update(dt, world)
     -- The first update samples only the spawn point (muzzle-touch kills keep
     -- working). After that the flight is swept in <=8px substeps, so no wall,
     -- crate or small zombie can fit between two samples — at 540px/s a single
-    -- point-check per frame skipped 21px runners below ~26fps.
+    -- point-check per frame skipped 21px fast zombies below ~26fps.
     local dist = (self.timer == 0) and 0 or self.speed * dt
     self.timer = self.timer + dt
     if self.animMuzzle then self.animMuzzle:update(dt) end

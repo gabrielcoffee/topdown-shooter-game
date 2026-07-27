@@ -52,8 +52,8 @@ Velocity-based with acceleration/deceleration (new — was instant):
   - TUNE: zombies in wave 1 = `5`
   - TUNE: zombies added per wave = `2`
   - TUNE: seconds between waves = `5`
-  - TUNE: wave number when fast zombies start appearing = `3`
-  - TUNE: wave number when runner zombies start appearing = `6`
+  - TUNE: wave number when normal zombies start appearing = `3`
+  - TUNE: wave number when fast zombies start appearing = `6`
   - TUNE: spawn distance from player (min) = `300`
 
 ## Zombies — 3 types, same behavior
@@ -67,17 +67,17 @@ All types deal the same contact damage: TUNE: `10`, at most once per second per 
 | Type   | Speed      | Life mult        | Size (px)             |
 |--------|------------|------------------|-----------------------|
 | Slow   | TUNE: `30` | TUNE: `×2`       | TUNE: `48` (1.5x)     |
-| Fast   | TUNE: `60` | TUNE: `×1`       | TUNE: `32` (base)     |
-| Runner | TUNE: `90` | TUNE: `×0.5`     | TUNE: `21` (1/1.5x)   |
+| Normal | TUNE: `60` | TUNE: `×1`       | TUNE: `32` (base)     |
+| Fast   | TUNE: `90` | TUNE: `×0.5`     | TUNE: `21` (1/1.5x)   |
 
-Wave 1 life: slow 40, fast 20, runner 10.
+Wave 1 life: slow 40, normal 20, fast 10.
 
 - TUNE: contact damage cooldown per zombie = `1.0` sec
 
 ## Player
 
 - WASD move, mouse aim/shoot (already working).
-- Walk speed depends on held item (each weapon's `walkSpeed`, all TUNE): knife 130 > USP 120 = grenade 120 > Lupara 100 > M4A1 90 = AK-47 90.
+- Walk speed depends on held item (each weapon's `walkSpeed`, all TUNE): knife 130 > USP 120 = grenade 120 > Shotgun 100 > M4A1 90 = AK-47 90.
 - HP; death at 0 → score screen → restart.
   - TUNE: player max HP = `100`
 - Starting loadout: pistol + knife.
@@ -119,7 +119,7 @@ A chest placed via the map's object layer. Touch + `E` with enough money → pay
 |-----------|--------|---------------------------------------------------------------------|
 | AK-47     | 15     | Gun floats above the box; press `E` within the take window to take it, else lost (money stays spent). Goes to the empty gun slot, else replaces the gun in hand / last-held gun slot. |
 | M4A1      | 15     | same                                                                |
-| Lupara    | 10     | same                                                                |
+| Shotgun   | 10     | same                                                                |
 | Grenade   | 30     | +1 grenade, auto-collected at spin end                              |
 | Med kit   | 30     | fills slot 5, auto-collected at spin end                            |
 
@@ -133,7 +133,7 @@ Weapon stats (unchanged, "×10 simple scale"):
 | Pistol  | USP-45       | TUNE: `20` |
 | AK      | AK-47        | TUNE: `40` |
 | M4      | M4A1 (silenced, 25-rd clip) | TUNE: `35` |
-| Shotgun | Lupara (sawed-off double barrel) | TUNE: `10` per pellet ×14 |
+| Shotgun | Pump shotgun | TUNE: `10` per pellet ×14 |
 | Knife   | M9 Bayonet   | TUNE: `60` |
 | Grenade | M67 Frag     | TUNE: `120` (flat inside radius) |
 
