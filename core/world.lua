@@ -153,12 +153,15 @@ function World:checkRoomTransition()
     end
 end
 
--- Tiles blocked by obstacle entities (unopened doors, crates), keyed 'col,row' (for A*)
-function World:blockedTiles()
+-- Tiles blocked by obstacle entities (unopened doors, crates), keyed 'col,row'
+-- (for A*). ignoreCrates: crate-breaking zombies path straight through crates
+-- and smash whatever actually blocks them; doors/chests always block.
+function World:blockedTiles(ignoreCrates)
     local ts = self.map.tileSize
     local blocked = {}
     for _, e in ipairs(self.entities) do
-        if e.isObstacle and not e.toRemove then
+        if e.isObstacle and not e.toRemove
+            and not (ignoreCrates and e.type == 'crate') then
             local c0, c1 = math.floor(e.x / ts) + 1, math.floor((e.x + e.width - 1) / ts) + 1
             local r0, r1 = math.floor(e.y / ts) + 1, math.floor((e.y + e.height - 1) / ts) + 1
             for row = r0, r1 do
@@ -169,6 +172,24 @@ function World:blockedTiles()
         end
     end
     return blocked
+end
+
+-- Crate an entity's wall-collision box (padded) is touching, if any.
+-- Used by crate-breaking zombies to find what to smash.
+function World:getTouchingCrate(ent, pad)
+    local bx, by, bw, bh
+    if ent.colW then
+        bx, by, bw, bh = ent.x + ent.colOX, ent.y + ent.colOY, ent.colW, ent.colH
+    else
+        bx, by, bw, bh = ent.x, ent.y, ent.width, ent.height
+    end
+    for _, e in ipairs(self.entities) do
+        if e.type == 'crate' and not e.toRemove
+            and bx < e.x + e.width + pad and bx + bw > e.x - pad
+            and by < e.y + e.height + pad and by + bh > e.y - pad then
+            return e
+        end
+    end
 end
 
 -- Door the player's box (padded) is touching, if any

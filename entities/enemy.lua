@@ -53,6 +53,7 @@ local function newTyped(x, y, wave, t, color)
     obj.speed = t.speed
     obj.health = waveLife(wave or 1) * t.lifeMult
     obj.color = color
+    obj.breaksCrates = t.breaksCrates or false
 
     -- wall-collision box capped so big sprites (slow, 48px) still fit 1-tile
     -- gaps and can reach wall-adjacent waypoints; combat circle stays size/2
@@ -91,11 +92,13 @@ function Enemy:followPlayer(dt, world)
     local myCol, myRow = math.floor(cx / ts) + 1, math.floor(cy / ts) + 1
     local pCol, pRow = math.floor(pcx / ts) + 1, math.floor(pcy / ts) + 1
 
-    -- A*: recompute every repathTime; walls = solid tiles + closed doors
+    -- A*: recompute every repathTime; walls = solid tiles + closed doors.
+    -- Crate-breakers ignore crates here and smash through them instead.
     self.repathTimer = self.repathTimer - dt
     if self.repathTimer <= 0 then
         self.repathTimer = TUNE.zombies.repathTime
-        self.path = Path.find(world.map, world:blockedTiles(), myCol, myRow, pCol, pRow)
+        self.path = Path.find(world.map, world:blockedTiles(self.breaksCrates),
+            myCol, myRow, pCol, pRow)
         self.pathIndex = 1
     end
 
@@ -181,6 +184,23 @@ function Enemy:update(dt, world)
             TUNE.player.contactInvulnTime)
         self.attackTimer = 0
         Audio.playAt('zombie_attack', cx, cy, 1, TUNE.audio.pitchJitter, world)
+    end
+
+    -- crate smashing (fast/runner only): their A* walks through crate tiles,
+    -- so when one physically blocks them they beat on it until it breaks.
+    -- Shares attackTimer with the player hit — a zombie in reach of the
+    -- player (checked above, resets the timer) always prefers the player.
+    if self.breaksCrates and self.attackTimer >= self.attackCooldown then
+        local crate = world:getTouchingCrate(self, 2)
+        if crate then
+            crate.health = crate.health - TUNE.zombies.crateDamage
+            crate.flash = true
+            self.attackTimer = 0
+            Audio.playAt('zombie_attack', cx, cy, 1, TUNE.audio.pitchJitter, world)
+            if crate.health <= 0 then
+                world:removeEntity(crate)
+            end
+        end
     end
 
     -- occasional growl (positional — you hear which side it comes from)

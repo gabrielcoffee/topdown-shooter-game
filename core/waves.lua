@@ -128,18 +128,8 @@ function Waves:update(dt, world)
 
     elseif self.state == 'active' then
         self.spawnTimer = self.spawnTimer - dt
-
-        -- live cap: past maxAlive the rest of the quota queues up (separation
-        -- is O(n^2) and every zombie repaths — an uncapped late wave hitches).
-        -- While capped the timer holds at 0 so deaths don't trigger a burst.
-        local alive = liveEnemies(world)
-        if alive >= TUNE.waves.maxAlive then
-            self.spawnTimer = math.max(self.spawnTimer, 0)
-        end
-        while self.remaining > 0 and self.spawnTimer <= 0
-            and alive < TUNE.waves.maxAlive do
+        while self.remaining > 0 and self.spawnTimer <= 0 do
             self:spawnOne(world)
-            alive = alive + 1
             self.remaining = self.remaining - 1
             self.spawnTimer = self.spawnTimer + delayFor(self.wave)
         end

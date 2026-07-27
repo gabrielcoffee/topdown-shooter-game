@@ -288,15 +288,17 @@ return {
         waypointRadius = 13,  -- px from a path waypoint that counts as reached
         stuckRepath = 0.35,   -- secs of no progress before forcing an instant repath
         colliderCap = 28,     -- max wall-collision box (px) so big bodies fit 1-tile gaps
+        crateDamage = 20,     -- damage per hit when a crate-breaker smashes a crate
 
-        slow   = { speed = 30, lifeMult = 1,   size = 48 },
-        fast   = { speed = 60, lifeMult = 0.5,   size = 32 },
-        runner = { speed = 90, lifeMult = 0.25, size = 21 },
+        -- breaksCrates: paths straight through crates and smashes whatever
+        -- blocks the way; false = A* treats crates as walls and goes around
+        slow   = { speed = 30, lifeMult = 1,    size = 48, breaksCrates = false },
+        fast   = { speed = 60, lifeMult = 0.5,  size = 32, breaksCrates = true },
+        runner = { speed = 90, lifeMult = 0.25, size = 21, breaksCrates = true },
     },
 
     waves = {
         quotaBase = 3,          -- zombies in wave w = this + w*(w+1)/2 -> 4, 6, 9, 13, 18, 24...
-        maxAlive = 24,          -- live-zombie cap (CoD uses 24); the rest of the quota queues up
 
         lifeBase = 20,          -- wave-1 zombie life, before the type multiplier
         lifePerWave = 20,       -- +this per wave while wave <= lifeLinearUntil

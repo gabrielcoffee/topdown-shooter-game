@@ -110,7 +110,7 @@ function HandItem:newHealthPack()
     local obj = {
         name = 'MED KIT',
         x = 0, y = 0,
-        ox = 16, oy = 16,   -- 32x32 sprite pivots on player center (no aim rotation)
+        ox = 4, oy = 16,    -- held out from the hand like the pistol (no aim rotation)
         angle = 0,
         sprite = Assets.quads.held_medkit[1],
         icon = Assets.quads.medkit[1],
