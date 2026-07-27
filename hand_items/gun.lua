@@ -146,7 +146,8 @@ function Gun:newM4A1()
     obj.reloadSfx = 'm4a1_reload'
     obj.shellQuad = Assets.quads.shell_rifle[1]
     obj.shellDrop = { 'rifle_shell' }
-    obj.ox = 12
+    obj.reloadAnim = Animation:fromGif('assets/m4_reload.gif', false)
+    obj.ox = 12 -- reload gif shares the held sprite's coordinate space, same pivot
     obj.oy = 16
     obj.tipLen = 44
 
