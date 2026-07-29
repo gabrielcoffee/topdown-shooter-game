@@ -355,8 +355,9 @@ return {
         colliderCap = 28,     -- max wall-collision box (px) so big bodies fit 1-tile gaps
         crateDamage = 20,     -- damage per hit when a crate-breaker smashes a crate
 
-        -- breaksCrates: paths straight through crates and smashes whatever
-        -- blocks the way; false = A* treats crates as walls and goes around.
+        -- breaksCrates: last resort only — when A* finds no route around the
+        -- crates, this type paths straight through them and smashes the way
+        -- open. Any walkable detour exists = it walks it and never chews.
         -- losShortcut: clear straight line to the player = walk it directly
         -- (no A*, no grid corners); blocked line falls back to normal A*
         -- damage = contact hit on the player (slow hits hardest, fast lightest)

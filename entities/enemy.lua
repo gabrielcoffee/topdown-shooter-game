@@ -108,10 +108,13 @@ local function dirTo(fromX, fromY, toX, toY)
     return dx / length, dy / length, length
 end
 
--- LOS shortcut check: march the zombie's collision box along the line in 8px
--- steps against solid tiles and obstacle entities. Runs only on repath ticks
+-- LOS check: march a box of half-width halfW along the line in 8px steps
+-- against solid tiles and obstacle entities. Runs only on repath ticks
 -- (every repathTime), and a clear line SKIPS that tick's A* — net cheaper.
--- Crate-breakers ignore crates here: they would chew through anyway.
+-- Two callers with different questions:
+--   halfW = body    "can I physically walk this straight line?" (A* skip)
+--   halfW = 0       "is a real blocker between us?" (beeline gate)
+-- ignoreCrates: a zombie already committed to smashing treats crates as air.
 local function losClear(world, x0, y0, x1, y1, halfW, ignoreCrates)
     local dx, dy = x1 - x0, y1 - y0
     local dist = math.sqrt(dx*dx + dy*dy)
@@ -152,22 +155,39 @@ function Enemy:followPlayer(dt, world)
     local myCol, myRow = math.floor(cx / ts) + 1, math.floor(cy / ts) + 1
     local pCol, pRow = math.floor(pcx / ts) + 1, math.floor(pcy / ts) + 1
 
-    -- A*: recompute every repathTime; walls = solid tiles + closed doors.
-    -- Crate-breakers ignore crates here and smash through them instead.
+    -- A*: recompute every repathTime; walls = solid tiles + closed doors +
+    -- crates. Crate-breakers only drop crates from the walls list when the
+    -- normal route fails outright — chewing is a last resort, not a habit.
     self.repathTimer = self.repathTimer - dt
     if self.repathTimer <= 0 then
         self.repathTimer = TUNE.zombies.repathTime
-        -- clear straight line = beelining allowed; losShortcut types also
-        -- skip that tick's A* and just walk it
-        self.beelineOK = losClear(world, cx, cy, pcx, pcy,
-            (self.colW or self.width) / 2 + 1, self.breaksCrates)
-        if self.losShortcut and self.beelineOK then
+        -- body-width line: losShortcut types walk it and skip this tick's A*
+        local bodyClear = losClear(world, cx, cy, pcx, pcy,
+            (self.colW or self.width) / 2 + 1, false)
+        if self.losShortcut and bodyClear then
             self.path = nil
+            self.smashMode = false
         else
-            self.path = Path.find(world.map, world:blockedTiles(self.breaksCrates),
+            local path = Path.find(world.map, world:blockedTiles(false),
                 myCol, myRow, pCol, pRow)
+            self.smashMode = false
+            if not path and self.breaksCrates then
+                -- nowhere to walk around: now crates become chewable, and the
+                -- route runs straight through them
+                path = Path.find(world.map, world:blockedTiles(true),
+                    myCol, myRow, pCol, pRow)
+                self.smashMode = path ~= nil
+            end
+            self.path = path
         end
         self.pathIndex = 1
+
+        -- Beeline gate: a zero-width line, so only a real blocker (wall,
+        -- closed door, crate) vetoes it. The body-width line used to gate
+        -- this, which froze fat zombies a step short of a player hugging a
+        -- wall — their own bulk clipped the wall the player was pressed on.
+        self.beelineOK = bodyClear
+            or losClear(world, cx, cy, pcx, pcy, 0, self.smashMode)
     end
 
     local nx, ny = 0, 0
@@ -277,11 +297,13 @@ function Enemy:update(dt, world)
         Audio.playAt('zombie_attack', cx, cy, 1, TUNE.audio.pitchJitter, world)
     end
 
-    -- crate smashing (breaksCrates types): their A* walks through crate tiles,
-    -- so when one physically blocks them they beat on it until it breaks.
+    -- crate smashing (breaksCrates types, and only while smashMode says the
+    -- normal route is gone): their A* then walks through crate tiles, so when
+    -- one physically blocks them they beat on it until it breaks.
     -- Shares attackTimer with the player hit — a zombie in reach of the
     -- player (checked above, resets the timer) always prefers the player.
-    if self.breaksCrates and self.attackTimer >= self.attackCooldown then
+    if self.breaksCrates and self.smashMode
+        and self.attackTimer >= self.attackCooldown then
         local crate = world:getTouchingCrate(self, 2)
         if crate then
             crate.health = crate.health - TUNE.zombies.crateDamage
