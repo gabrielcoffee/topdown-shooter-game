@@ -74,6 +74,13 @@ function FirePatch:currentRadius()
     return M.blastRadius * math.min(1, self.age / M.spreadTime)
 end
 
+-- 1 while burning, easing to 0 over the last fadeTime secs
+function FirePatch:dying()
+    local M = TUNE.molotov
+    local left = M.burnTime - self.age
+    return math.min(1, math.max(0, left / M.flame.fadeTime))
+end
+
 function FirePatch:update(dt, world)
     local M = TUNE.molotov
     self.age = self.age + dt
@@ -87,12 +94,18 @@ function FirePatch:update(dt, world)
         self.sound = Audio.loopAt('fire_loop', cx, cy, 0)
     end
 
-    -- loop volume tracks the fire: fades up as it spreads, down as it burns out
+    -- spread-in / burn-out envelope, shared by the sound, the light and the
+    -- flame sprites so nothing outlives the others
+    local up = math.min(1, self.age / M.spreadTime)
+    local dying = self:dying()
+
     if self.sound then
-        local up = math.min(1, self.age / M.spreadTime)
-        local left = M.burnTime - self.age
-        local down = math.min(1, math.max(0, left / M.flame.fadeTime))
-        Audio.setLoopGain(self.sound, M.fireGain * up * down)
+        Audio.setLoopGain(self.sound, M.fireGain * up * dying)
+    end
+    -- the point light grows and dies with the flames (Lighting flickers around
+    -- baseRange every frame, so writing it here is all it takes)
+    if self.light then
+        self.light.baseRange = M.blastRadius * 2.2 * up * dying
     end
 
     local radius = self:currentRadius()
@@ -141,10 +154,10 @@ function FirePatch:draw()
     local g = self.gif
     local ox, oy = g.width / 2, g.height - 2 -- flames sit on the ground
 
-    -- whole patch fades and shrinks away over the last fadeTime secs
-    local dying = 1
-    local left = M.burnTime - self.age
-    if left < F.fadeTime then dying = math.max(0, left / F.fadeTime) end
+    -- whole patch dies over the last fadeTime secs: the flames SHRINK away at
+    -- full opacity (fading their alpha instead left ghost flames lit by a
+    -- light that was still at full range)
+    local dying = self:dying()
 
     -- burnt ground + heat glow so the scattered flames read as one burning area
     local radius = self:currentRadius()
@@ -160,10 +173,11 @@ function FirePatch:draw()
         if t > 0 then
             local pop = math.min(1, t / F.popTime)
             pop = pop * pop * (3 - 2 * pop) -- smoothstep grow-in
-            local s = f.scale * pop -- size never changes once grown; the patch fades on alpha
+            -- same size for every flame while burning; only the die-off scales
+            local s = f.scale * pop * dying
             local bob = math.sin(self.age * F.bobSpeed + f.phase) * F.bobAmp
             local frame = math.floor(t * F.fps * f.speed + f.frameOffset) % g.frames + 1
-            love.graphics.setColor(1, 1, 1, dying)
+            love.graphics.setColor(1, 1, 1, 1)
             love.graphics.draw(g.image, g.quads[frame],
                 math.floor(cx + f.dx), math.floor(cy + f.dy + bob),
                 0, s * f.flip, s, ox, oy)
