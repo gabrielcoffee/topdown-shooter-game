@@ -57,18 +57,22 @@ function gameover:draw()
 
     Theme.drawTitle(T('gameover.title'), self.titleY)
 
-    -- run stats: score / record / kills, record goes gold on a new best
+    -- run stats: score / record / kills, record goes gold on a new best.
+    -- drawTitle leaves the 48px title font active — set our own size
+    local f = Theme.fonts.item
+    love.graphics.setFont(f)
     local function centered(text, y, r, g, b)
         love.graphics.setColor(r, g, b)
-        love.graphics.print(text, SCREENWIDTH / 2 - font:getWidth(text) / 2, y)
+        love.graphics.print(text, SCREENWIDTH / 2 - f:getWidth(text) / 2, y)
     end
-    centered(T('gameover.score', self.score), 430, 1, 1, 1)
+    centered(T('gameover.score', self.score), 424, 1, 1, 1)
     if self.newRecord then
-        centered(T('gameover.newrecord'), 466, 1, 0.85, 0.3)
+        centered(T('gameover.newrecord'), 462, 1, 0.85, 0.3)
     else
-        centered(T('gameover.record', self.best), 466, 1, 0.85, 0.3)
+        centered(T('gameover.record', self.best), 462, 1, 0.85, 0.3)
     end
-    centered(T('gameover.kills', self.kills), 502, 0.8, 0.8, 0.8)
+    centered(T('gameover.kills', self.kills), 500, 0.6, 0.58, 0.55)
+    love.graphics.setFont(font)
     love.graphics.setColor(1, 1, 1)
 
     self.list:draw()
