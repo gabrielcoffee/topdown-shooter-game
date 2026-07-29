@@ -190,7 +190,7 @@ return {
     },
 
     chest = {
-        cost = 300,           -- the gamble; wall buys are the reliable option
+        cost = 350,           -- the gamble; wall buys are the reliable option
         spinTime = 2.0,       -- secs of sprite cycling after paying
         spinCycleTime = 0.08, -- secs per sprite during the spin
         takeWindow = 8.0,     -- secs to press E and take a rolled gun
