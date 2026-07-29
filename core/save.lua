@@ -85,6 +85,12 @@ function Save.loadSettings()
         sfx = s.sfx or TUNE.audio.sfxDefault,
         music = s.music or TUNE.audio.musicDefault,
         language = s.language or 'en',
+        -- world ambient light, clamped to the options slider's range
+        brightness = math.max(TUNE.lighting.brightnessMin,
+            math.min(type(s.brightness) == 'number' and s.brightness
+                or TUNE.lighting.ambient, TUNE.lighting.brightnessMax)),
+        -- player light shape: 'around' (omni) or 'aim' (flashlight cone)
+        lightMode = s.lightMode == 'aim' and 'aim' or 'around',
         -- crosshair look (== nil keeps saved false from reading as default)
         crossColor = s.crossColor == 'green' and 'green' or 'white',
         crossOutline = s.crossOutline == nil and true or s.crossOutline,
@@ -99,7 +105,7 @@ end
 
 function Save.loadBest()
     local b = readFile(BEST_FILE) or {}
-    return { score = b.score or 0, kills = b.kills or 0 }
+    return { wave = b.wave or 0, kills = b.kills or 0 }
 end
 
 function Save.saveBest(b)

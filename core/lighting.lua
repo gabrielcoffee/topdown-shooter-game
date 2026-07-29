@@ -50,7 +50,8 @@ end
 function Lighting.new(map)
     local self = setmetatable({}, Lighting)
 
-    local a = TUNE.lighting.ambient
+    -- player-chosen brightness (options menu); tune ambient is the default
+    local a = (SETTINGS and SETTINGS.brightness) or TUNE.lighting.ambient
     self.lw = LightWorld({ ambient = { a, a, a } })
     -- light_world sizes its buffers to the OS window by default, so at fullscreen
     -- it re-renders every light pass at native resolution — the fullscreen lag.
@@ -140,6 +141,19 @@ function Lighting:update(dt, world)
     local px, py = world.player:getCenter()
     self.playerLight:setPosition(px, py)
 
+    -- LIGHT option: omni pool around the player, or a flashlight cone
+    -- following the aim (held item angle tracks the crosshair)
+    if (SETTINGS and SETTINGS.lightMode) == 'aim' then
+        local held = world.player.items[world.player.itemIndex]
+        self.playerLight:setAngle(math.rad(TUNE.lighting.aimConeDeg))
+        self.playerLight:setDirection(held and held.angle or 0)
+        self.playerLight:setRange(TUNE.lighting.aimRange)
+    else
+        -- setAngle can't express "full circle" (it wraps at pi): raw write
+        self.playerLight.angle = math.pi * 2
+        self.playerLight:setRange(TUNE.lighting.playerRange)
+    end
+
     for i = #self.flashes, 1, -1 do
         local f = self.flashes[i]
         f.t = f.t - dt
@@ -178,6 +192,11 @@ end
 -- Re-pin the light buffers to the logical size (called after a graphics apply)
 function Lighting:resize(w, h)
     self.lw:refreshScreenSize(w, h)
+end
+
+-- Live brightness change from the options slider (also mid-run, via pause)
+function Lighting:setAmbient(a)
+    self.lw:setAmbientColor(a, a, a)
 end
 
 -- Screen-space translation (camera + shake), applied at draw time

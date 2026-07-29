@@ -183,7 +183,11 @@ function MenuList:draw()
 
             love.graphics.setFont(Theme.fonts.hint)
             love.graphics.setColor(c[1], c[2], c[3], a)
-            love.graphics.print(math.floor(item.get() * 100 + 0.5) .. '%', x + w + 16, yy + 4)
+            -- item.format (optional) turns the 0..1 value into custom text
+            -- (brightness shows DARK/BRIGHT at the ends); default = percent
+            local valueText = item.format and item.format(item.get())
+                or (math.floor(item.get() * 100 + 0.5) .. '%')
+            love.graphics.print(valueText, x + w + 16, yy + 4)
             love.graphics.setFont(f)
         else
             local text = T(item.label)

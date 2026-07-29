@@ -31,11 +31,50 @@ local function volumeItem(labelKey, field)
     }
 end
 
+-- Brightness slider <-> ambient value: 0..1 maps onto [min, max] snapped to
+-- brightnessStep (0.10 DARK, 0.12, ... 0.40 BRIGHT, Minecraft-style)
+local function brightnessItem()
+    local L = TUNE.lighting
+    local span = L.brightnessMax - L.brightnessMin
+    local steps = math.floor(span / L.brightnessStep + 0.5)
+    return {
+        label = 'options.brightness', type = 'slider',
+        get = function()
+            return (SETTINGS.brightness - L.brightnessMin) / span
+        end,
+        set = function(v)
+            local i = math.floor(v * steps + 0.5)
+            SETTINGS.brightness = L.brightnessMin + i * L.brightnessStep
+            if world and world.lighting then -- live, also mid-run via pause
+                world.lighting:setAmbient(SETTINGS.brightness)
+            end
+        end,
+        format = function()
+            local b = SETTINGS.brightness
+            if b <= L.brightnessMin then return T('options.dark') end
+            if b >= L.brightnessMax then return T('options.bright') end
+            return math.floor((b - L.brightnessMin) / span * 100 + 0.5) .. '%'
+        end,
+    }
+end
+
 function options:enter()
     self.list = MenuList:new({
         volumeItem('options.master', 'master'),
         volumeItem('options.sfx', 'sfx'),
         volumeItem('options.music', 'music'),
+        brightnessItem(),
+        {
+            label = 'options.light', type = 'cycle',
+            value = function()
+                return T(SETTINGS.lightMode == 'aim'
+                    and 'options.light_aim' or 'options.light_around')
+            end,
+            cycle = function()
+                SETTINGS.lightMode =
+                    SETTINGS.lightMode == 'aim' and 'around' or 'aim'
+            end,
+        },
         {
             label = 'options.language', type = 'cycle',
             value = function() return i18n.names[i18n.lang] end,
@@ -79,9 +118,12 @@ function options:update(dt)
 end
 
 function options:draw()
-    Theme.drawDim(0.85)
+    -- full menu backdrop: the page underneath must not show through
+    Theme.drawBackground()
+    Particles.drawFog()
     Theme.drawTitle(T('options.title'), 240)
     self.list:draw()
+    Particles.drawEmbers()
 end
 
 function options:keypressed(key)

@@ -71,6 +71,7 @@ local srcWorld = {}   -- Source -> true: world one-shot (freezes with the pause)
 setmetatable(srcWorld, { __mode = 'k' })
 local pausedWorld = {} -- sources paused by the pause muffle, resumed on unpause
 local muffled = false  -- pause-muffle state, read by applyVolumes (bed duck)
+local muffleMult = 1   -- smoothed bed duck: eases toward muffleDuck / back to 1
 local lowHealth = false -- ≤25hp state: ducks the world, runs the heartbeat
 local heartbeat = nil   -- dedicated looping source, never ducked
 
@@ -281,7 +282,7 @@ local function applyVolumes()
     if ambience.bed then
         -- the pause duck survives volume changes made from the pause menu
         ambience.bed:setVolume(Audio.master * Audio.music * TUNE.audio.bedGain * fade.mult
-            * (muffled and TUNE.audio.muffleDuck or 1) * duckMult())
+            * muffleMult * duckMult())
     end
     if heartbeat and heartbeat:isPlaying() then
         heartbeat:setVolume(Audio.master * Audio.sfx * TUNE.audio.heartbeatGain)
@@ -332,6 +333,16 @@ function Audio.update(dt)
         applyVolumes()
     end
 
+    -- pause duck eases toward its target instead of snapping (the pause
+    -- state ticks this too, since world updates stop while paused)
+    local target = muffled and TUNE.audio.muffleDuck or 1
+    if math.abs(muffleMult - target) > 0.001 then
+        local k = 1 - math.exp(-TUNE.audio.muffleFadeSpeed * dt)
+        muffleMult = muffleMult + (target - muffleMult) * k
+        applyVolumes()
+    end
+
+    if muffled then return end -- no stingers into a paused world
     if not ambience.set then return end
     ambience.stingerTimer = ambience.stingerTimer - dt
     if ambience.stingerTimer > 0 then return end
@@ -377,14 +388,14 @@ function Audio.setMuffled(m)
         end
     end
     if ambience.bed then
+        -- filter snaps, the volume duck fades (Audio.update eases muffleMult)
         if m then
             pcall(ambience.bed.setFilter, ambience.bed,
                 { type = 'lowpass', volume = 1, highgain = A.muffleHighgain })
         else
             pcall(ambience.bed.setFilter, ambience.bed)
         end
-        ambience.bed:setVolume(Audio.master * Audio.music * A.bedGain * fade.mult
-            * (m and A.muffleDuck or 1))
+        applyVolumes()
     end
 end
 

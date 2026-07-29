@@ -9,22 +9,25 @@ local Fx = require('ui.fx')
 local Particles = require('ui.particles')
 local flux = require('lib.flux')
 
+local Audio = require('core.audio')
+
 local gameover = {}
 gameover.overlay = true
 gameover.fxMode = 'overlay'
 
 function gameover:enter()
     love.mouse.setVisible(true)
+    Audio.stopAmbience() -- the wind must not keep blowing over the death screen
     Save.deleteRun()
 
-    -- run stats vs the all-time record (world is still frozen underneath)
-    self.score = math.floor(world.player.earnedTotal or 0)
+    -- run stats vs the all-time round record (world is still frozen underneath)
     self.kills = world.kills or 0
+    self.wave = world.waves.wave or 1
     local best = Save.loadBest()
-    self.newRecord = self.score > best.score
-    self.best = math.max(best.score, self.score)
+    self.newRecord = self.wave > best.wave
+    self.bestWave = math.max(best.wave, self.wave)
     if self.newRecord or self.kills > best.kills then
-        Save.saveBest({ score = self.best, kills = math.max(best.kills, self.kills) })
+        Save.saveBest({ wave = self.bestWave, kills = math.max(best.kills, self.kills) })
     end
 
     Fx.flash(0.55, 0.02, 0.02, 0.35)
@@ -65,13 +68,11 @@ function gameover:draw()
         love.graphics.setColor(r, g, b)
         love.graphics.print(text, SCREENWIDTH / 2 - f:getWidth(text) / 2, y)
     end
-    centered(T('gameover.score', self.score), 424, 1, 1, 1)
+    centered(T('gameover.kills', self.kills), 424, 1, 1, 1)
+    centered(T('gameover.round_record', self.bestWave), 462, 1, 0.85, 0.3)
     if self.newRecord then
-        centered(T('gameover.newrecord'), 462, 1, 0.85, 0.3)
-    else
-        centered(T('gameover.record', self.best), 462, 1, 0.85, 0.3)
+        centered(T('gameover.newrecord'), 500, 1, 0.85, 0.3)
     end
-    centered(T('gameover.kills', self.kills), 500, 0.6, 0.58, 0.55)
     love.graphics.setFont(font)
     love.graphics.setColor(1, 1, 1)
 

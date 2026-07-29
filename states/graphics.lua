@@ -83,12 +83,15 @@ function graphics:update(dt)
 end
 
 function graphics:draw()
-    Theme.drawDim(0.85)
+    -- full menu backdrop: the page underneath must not show through
+    Theme.drawBackground()
+    Particles.drawFog()
     Theme.drawTitle(T('gfx.title'), 220)
     self.list:draw()
     if dirty(self) then
         Theme.drawHint(T('gfx.unapplied'), SCREENHEIGHT - 80)
     end
+    Particles.drawEmbers()
 end
 
 function graphics:keypressed(key)

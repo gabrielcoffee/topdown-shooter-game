@@ -48,6 +48,7 @@ end
 
 function paused:update(dt)
     self.list:update(dt)
+    Audio.update(dt) -- the wind duck fades while the world is frozen
 end
 
 function paused:draw()
