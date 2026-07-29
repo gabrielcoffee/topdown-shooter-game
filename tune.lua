@@ -21,7 +21,7 @@ return {
         headOffsetX = 16,     -- head center, px from sprite left (centered)
         headOffsetY = 8,      -- head center, px from sprite top  (upper area)
         hitFlashTime = 0.12,  -- secs the sprite flashes white when hit
-        contactInvulnTime = 0.5, -- secs of invulnerability (sprite blinks) after a zombie contact hit
+        contactInvulnTime = 0.8, -- secs of invulnerability (sprite blinks) after a zombie contact hit
         hurtCueCooldown = 0.5,   -- secs between hurt grunt + red vignette cues
         lowHealthThreshold = 25, -- at or below: sounds duck + heartbeat loop
         switchDelay = 0.3,    -- secs after a weapon swap before it can act (blocks quick-switch)
@@ -204,9 +204,13 @@ return {
 
     hotbar = { slotSize = 56, gap = 8, bottomMargin = 16 },
 
-    -- floating "+$n" above the money readout; rapid earns (pellets, burn
-    -- ticks) merge into one popup instead of stacking
-    hud = { popupTime = 1.0, popupRise = 18 },
+    -- floating "+$n" above the money readout; each earn shows separately,
+    -- a new one replaces the previous (amounts never add up). The red "-hp"
+    -- popup left of the HP readout shares popupTime/popupRise, but stacks
+    -- (per-frame spike/fire damage adds into the live popup).
+    -- reloadBar* : the bar that fills right of the ammo count while reloading
+    hud = { popupTime = 1.0, popupRise = 18,
+            reloadBarW = 70, reloadBarH = 8, reloadBarGap = 14 },
 
     dev = { enabled = true }, -- master switch for the chat console (T)
     chat = {
@@ -368,6 +372,11 @@ return {
 
     waves = {
         quotaBase = 3,          -- zombies in wave w = this + w*(w+1)/2 -> 4, 6, 9, 13, 18, 24...
+
+        -- chance a spawn comes from a room right next door instead of the
+        -- player's own room. Only rooms already visited AND reachable right
+        -- now count (a locked door between them = not next door).
+        adjacentRoomChance = 0.25,
 
         lifeBase = 20,          -- wave-1 zombie life, before the type multiplier
         lifePerWave = 20,       -- +this per wave while wave <= lifeLinearUntil

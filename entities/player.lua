@@ -160,14 +160,29 @@ function Player:update(dt, world)
         pop.t = pop.t + dt
         if pop.t >= TUNE.hud.popupTime then self.moneyPopup = nil end
     end
+    local dpop = self.damagePopup
+    if dpop then
+        dpop.t = dpop.t + dt
+        if dpop.t >= TUNE.hud.popupTime then self.damagePopup = nil end
+    end
 
     -- any health drop (zombies, fire, spikes, holes) = red vignette + grunt.
     -- Cooldown so per-frame damage (spikes) can't machine-gun the cue.
     self.hurtCue = math.max(0, (self.hurtCue or 0) - dt)
-    if self.lastHealth and self.health < self.lastHealth and self.hurtCue <= 0 then
-        require('ui.fx').damageVignette()
-        Audio.play('hurt', 0.9)
-        self.hurtCue = TUNE.player.hurtCueCooldown
+    if self.lastHealth and self.health < self.lastHealth then
+        if self.hurtCue <= 0 then
+            require('ui.fx').damageVignette()
+            Audio.play('hurt', 0.9)
+            self.hurtCue = TUNE.player.hurtCueCooldown
+        end
+        -- red "-n" over the HP readout. Per-frame damage (spikes, fire) adds
+        -- into the live popup instead of spamming one popup per frame
+        local lost = self.lastHealth - self.health
+        if dpop then
+            dpop.amount, dpop.t = dpop.amount + lost, 0
+        else
+            self.damagePopup = { amount = lost, t = 0 }
+        end
     end
     self.lastHealth = self.health
 
@@ -532,7 +547,19 @@ function Player:drawHud()
     -- bottom-right stack: HP on the bottom line, money right above it,
     -- earned "+$n" floating up above both
     local hp = T('hud.hp', math.max(0, math.floor(self.health)))
-    love.graphics.print(hp, SCREENWIDTH - 20 - font:getWidth(hp), SCREENHEIGHT - 40)
+    local hpX = SCREENWIDTH - 20 - font:getWidth(hp)
+    love.graphics.print(hp, hpX, SCREENHEIGHT - 40)
+
+    -- red "-n" left of the HP readout (the money popup owns the space above)
+    local dpop = self.damagePopup
+    if dpop then
+        local k = dpop.t / TUNE.hud.popupTime
+        local txt = T('hud.health_loss', math.max(1, math.floor(dpop.amount + 0.5)))
+        love.graphics.setColor(1, 0.25, 0.25, 1 - k * k)
+        love.graphics.print(txt, hpX - 16 - font:getWidth(txt),
+            SCREENHEIGHT - 40 - TUNE.hud.popupRise * k)
+        love.graphics.setColor(Color.white())
+    end
 
     local money = T('hud.money', math.floor(self.money))
     love.graphics.print(money, SCREENWIDTH - 20 - font:getWidth(money), SCREENHEIGHT - 70)
@@ -611,17 +638,12 @@ function Player:addMoney(n)
     local before = self.money
     self.money = math.max(0, math.min(self.money + n, TUNE.player.maxMoney))
 
-    -- actual gain (post-double, post-cap) feeds the floating "+$n"; rapid
-    -- earns (shotgun pellets, burn ticks) merge instead of stacking popups
+    -- actual gain (post-double, post-cap) feeds the floating "+$n". Each
+    -- earn shows on its own -- a new one replaces the old, never adds up
     local gained = self.money - before
     if gained > 0 then
         self.earnedTotal = self.earnedTotal + gained
-        local pop = self.moneyPopup
-        if pop then
-            pop.amount, pop.t = pop.amount + gained, 0
-        else
-            self.moneyPopup = { amount = gained, t = 0 }
-        end
+        self.moneyPopup = { amount = gained, t = 0 }
     end
 end
 

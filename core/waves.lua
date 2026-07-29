@@ -97,21 +97,32 @@ function Waves:slamBanner()
     flux.to(self, TUNE.fx.titleSlamTime, { bannerY = 190 }):ease('quartin')
 end
 
--- Spawns follow the player: only points in the CURRENT room are active.
+-- Spawns follow the player: mostly the CURRENT room, and with
+-- TUNE.waves.adjacentRoomChance a room right next door — but only one the
+-- player has already been inside AND that is reachable right now (a locked
+-- door between them means not adjacent; see World:adjacentRooms).
 -- A room without markers falls back to visited rooms, then to every point
 -- (a map without markers must never crash the spawner).
 function Waves:activePoints(world)
-    local inRoom, visited = {}, {}
+    local inRoom, nextDoor, visited = {}, {}, {}
     local current = world.currentRoom and world.currentRoom.name
+    local adjacent = world:adjacentRooms()
     for _, sp in ipairs(self.spawnPoints) do
         if sp.roomName == current then
             table.insert(inRoom, sp)
+        elseif sp.roomName and adjacent[sp.roomName] and world.visitedRooms[sp.roomName] then
+            table.insert(nextDoor, sp)
         end
         if not sp.roomName or world.visitedRooms[sp.roomName] then
             table.insert(visited, sp)
         end
     end
+    if #nextDoor > 0 and #inRoom > 0
+        and love.math.random() < TUNE.waves.adjacentRoomChance then
+        return nextDoor
+    end
     if #inRoom > 0 then return inRoom end
+    if #nextDoor > 0 then return nextDoor end
     if #visited > 0 then return visited end
     return self.spawnPoints
 end

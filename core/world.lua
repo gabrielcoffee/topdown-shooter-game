@@ -133,6 +133,83 @@ function World:roomAt(x, y)
     return self.rooms[1]
 end
 
+-- Rooms you can walk into RIGHT NOW from the current room: flood the current
+-- room's walkable tiles and collect whatever other room the flood spills into.
+-- Unopened doors block the flood, so a room that is only geometrically next
+-- door (Room_4 behind the $1000 door) does NOT count until it's bought.
+-- Result is cached; room switches and door buys clear it.
+function World:adjacentRooms()
+    if self.adjacentCache then return self.adjacentCache end
+
+    local map, ts = self.map, self.map.tileSize
+    local room = self.currentRoom
+    -- only unopened doors block: crates are temporary and get smashed, they
+    -- must not make a room you already walked through look disconnected
+    local blocked = {}
+    for _, e in ipairs(self.entities) do
+        if e.type == 'door' and not e.toRemove then
+            local dc0, dc1 = math.floor(e.x / ts) + 1, math.floor((e.x + e.width - 1) / ts) + 1
+            local dr0, dr1 = math.floor(e.y / ts) + 1, math.floor((e.y + e.height - 1) / ts) + 1
+            for row = dr0, dr1 do
+                for col = dc0, dc1 do blocked[col .. ',' .. row] = true end
+            end
+        end
+    end
+
+    -- room name for a tile (nil = void between rooms)
+    local function roomNameAt(col, row)
+        local x, y = (col - 0.5) * ts, (row - 0.5) * ts
+        for _, r in ipairs(self.rooms) do
+            if x >= r.x and x < r.x + r.w and y >= r.y and y < r.y + r.h then
+                return r.name
+            end
+        end
+    end
+
+    local function walkable(col, row)
+        if col < 1 or col > map.cols or row < 1 or row > map.rows then return false end
+        if blocked[col .. ',' .. row] then return false end
+        local t = map.tileTypes[map.grid[row][col]] or 'ground'
+        return t ~= 'solid' and t ~= 'void'
+    end
+
+    local c0 = math.floor(room.x / ts) + 1
+    local r0 = math.floor(room.y / ts) + 1
+    local c1 = math.floor((room.x + room.w - 1) / ts) + 1
+    local r1 = math.floor((room.y + room.h - 1) / ts) + 1
+
+    -- BFS seeded with every walkable tile of the current room; expansion stops
+    -- at the first tile of another room (so 2-rooms-away never shows up)
+    local found, seen, queue = {}, {}, {}
+    for row = r0, r1 do
+        for col = c0, c1 do
+            if walkable(col, row) then
+                seen[col .. ',' .. row] = true
+                table.insert(queue, { col, row })
+            end
+        end
+    end
+    local head = 1
+    while head <= #queue do
+        local col, row = queue[head][1], queue[head][2]
+        head = head + 1
+        for _, d in ipairs({ {1,0}, {-1,0}, {0,1}, {0,-1} }) do
+            local nc, nr = col + d[1], row + d[2]
+            local k = nc .. ',' .. nr
+            if not seen[k] and walkable(nc, nr) then
+                seen[k] = true
+                local name = roomNameAt(nc, nr)
+                if name and name ~= room.name then
+                    found[name] = true -- neighbour room: mark, don't walk it
+                end
+            end
+        end
+    end
+
+    self.adjacentCache = found
+    return found
+end
+
 -- Starts a Celeste-style transition once enough of the player's hitbox
 -- (TUNE.rooms.enterFraction) is inside a room that isn't the current one.
 -- Walking back needs the same fraction, so the check can't flip-flop.
@@ -304,6 +381,7 @@ function World:openDoor(door)
         self.openedDoors[door.id] = true
     end
     self:removeEntity(door)
+    self.adjacentCache = nil -- a new room just became reachable
 end
 
 function World:addEntity(e)
@@ -369,6 +447,7 @@ function World:update(dt)
         if k >= 1 then
             self.currentRoom = tr.room
             self.visitedRooms[tr.room.name] = true
+            self.adjacentCache = nil
             self.transition = nil
         end
         return
@@ -565,6 +644,7 @@ function World:restore(data)
     -- saved runs can end in any room
     self.currentRoom = self:roomAt(self.player:getCenter())
     self.visitedRooms[self.currentRoom.name] = true
+    self.adjacentCache = nil
 end
 
 return World

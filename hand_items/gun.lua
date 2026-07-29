@@ -407,12 +407,34 @@ function Gun:draw(facingLeft)
     )
 end
 
+-- 0..1 through the current reload beat (shotguns: the open, then each shell),
+-- nil when not reloading
+function Gun:reloadProgress()
+    if not self.reloading then return nil end
+    local dur = self.reloadOpening and (self.reloadOpenTime or 0) or self.reloadingTime
+    if dur <= 0 then return 1 end
+    return math.min(1, self.reloadTimer / dur)
+end
+
 function Gun:drawHud()
     local y = SCREENHEIGHT - 40
-    if self.reloading then
-        love.graphics.print(T('hud.reloading', self.name), 20, y)
-    else
-        love.graphics.print(T('hud.ammo', self.name, self.curClip, self.bulletsLeft), 20, y)
+    local txt = T('hud.ammo', self.name, self.curClip, self.bulletsLeft)
+    love.graphics.print(txt, 20, y)
+
+    -- reloading: a filling bar right of the ammo count (no text swap, so the
+    -- readout never jumps and you still see what's in the gun)
+    local p = self:reloadProgress()
+    if p then
+        local H = TUNE.hud
+        local x = 20 + font:getWidth(txt) + H.reloadBarGap
+        local by = y + (font:getHeight() - H.reloadBarH) / 2
+        love.graphics.setColor(1, 1, 1, 0.25)
+        love.graphics.rectangle('fill', x, by, H.reloadBarW, H.reloadBarH)
+        love.graphics.setColor(1, 1, 1, 0.9)
+        love.graphics.rectangle('fill', x, by, H.reloadBarW * p, H.reloadBarH)
+        love.graphics.setColor(1, 1, 1, 0.5)
+        love.graphics.rectangle('line', x + 0.5, by + 0.5, H.reloadBarW - 1, H.reloadBarH - 1)
+        love.graphics.setColor(1, 1, 1, 1)
     end
 end
 
