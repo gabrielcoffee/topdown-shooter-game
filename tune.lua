@@ -149,7 +149,7 @@ return {
     molotov = { tickDamage = 60, tickInterval = 1, burnTime = 5, -- 60/s x 5 = 300 total
                 playerTickDamage = 20, -- friendly fire: player standing in it takes this per tick
                 blastRadius = 80,  -- same area as the grenade
-                maxRange = 240, throwSpeed = 240,
+                maxRange = 160, throwSpeed = 240, -- shorter throw than the grenade (240)
                 spreadTime = 0.6,  -- secs the fire takes to grow from the impact to full radius
                 maxCarry = 2,      -- stronger per unit than grenades (3)
                 hitReward = 2, killBonus = 10 }, -- hitReward per burn tick

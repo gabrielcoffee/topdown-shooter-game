@@ -53,7 +53,11 @@ function GrenadeAim.draw(world)
     love.graphics.push()
     love.graphics.scale(SCALE, SCALE)
     love.graphics.translate(-world.camX, -world.camY)
-    love.graphics.setColor(1, 1, 1, G.aimAlpha)
+    if player.throwableType == 'molotov' then
+        love.graphics.setColor(1, 0.55, 0.2, G.aimAlpha) -- fire orange
+    else
+        love.graphics.setColor(1, 1, 1, G.aimAlpha)
+    end
 
     -- throw arc: dots march player -> landing point, lifted by the same
     -- parabolic hop the thrown grenade draws with
