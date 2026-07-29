@@ -80,9 +80,11 @@ function Map:wallBetween(ax, ay, bx, by)
 end
 
 -- Footstep material at a pixel: level's surfaces map keyed by tile type,
--- 'dirt' when the level doesn't say
+-- 'dirt' when the level doesn't say. Mud is always dirt, whatever the map's
+-- surface table claims — wet ground squelches the same everywhere.
 function Map:surfaceAt(px, py)
     local t = self:typeAt(px, py)
+    if t == 'mud' then return 'dirt' end
     return (self.surfaces and self.surfaces[t]) or 'dirt'
 end
 
