@@ -25,7 +25,7 @@ Ship date: **August 2, 2026**. A step is done only when built **and** playtested
 
 ## Post-plan additions (2026-07-27)
 - [ ] Economy modes: kills (default) vs hits+kill-bonus, menu selector — **built 2026-07-27**, playtested: _no_
-- [ ] Gun wall-buys (GunWall LDtk entity; Gabriel places them) — **built 2026-07-27**, playtested: _no_
+- [ ] Gun wall-buys (GunWall LDtk entity) — **built 2026-07-27**, placed in map 2026-07-28 (shotgun Room_0, m4a1 Room_1, ak47 Room_2) + PlayerSpawn entity def/instance added to LDtk, playtested: _no_
 - [ ] Power-up drops from glowing runners (nuke/maxammo/instakill/freeze/doublepoints) — **built 2026-07-27**, playtested: _no_
 - [ ] Molotov + ground fire (slot 4 cycles with grenade) — **built 2026-07-27**, playtested: _no_
 - [ ] Pierce buff (pistol/shotgun 3, AK/M4 4) + economy rebalance — **built 2026-07-27**, playtested: _no_
