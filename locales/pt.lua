@@ -41,6 +41,7 @@ return {
 
     ['hud.hp']           = 'HP: %d',
     ['hud.money']        = '$ %d',
+    ['hud.money_gain']   = '+$%d',
     ['hud.ammo']         = '%s  Balas: %d/%d',
     ['hud.reloading']    = '%s  RECARREGANDO...',
     ['hud.gun_pickup']   = 'Aperte E para pegar %s',

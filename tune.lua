@@ -198,6 +198,10 @@ return {
 
     hotbar = { slotSize = 56, gap = 8, bottomMargin = 16 },
 
+    -- floating "+$n" above the money readout; rapid earns (pellets, burn
+    -- ticks) merge into one popup instead of stacking
+    hud = { popupTime = 1.0, popupRise = 18 },
+
     dev = { enabled = true }, -- master switch for the chat console (T)
     chat = {
         showTime = 8,   -- secs a line stays on screen before fading (chat closed)

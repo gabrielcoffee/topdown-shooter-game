@@ -408,10 +408,11 @@ function Gun:draw(facingLeft)
 end
 
 function Gun:drawHud()
+    local y = SCREENHEIGHT - 40
     if self.reloading then
-        love.graphics.print(T('hud.reloading', self.name), 20, 20)
+        love.graphics.print(T('hud.reloading', self.name), 20, y)
     else
-        love.graphics.print(T('hud.ammo', self.name, self.curClip, self.bulletsLeft), 20, 20)
+        love.graphics.print(T('hud.ammo', self.name, self.curClip, self.bulletsLeft), 20, y)
     end
 end
 

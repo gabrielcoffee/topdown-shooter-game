@@ -165,7 +165,7 @@ function HandItem:draw(facingLeft)
 end
 
 function HandItem:drawHud()
-    love.graphics.print(self.name, 20, 20)
+    love.graphics.print(self.name, 20, SCREENHEIGHT - 40)
 end
 
 return HandItem

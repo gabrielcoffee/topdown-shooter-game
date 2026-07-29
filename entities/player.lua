@@ -142,6 +142,12 @@ end
 
 function Player:update(dt, world)
 
+    local pop = self.moneyPopup
+    if pop then
+        pop.t = pop.t + dt
+        if pop.t >= TUNE.hud.popupTime then self.moneyPopup = nil end
+    end
+
     -- FALLING INTO A HOLE: no input until back on ground
     if self.falling then
         self.fallTimer = self.fallTimer + dt
@@ -498,10 +504,22 @@ function Player:drawHitbox()
 end
 
 function Player:drawHud()
-    self.items[self.itemIndex]:drawHud()
+    self.items[self.itemIndex]:drawHud() -- bottom-left: held item + ammo
 
-    love.graphics.print(T('hud.hp', math.max(0, math.floor(self.health))), 20, 50)
-    love.graphics.print(T('hud.money', math.floor(self.money)), 20, 80)
+    -- bottom-right: HP
+    local hp = T('hud.hp', math.max(0, math.floor(self.health)))
+    love.graphics.print(hp, SCREENWIDTH - 20 - font:getWidth(hp), SCREENHEIGHT - 40)
+
+    -- top-left: money, earned amounts float up right above it
+    love.graphics.print(T('hud.money', math.floor(self.money)), 20, 50)
+    local pop = self.moneyPopup
+    if pop then
+        local k = pop.t / TUNE.hud.popupTime
+        love.graphics.setColor(1, 0.85, 0.3, 1 - k * k)
+        love.graphics.print(T('hud.money_gain', math.floor(pop.amount)),
+            20, 26 - TUNE.hud.popupRise * k)
+        love.graphics.setColor(Color.white())
+    end
 
     Hotbar.draw(self)
 
@@ -563,7 +581,20 @@ function Player:addMoney(n)
     if n > 0 and world and world.buffs and world.buffs.doublepoints > 0 then
         n = n * TUNE.powerups.doubleMult
     end
+    local before = self.money
     self.money = math.max(0, math.min(self.money + n, TUNE.player.maxMoney))
+
+    -- actual gain (post-double, post-cap) feeds the floating "+$n"; rapid
+    -- earns (shotgun pellets, burn ticks) merge instead of stacking popups
+    local gained = self.money - before
+    if gained > 0 then
+        local pop = self.moneyPopup
+        if pop then
+            pop.amount, pop.t = pop.amount + gained, 0
+        else
+            self.moneyPopup = { amount = gained, t = 0 }
+        end
+    end
 end
 
 -- Every purchase funnels through here (doors, chest, wall buys)

@@ -453,7 +453,7 @@ function World:draw()
     end
 
     -- active power-up buffs stack under the money readout
-    local by = 110
+    local by = 80
     for _, k in ipairs({ 'instakill', 'freeze', 'doublepoints' }) do
         if self.buffs[k] > 0 then
             love.graphics.setColor(1, 0.85, 0.3)
