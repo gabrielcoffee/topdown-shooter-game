@@ -38,6 +38,10 @@ return {
     ['gameover.title']   = 'YOU DIED',
     ['gameover.restart'] = 'RESTART',
     ['gameover.quit']    = 'QUIT TO MENU',
+    ['gameover.score']       = 'SCORE: %d',
+    ['gameover.record']      = 'BEST: %d',
+    ['gameover.newrecord']   = 'NEW RECORD!',
+    ['gameover.kills']       = 'KILLS: %d',
 
     ['hud.hp']           = 'HP: %d',
     ['hud.money']        = '$ %d',

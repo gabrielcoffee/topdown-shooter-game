@@ -39,6 +39,7 @@ function World:new(opts)
         buffs = { instakill = 0, freeze = 0, doublepoints = 0, firesale = 0 },
         crateSpawns = {}, -- original crate spots, for the carpenter power-up
         pickupToast = nil, -- { text, t } power-up pickup banner
+        kills = 0,        -- zombies downed this run (death screen stat)
         gameOver = false
     }
 
@@ -530,6 +531,7 @@ function World:serialize()
         wave = self.waves.wave,
         economy = self.economy,
         buffs = self.buffs,
+        kills = self.kills,
         openedDoors = self.openedDoors,
         visitedRooms = self.visitedRooms,
         player = self.player:serialize(),
@@ -538,6 +540,7 @@ end
 
 function World:restore(data)
     self.economy = data.economy or self.economy
+    self.kills = data.kills or 0
     if data.buffs then
         for k in pairs(self.buffs) do
             self.buffs[k] = data.buffs[k] or 0

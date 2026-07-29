@@ -6,6 +6,7 @@ local Save = {}
 
 local SETTINGS_FILE = 'settings.lua'
 local RUN_FILE = 'run.lua'
+local BEST_FILE = 'best.lua'
 
 -- Serialize a plain table of numbers/strings/booleans (nested ok, no cycles)
 local function serialize(v, indent)
@@ -95,6 +96,17 @@ function Save.loadSettings()
         fullscreen = s.fullscreen == nil and false or s.fullscreen,
         crtInGame = s.crtInGame == nil and false or s.crtInGame,
     }
+end
+
+-- Best (all-time records shown on the death screen) ------------------------
+
+function Save.loadBest()
+    local b = readFile(BEST_FILE) or {}
+    return { score = b.score or 0, kills = b.kills or 0 }
+end
+
+function Save.saveBest(b)
+    writeFile(BEST_FILE, b)
 end
 
 -- Run (single slot) --------------------------------------------------------

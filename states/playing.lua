@@ -79,6 +79,12 @@ function playing:mousereleased(x, y, btn)
     Chat.mousereleased(x, y, btn)
 end
 
+-- Wheel up = previous slot, wheel down = next (Minecraft direction)
+function playing:wheelmoved(_, dy)
+    if Chat.open or dy == 0 or world.gameOver then return end
+    world.player:scrollSlot(dy > 0 and -1 or 1)
+end
+
 function playing:keypressed(key)
     if Chat.open then
         Chat.keypressed(key)

@@ -85,18 +85,17 @@ function HandItem:swing(aimAngle, player, world)
     return true
 end
 
--- Slot-4 throwable. kind 'he' (default) or 'molotov'; the molotov reuses the
--- grenade art tinted orange until real sprites exist.
+-- Slot-4 throwable. kind 'he' (default) or 'molotov'.
 function HandItem:newGrenade(kind)
     kind = kind or 'he'
+    local molotov = kind == 'molotov'
     local obj = {
-        name = kind == 'molotov' and 'Molotov' or 'M67 Frag',
+        name = molotov and 'Molotov' or 'M67 Frag',
         x = 0, y = 0,
         ox = 4, oy = 15,
         angle = 0,
-        sprite = Assets.quads.held_grenade[1],
-        icon = Assets.quads.grenade[1],
-        iconTint = kind == 'molotov' and { 1, 0.55, 0.2 } or nil,
+        sprite = Assets.quads[molotov and 'held_molotov' or 'held_grenade'][1],
+        icon = Assets.quads[molotov and 'molotov' or 'grenade'][1],
         static = true,
         throwKind = kind,
         isThrowable = true,
@@ -152,10 +151,6 @@ function HandItem:draw(facingLeft)
         return
     end
 
-    if self.iconTint then -- molotov placeholder: same art, orange tint
-        local t = self.iconTint
-        love.graphics.setColor(t[1], t[2], t[3])
-    end
     love.graphics.draw(
         Assets.spritesheet, self.sprite,
         math.floor(self.x), math.floor(self.y),

@@ -58,6 +58,7 @@ Assets.quads = {
     pistol = loadQuads(0, 32, 32, 32, 1),
     medkit = loadQuads(64, 32, 32, 32, 1),
     grenade = loadQuads(0, 64, 32, 32, 1),
+    molotov = loadQuads(64, 64, 32, 32, 1),
     knife = loadQuads(0, 96, 32, 32, 1),
 
     ak47 = loadQuads(0, 128, 64, 32, 1),
@@ -67,6 +68,7 @@ Assets.quads = {
     held_pistol = loadQuads(32, 32, 32, 32, 1),
     held_medkit = loadQuads(96, 32, 32, 32, 1),
     held_grenade = loadQuads(32, 64, 32, 32, 1),
+    held_molotov = loadQuads(96, 64, 32, 32, 1),
     held_knife = loadQuads(32, 96, 32, 32, 1),
 
     held_ak47 = loadQuads(64, 128, 64, 32, 1),

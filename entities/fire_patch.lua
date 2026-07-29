@@ -1,9 +1,10 @@
 -- Ground fire left by a molotov. Spreads from the impact point to
 -- molotov.blastRadius over spreadTime, burns for burnTime, and once per
--- tickInterval damages every zombie (and crate) inside the current radius —
--- with line of sight from the center, so fire never burns through solid
--- walls. Visuals are per-frame particle bursts (Vfx.fire) + a flickering
--- point light; the entity itself draws nothing.
+-- tickInterval damages every zombie, crate AND the player inside the current
+-- radius — with line of sight from the center, so fire never burns through
+-- solid walls. Player burns ignore contact invuln (zone denial: standing in
+-- fire keeps hurting). Visuals are per-frame particle bursts (Vfx.fire) + a
+-- flickering point light; the entity itself draws nothing.
 
 local Entity = require('entities.entity')
 
@@ -60,6 +61,9 @@ function FirePatch:update(dt, world)
                         e.health = e.health - M.tickDamage
                         e.flash = true
                         if e.health <= 0 then world:removeEntity(e) end
+                    elseif e.isPlayer and not e.falling and not e.godMode then
+                        e.health = e.health - M.playerTickDamage
+                        e.flashTimer = TUNE.player.hitFlashTime
                     end
                 end
             end

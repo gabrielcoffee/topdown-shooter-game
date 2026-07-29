@@ -17,6 +17,16 @@ function gameover:enter()
     love.mouse.setVisible(true)
     Save.deleteRun()
 
+    -- run stats vs the all-time record (world is still frozen underneath)
+    self.score = math.floor(world.player.earnedTotal or 0)
+    self.kills = world.kills or 0
+    local best = Save.loadBest()
+    self.newRecord = self.score > best.score
+    self.best = math.max(best.score, self.score)
+    if self.newRecord or self.kills > best.kills then
+        Save.saveBest({ score = self.best, kills = math.max(best.kills, self.kills) })
+    end
+
     Fx.flash(0.55, 0.02, 0.02, 0.35)
 
     self.titleY = -160
@@ -46,6 +56,21 @@ function gameover:draw()
     love.graphics.setColor(1, 1, 1)
 
     Theme.drawTitle(T('gameover.title'), self.titleY)
+
+    -- run stats: score / record / kills, record goes gold on a new best
+    local function centered(text, y, r, g, b)
+        love.graphics.setColor(r, g, b)
+        love.graphics.print(text, SCREENWIDTH / 2 - font:getWidth(text) / 2, y)
+    end
+    centered(T('gameover.score', self.score), 430, 1, 1, 1)
+    if self.newRecord then
+        centered(T('gameover.newrecord'), 466, 1, 0.85, 0.3)
+    else
+        centered(T('gameover.record', self.best), 466, 1, 0.85, 0.3)
+    end
+    centered(T('gameover.kills', self.kills), 502, 0.8, 0.8, 0.8)
+    love.graphics.setColor(1, 1, 1)
+
     self.list:draw()
     Particles.drawEmbers()
 end

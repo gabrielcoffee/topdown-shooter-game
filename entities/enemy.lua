@@ -53,6 +53,7 @@ local function newTyped(x, y, wave, t, color)
     obj.speed = t.speed
     obj.health = waveLife(wave or 1) * t.lifeMult
     obj.color = color
+    obj.damage = t.damage or TUNE.zombies.contactDamage
     obj.breaksCrates = t.breaksCrates or false
     obj.losShortcut = t.losShortcut or false
 
@@ -223,6 +224,7 @@ function Enemy:update(dt, world)
     if self.health <= 0 then
         if not self.toRemove then
             self.toRemove = true
+            world.kills = (world.kills or 0) + 1 -- every death path lands here
             local dx, dy = self:getCenter()
             -- nukedSilent: a nuke wipe skips per-zombie SFX (audio pool
             -- flood) and carriers caught in it don't drop fresh power-ups

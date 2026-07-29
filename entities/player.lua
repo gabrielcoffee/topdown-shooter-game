@@ -46,6 +46,7 @@ function Player:new(x, y, width, height)
 
     obj.speed = TUNE.player.baseSpeed
     obj.money = TUNE.player.startMoney
+    obj.earnedTotal = 0 -- lifetime run earnings = the score (spending doesn't shrink it)
     obj.isPlayer = true
     obj.lastGroundX, obj.lastGroundY = x, y
     obj.leftReleased = true
@@ -137,6 +138,18 @@ function Player:selectSlot(i)
     -- switching to an empty gun starts its reload right away
     if newItem.isGun and newItem.curClip <= 0 then
         newItem:reload()
+    end
+end
+
+-- Mouse wheel: step to the next/prev valid slot, wrapping (Minecraft-style)
+function Player:scrollSlot(dir)
+    local i = self.itemIndex
+    for _ = 1, 4 do
+        i = (i - 1 + dir) % 5 + 1
+        if self:slotValid(i) then
+            self:selectSlot(i)
+            return
+        end
     end
 end
 
@@ -589,6 +602,7 @@ function Player:addMoney(n)
     -- earns (shotgun pellets, burn ticks) merge instead of stacking popups
     local gained = self.money - before
     if gained > 0 then
+        self.earnedTotal = self.earnedTotal + gained
         local pop = self.moneyPopup
         if pop then
             pop.amount, pop.t = pop.amount + gained, 0
@@ -660,6 +674,7 @@ function Player:serialize()
     return {
         health = self.health,
         money = self.money,
+        earnedTotal = self.earnedTotal,
         itemIndex = self.itemIndex,
         lastGunSlot = self.lastGunSlot,
         grenades = self.grenades,
@@ -673,6 +688,7 @@ end
 function Player:restore(data)
     self.health = data.health or self.health
     self.money = math.max(0, math.min(data.money or self.money, TUNE.player.maxMoney))
+    self.earnedTotal = data.earnedTotal or self.money -- old saves: money is the best guess
 
     -- pre-hotbar saves only carry health/money; keep the default loadout
     if not data.gunSlots then return end

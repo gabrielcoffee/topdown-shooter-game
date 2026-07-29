@@ -116,6 +116,10 @@ function love.keypressed(key)
     State.keypressed(key)
 end
 
+function love.wheelmoved(dx, dy)
+    State.wheelmoved(dx, dy)
+end
+
 function love.textinput(t)
     State.textinput(t)
 end

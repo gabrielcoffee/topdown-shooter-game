@@ -20,7 +20,7 @@ function ThrownMolotov:new(x, y, targetX, targetY)
     obj.dy = (targetY - y) / obj.dist
     obj.travelled = 0
     obj.age = 0
-    obj.sprite = Assets.quads.grenade[1] -- placeholder art, tinted in draw
+    obj.sprite = Assets.quads.molotov[1]
 
     setmetatable(obj, ThrownMolotov)
     return obj
@@ -51,13 +51,11 @@ function ThrownMolotov:draw()
     local progress = math.min(1, self.travelled / self.dist)
     local arc = math.sin(progress * math.pi) * math.min(24, self.dist * 0.2)
 
-    love.graphics.setColor(1, 0.55, 0.2) -- placeholder tint = molotov
     love.graphics.draw(
         Assets.spritesheet, self.sprite,
         math.floor(self.x), math.floor(self.y - arc),
         self.age * 10, 0.6, 0.6, 16, 16
     )
-    love.graphics.setColor(1, 1, 1)
 end
 
 return ThrownMolotov

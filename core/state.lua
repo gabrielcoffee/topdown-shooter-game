@@ -128,4 +128,10 @@ function State.mousereleased(x, y, btn)
     if s and s.mousereleased then s:mousereleased(x, y, btn) end
 end
 
+function State.wheelmoved(dx, dy)
+    if fade then return end
+    local s = State.current()
+    if s and s.wheelmoved then s:wheelmoved(dx, dy) end
+end
+
 return State

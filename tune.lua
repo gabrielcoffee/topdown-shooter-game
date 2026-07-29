@@ -148,6 +148,7 @@ return {
     -- and burns for burnTime, ticking tickDamage per second per zombie inside
     -- (line of sight checked — fire never burns through solid walls)
     molotov = { tickDamage = 60, tickInterval = 1, burnTime = 5, -- 60/s x 5 = 300 total
+                playerTickDamage = 20, -- friendly fire: player standing in it takes this per tick
                 blastRadius = 80,  -- same area as the grenade
                 maxRange = 240, throwSpeed = 240,
                 spreadTime = 0.6,  -- secs the fire takes to grow from the impact to full radius
@@ -328,7 +329,7 @@ return {
     },
 
     zombies = {
-        contactDamage = 25,   -- all types
+        contactDamage = 25,   -- fallback when a type has no damage of its own
         contactCooldown = 1.0, -- secs between hits, per zombie
         attackRange = 6,      -- px beyond touching circles where a hit lands
         growlMin = 6, growlMax = 16, -- secs between random growls, per zombie
@@ -342,9 +343,10 @@ return {
         -- blocks the way; false = A* treats crates as walls and goes around.
         -- losShortcut: clear straight line to the player = walk it directly
         -- (no A*, no grid corners); blocked line falls back to normal A*
-        slow   = { speed = 30, lifeMult = 1,    size = 48, losShortcut = true },
-        normal = { speed = 60, lifeMult = 0.5,  size = 32, breaksCrates = true },
-        fast   = { speed = 90, lifeMult = 0.25, size = 21, breaksCrates = true },
+        -- damage = contact hit on the player (slow hits hardest, fast lightest)
+        slow   = { speed = 30, lifeMult = 1,    size = 48, damage = 25, losShortcut = true },
+        normal = { speed = 60, lifeMult = 0.5,  size = 32, damage = 20, breaksCrates = true },
+        fast   = { speed = 90, lifeMult = 0.25, size = 21, damage = 15, breaksCrates = true },
     },
 
     waves = {
@@ -356,8 +358,8 @@ return {
         lifeGrowth = 1.1,       -- ...then x this per wave afterwards
 
         spawnDelayStart = 2,    -- secs between spawns on wave 1
-        spawnDelayDecay = 0.9,  -- delay multiplied by this each wave
-        spawnDelayFloor = 0.3,  -- delay never drops below this
+        spawnDelayDecay = 0.96, -- delay multiplied by this each wave (0.96 = slow creep)
+        spawnDelayFloor = 0.5,  -- delay never drops below this
 
         startIntermission = 5,  -- secs of "WAVE N" banner before spawning starts
         endIntermission = 5,    -- secs of "WAVE COMPLETE" before the next wave
