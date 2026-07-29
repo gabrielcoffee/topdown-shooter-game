@@ -42,6 +42,13 @@ Assets.spritesheet = love.graphics.newImage('assets/spritesheet.png')
 Assets.bg_dust = love.graphics.newImage('assets/images/bg_dust.png')
 Assets.bg_dust:setWrap("repeat", "repeat")
 
+-- neon shop signs for the wall buys (64x32, drawn as-is over the wall)
+Assets.wallArt = {
+    ak47 = love.graphics.newImage('assets/ak_wall.png'),
+    m4a1 = love.graphics.newImage('assets/m4_wall.png'),
+    shotgun = love.graphics.newImage('assets/shotgun_wall.png'),
+}
+
 -- Quads for the images
 Assets.quads = {
     player = loadQuads(0, 0, 32, 32, 4),

@@ -51,19 +51,25 @@ end
 function GunWall:draw()
     local x, y = math.floor(self.x), math.floor(self.y)
 
-    -- dark mounting plate so the ghosted gun reads against any floor/wall
-    love.graphics.setColor(0.16, 0.16, 0.2)
-    love.graphics.rectangle('fill', x, y, self.width, self.height)
-    love.graphics.setColor(0.05, 0.05, 0.08)
-    love.graphics.rectangle('line', x, y, self.width, self.height)
+    local art = Assets.wallArt[self.gunId]
+    if art then
+        -- Gabriel's neon sign art: wider than the tile, centered on it
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.draw(art, x + (self.width - art:getWidth()) / 2, y)
+    else
+        -- no sign art (usp): dark plate + ghosted spritesheet gun
+        love.graphics.setColor(0.16, 0.16, 0.2)
+        love.graphics.rectangle('fill', x, y, self.width, self.height)
+        love.graphics.setColor(0.05, 0.05, 0.08)
+        love.graphics.rectangle('line', x, y, self.width, self.height)
 
-    -- the gun itself, chalk-outline style (faded), scaled to fit the tile
-    local quad = Assets.quads[Gun.quadName(self.gunId)][1]
-    local _, _, qw, qh = quad:getViewport()
-    local s = math.min((self.width - 4) / qw, (self.height - 4) / qh)
-    love.graphics.setColor(1, 1, 1, 0.55)
-    love.graphics.draw(Assets.spritesheet, quad,
-        x + self.width / 2, y + self.height / 2, 0, s, s, qw / 2, qh / 2)
+        local quad = Assets.quads[Gun.quadName(self.gunId)][1]
+        local _, _, qw, qh = quad:getViewport()
+        local s = math.min((self.width - 4) / qw, (self.height - 4) / qh)
+        love.graphics.setColor(1, 1, 1, 0.55)
+        love.graphics.draw(Assets.spritesheet, quad,
+            x + self.width / 2, y + self.height / 2, 0, s, s, qw / 2, qh / 2)
+    end
 
     local txt = '$' .. self.price
     love.graphics.setFont(smallFont)
