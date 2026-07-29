@@ -32,6 +32,12 @@ function playing:enter(opts)
     Audio.playAmbience(world.ambience)
 end
 
+-- leaving the run: critical-health overlay + heartbeat must not follow us out
+function playing:exit()
+    Fx.setLowHealth(false)
+    Audio.setLowHealth(false)
+end
+
 function playing:update(dt)
     -- OS cursor off in gameplay: the crosshair IS the cursor. Set every frame
     -- so popping back from pause/options (which show the cursor) restores it.

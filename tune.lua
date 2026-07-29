@@ -276,8 +276,8 @@ return {
 
         -- critical health (player.lowHealthThreshold): everything ducks,
         -- the heartbeat loop plays at full volume
-        lowHealthDuck = 0.45,
-        heartbeatGain = 0.9,
+        lowHealthDuck = 0.5,
+        heartbeatGain = 1.0,
 
         -- ambience: looping bed + sparse positional one-shots
         bedGain = 0.7,
@@ -301,6 +301,7 @@ return {
         grainOpacity = 0.25,
         damageVignetteTime = 0.45,   -- secs the red hit vignette takes to fade
         damageVignetteOpacity = 0.6, -- red rim strength at the moment of the hit
+        lowHealthVignetteOpacity = 0.5, -- constant red rim while at critical health
 
         -- menu animation
         titleSlamTime = 0.55, -- secs for the title to slam down

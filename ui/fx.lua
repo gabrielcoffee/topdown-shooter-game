@@ -101,10 +101,20 @@ function Fx.damageVignette()
     dmg.t = TUNE.fx.damageVignetteTime
 end
 
+-- Critical health: constant red rim until healed (driven by World:update)
+local lowHealth = false
+function Fx.setLowHealth(on)
+    lowHealth = on
+end
+
 -- Drawn on top of the shader chain (flash stays undistorted)
 function Fx.drawOverlays()
-    if dmg.t > 0 and dmgImage then
-        local a = (dmg.t / TUNE.fx.damageVignetteTime) * TUNE.fx.damageVignetteOpacity
+    -- red rim: constant floor while at critical health, hit pulse on top
+    local a = lowHealth and TUNE.fx.lowHealthVignetteOpacity or 0
+    if dmg.t > 0 then
+        a = math.max(a, (dmg.t / TUNE.fx.damageVignetteTime) * TUNE.fx.damageVignetteOpacity)
+    end
+    if a > 0 and dmgImage then
         love.graphics.setColor(1, 1, 1, a)
         love.graphics.draw(dmgImage, 0, 0, 0,
             SCREENWIDTH / dmgImage:getWidth(), SCREENHEIGHT / dmgImage:getHeight())

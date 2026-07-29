@@ -442,9 +442,12 @@ function World:update(dt)
         self.gameOver = true
     end
 
-    -- critical health: world ducks, heartbeat runs (off again on death)
-    Audio.setLowHealth(self.player.health > 0
-        and self.player.health <= TUNE.player.lowHealthThreshold)
+    -- critical health: world ducks, heartbeat runs, red rim stays on screen
+    -- (all off again on death or heal)
+    local critical = self.player.health > 0
+        and self.player.health <= TUNE.player.lowHealthThreshold
+    Audio.setLowHealth(critical)
+    require('ui.fx').setLowHealth(critical)
 end
 
 function World:draw()
