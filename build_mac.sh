@@ -19,4 +19,8 @@ cp dist/DEADWAVE.love dist/DEADWAVE.app/Contents/Resources/
     dist/DEADWAVE.app/Contents/Info.plist 2>/dev/null || true
 codesign --force --deep --sign - dist/DEADWAVE.app
 
-echo "Built dist/DEADWAVE.app + dist/DEADWAVE.love"
+# zip of the .app for itch upload (ditto keeps signature + Finder metadata)
+rm -f dist/DEADWAVE.zip
+ditto -c -k --sequesterRsrc --keepParent dist/DEADWAVE.app dist/DEADWAVE.zip
+
+echo "Built dist/DEADWAVE.app + dist/DEADWAVE.love + dist/DEADWAVE.zip"
