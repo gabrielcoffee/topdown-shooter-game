@@ -1,8 +1,9 @@
 -- CS-style crosshair: 4 chips that open with the current spread (movement +
--- recoil) and close when standing still. Never drawn past where the held
--- gun's bullets can actually reach. Color (white/green) + outline come from
--- SETTINGS, geometry and feel from TUNE.crosshair. Drawn at SCALE so the
--- chips stay pixel-art sized.
+-- recoil) and close when standing still, always at the mouse. When the mouse
+-- sits past the held gun's bullet reach, a faded fixed-gap marker shows where
+-- the bullet really stops. Color (white/green) + outline come from SETTINGS,
+-- geometry and feel from TUNE.crosshair. Drawn at SCALE so the chips stay
+-- pixel-art sized.
 
 local Crosshair = {}
 
@@ -97,9 +98,10 @@ function Crosshair.draw(world)
     local g = gap or K.gapMin
     local mx, my = require('ui.screen').mouse()
 
-    -- the crosshair never sits past the bullet's actual reach; when the mouse
-    -- is further out, a faded no-spread copy marks the real mouse position
-    local ghostX, ghostY
+    -- the full crosshair (spread chips) always follows the mouse; when the
+    -- mouse sits past the bullet's actual reach, a faded no-spread marker
+    -- shows where the bullet really stops
+    local reachX, reachY
     if held and held.isGun then
         local pcx, pcy = player:getCenter()
         local sx = (pcx - world.camX) * SCALE
@@ -108,15 +110,14 @@ function Crosshair.draw(world)
         local dx, dy = mx - sx, my - sy
         local dist = math.sqrt(dx * dx + dy * dy)
         if dist > reach then
-            ghostX, ghostY = mx, my
-            mx = sx + dx / dist * reach
-            my = sy + dy / dist * reach
+            reachX = sx + dx / dist * reach
+            reachY = sy + dy / dist * reach
         end
     end
 
     drawChips(mx, my, g, alpha)
-    if ghostX then
-        drawChips(ghostX, ghostY, K.gapMin, alpha * K.ghostAlpha)
+    if reachX then
+        drawChips(reachX, reachY, K.gapMin, alpha * K.ghostAlpha)
     end
     love.graphics.setColor(1, 1, 1)
 end
