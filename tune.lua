@@ -85,7 +85,7 @@ return {
                      reloadOpenTime = 0.4, reserve = 32,
                      pumpDelay = 0.12, pumpAnimTime = 0.22,
                      pellets = 14, spread = 0.20, maxHits = 3, -- damage is per pellet
-                     hitReward = 1, killBonus = 20, -- hitReward is per PELLET hit
+                     hitReward = 1, killBonus = 10, -- hitReward is per PELLET hit
                      baseSpread = 0.025, moveSpread = 0.180, recoilPerShot = 0.080, recoilMax = 0.16, recoilDelay = 0.40, recoilRecover = 0.40 },
     },
 
@@ -121,7 +121,7 @@ return {
         settleTime = 0.085, -- secs to swing from run pose to real aim (~5 frames)
     },
 
-    knife   = { damage = 60,  hitReward = 20, killBonus = 50,
+    knife   = { damage = 60,  hitReward = 20, killBonus = 20,
                 -- knife pays most per hit: risk close = get paid
                 range = 44,          -- arc reach from player center, px
                 arcDeg = 110,        -- swing arc width, degrees (aiming matters)
@@ -132,7 +132,7 @@ return {
                 knockbackDecay = 8,  -- higher = shove stops sooner
                 hitstop = 0.04,      -- secs the world freezes on connect
                 hitstopKill = 0.09 },-- bigger freeze when the swing kills
-    grenade = { damage = 120, hitReward = 5, killBonus = 10,
+    grenade = { damage = 120, hitReward = 10, killBonus = 20,
                 throwSpeed = 240,  -- px/sec toward the aim point
                 fuse = 1.2,        -- secs from throw to blast
                 blastRadius = 80,  -- world px; flat damage inside
@@ -154,7 +154,7 @@ return {
                 maxRange = 160, throwSpeed = 240, -- shorter throw than the grenade (240)
                 spreadTime = 0.6,  -- secs the fire takes to grow from the impact to full radius
                 maxCarry = 2,      -- stronger per unit than grenades (3)
-                hitReward = 2, killBonus = 10 }, -- hitReward per burn tick
+                hitReward = 4, killBonus = 10 }, -- hitReward per burn tick
 
     healthpack = { healAmount = 50 },
 
