@@ -519,18 +519,21 @@ end
 function Player:drawHud()
     self.items[self.itemIndex]:drawHud() -- bottom-left: held item + ammo
 
-    -- bottom-right: HP
+    -- bottom-right stack: HP on the bottom line, money right above it,
+    -- earned "+$n" floating up above both
     local hp = T('hud.hp', math.max(0, math.floor(self.health)))
     love.graphics.print(hp, SCREENWIDTH - 20 - font:getWidth(hp), SCREENHEIGHT - 40)
 
-    -- top-left: money, earned amounts float up right above it
-    love.graphics.print(T('hud.money', math.floor(self.money)), 20, 50)
+    local money = T('hud.money', math.floor(self.money))
+    love.graphics.print(money, SCREENWIDTH - 20 - font:getWidth(money), SCREENHEIGHT - 70)
+
     local pop = self.moneyPopup
     if pop then
         local k = pop.t / TUNE.hud.popupTime
+        local txt = T('hud.money_gain', math.floor(pop.amount))
         love.graphics.setColor(1, 0.85, 0.3, 1 - k * k)
-        love.graphics.print(T('hud.money_gain', math.floor(pop.amount)),
-            20, 26 - TUNE.hud.popupRise * k)
+        love.graphics.print(txt, SCREENWIDTH - 20 - font:getWidth(txt),
+            SCREENHEIGHT - 94 - TUNE.hud.popupRise * k)
         love.graphics.setColor(Color.white())
     end
 
@@ -562,13 +565,13 @@ function Player:drawHud()
             elseif self.money >= w.ammoPrice then
                 prompt = T('hud.wallbuy_ammo', name, w.ammoPrice)
             else
-                prompt = T('hud.wallbuy_poor', w.ammoPrice)
+                prompt = T('hud.wallbuy_poor', name, w.ammoPrice)
                 red = true
             end
         elseif self.money >= w.price then
             prompt = T('hud.wallbuy_buy', name, w.price)
         else
-            prompt = T('hud.wallbuy_poor', w.price)
+            prompt = T('hud.wallbuy_poor', name, w.price)
             red = true
         end
     elseif self.touchingDoor then

@@ -21,7 +21,7 @@ return {
         headOffsetX = 16,     -- head center, px from sprite left (centered)
         headOffsetY = 8,      -- head center, px from sprite top  (upper area)
         hitFlashTime = 0.12,  -- secs the sprite flashes white when hit
-        contactInvulnTime = 0.4, -- secs of invulnerability after a zombie contact hit
+        contactInvulnTime = 0.5, -- secs of invulnerability (sprite blinks) after a zombie contact hit
         switchDelay = 0.3,    -- secs after a weapon swap before it can act (blocks quick-switch)
     },
 
@@ -173,7 +173,7 @@ return {
         pickupPad = 6,        -- px around the drop where walking over grabs it
         nukeMoney = 400,      -- flat cash for a nuke (both modes)
         instakillTime = 30,   -- secs every weapon one-shots
-        freezeTime = 10,      -- secs zombies can't move or attack
+        freezeTime = 30,      -- secs zombies can't move or attack
         doublePointsTime = 30, doubleMult = 2,
         fireSaleCost = 50,    -- mystery box price while fire sale runs
         fireSaleTime = 30,    -- secs the sale lasts

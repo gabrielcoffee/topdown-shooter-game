@@ -59,8 +59,9 @@ return {
 
     ['hud.wallbuy_buy']   = 'Aperte E para comprar %s - $%d',
     ['hud.wallbuy_ammo']  = 'Aperte E: munição de %s - $%d',
-    ['hud.wallbuy_poor']  = 'Precisa de $%d',
+    ['hud.wallbuy_poor']  = '%s - Precisa de $%d',
     ['hud.wallbuy_full']  = 'Munição de %s cheia',
+    ['hud.round']         = 'R: %d',
 
     ['powerup.nuke']         = 'BOMBA',
     ['powerup.maxammo']      = 'MUNIÇÃO MÁXIMA',

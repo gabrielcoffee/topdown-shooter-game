@@ -490,8 +490,12 @@ function World:draw()
         entity:drawHud()
     end
 
-    -- active power-up buffs stack under the money readout
-    local by = 80
+    -- round counter, top-right
+    local round = T('hud.round', self.waves.wave)
+    love.graphics.print(round, SCREENWIDTH - 20 - font:getWidth(round), 20)
+
+    -- active power-up buffs stack down the top-left
+    local by = 20
     for _, k in ipairs({ 'instakill', 'freeze', 'doublepoints', 'firesale' }) do
         if self.buffs[k] > 0 then
             love.graphics.setColor(1, 0.85, 0.3)
