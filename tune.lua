@@ -22,6 +22,8 @@ return {
         headOffsetY = 8,      -- head center, px from sprite top  (upper area)
         hitFlashTime = 0.12,  -- secs the sprite flashes white when hit
         contactInvulnTime = 0.5, -- secs of invulnerability (sprite blinks) after a zombie contact hit
+        hurtCueCooldown = 0.5,   -- secs between hurt grunt + red vignette cues
+        lowHealthThreshold = 25, -- at or below: sounds duck + heartbeat loop
         switchDelay = 0.3,    -- secs after a weapon swap before it can act (blocks quick-switch)
     },
 
@@ -272,6 +274,11 @@ return {
         muffleHighgain = 0.12, -- how much treble survives the pause lowpass
         muffleDuck = 0.5,      -- ambience volume multiplier while paused
 
+        -- critical health (player.lowHealthThreshold): everything ducks,
+        -- the heartbeat loop plays at full volume
+        lowHealthDuck = 0.45,
+        heartbeatGain = 0.9,
+
         -- ambience: looping bed + sparse positional one-shots
         bedGain = 0.7,
         stingerMin = 15, stingerMax = 40, -- secs between stingers
@@ -292,6 +299,8 @@ return {
         glowMinLuma = 0.6,      -- only pixels brighter than this bloom (menus)
         vignetteOpacity = 0.55,
         grainOpacity = 0.25,
+        damageVignetteTime = 0.45,   -- secs the red hit vignette takes to fade
+        damageVignetteOpacity = 0.6, -- red rim strength at the moment of the hit
 
         -- menu animation
         titleSlamTime = 0.55, -- secs for the title to slam down
@@ -314,7 +323,13 @@ return {
     },
 
     lighting = {
-        ambient = 0.40,       -- world brightness with no lights (0 = pitch black)
+        -- world brightness with no lights (0 = pitch black). Player-facing:
+        -- the options menu BRIGHTNESS slider picks within [min, max] in
+        -- fixed steps; ambient is only the default for fresh settings.
+        ambient = 0.25,
+        brightnessMin = 0.10,  -- slider floor ("DARK")
+        brightnessMax = 0.40,  -- slider ceiling ("BRIGHT")
+        brightnessStep = 0.02, -- slider snap grid
         playerRange = 230,    -- player light radius, world px
         playerBright = 0.40,  -- player light intensity (1 = blinding white)
         muzzleRange = 210,    -- muzzle flash light radius
@@ -324,7 +339,7 @@ return {
         torchRange = 190,       -- torch tile light radius, world px
         torchBright = 0.6,      -- torch light intensity
         torchFlickerSpeed = 7,  -- flicker rate (noise samples/sec)
-        torchFlickerDepth = 0.3, -- how much the flicker moves the range (0-1)
+        torchFlickerDepth = 0.1, -- how much the flicker moves the range (0-1)
     },
 
     zombies = {

@@ -30,3 +30,7 @@ All files converted to mono WAV (positional) or stereo OGG (ambient beds), renam
 Gabriel records these. Drop mono files into `assets/sounds/zombies/` named:
 `zombie_growl1.wav, zombie_growl2.wav, ... zombie_attack1.wav, ... zombie_death1.wav, ...`
 They auto-register at boot; the game already calls them (silent until files exist).
+
+## Player hurt + heartbeat (added 2026-07-28)
+- **hurt1-3** (player pain grunts): sliced from "grunts of male death and pain" by thebardofblasphemy (CC0) — https://opengameart.org/content/grunts-male-death-and-pain
+- **heartbeat** (low-health loop): "Heartbeat sounds" by bart (CC0), fast loop variant — https://opengameart.org/content/heartbeat-sounds

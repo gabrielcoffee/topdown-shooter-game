@@ -48,6 +48,10 @@ local files = {
     knife_hit1     = 'assets/sounds/effects/knife_hit1.wav',
     knife_hit2     = 'assets/sounds/effects/knife_hit2.wav',
     grenade_blast  = 'assets/sounds/effects/grenade_blast.wav',
+    -- player pain grunts (random via the 'hurt' group)
+    hurt1          = 'assets/sounds/effects/hurt1.wav',
+    hurt2          = 'assets/sounds/effects/hurt2.wav',
+    hurt3          = 'assets/sounds/effects/hurt3.wav',
 }
 
 -- dirs scanned at load: every audio file registers by its bare name
@@ -67,6 +71,13 @@ local srcWorld = {}   -- Source -> true: world one-shot (freezes with the pause)
 setmetatable(srcWorld, { __mode = 'k' })
 local pausedWorld = {} -- sources paused by the pause muffle, resumed on unpause
 local muffled = false  -- pause-muffle state, read by applyVolumes (bed duck)
+local lowHealth = false -- ≤25hp state: ducks the world, runs the heartbeat
+local heartbeat = nil   -- dedicated looping source, never ducked
+
+-- world duck while at critical health (heartbeat stays full)
+local function duckMult()
+    return lowHealth and TUNE.audio.lowHealthDuck or 1
+end
 
 -- run-start fade-in: multiplies every gameplay volume, rises 0 -> 1 over dur
 local fade = { mult = 1, t = 0, dur = 0 }
@@ -164,7 +175,8 @@ function Audio.play(name, gain, noFade)
     srcGain[src] = gain or 1
     srcNoFade[src] = noFade or nil
     srcWorld[src] = nil
-    src:setVolume(Audio.master * Audio.sfx * (gain or 1) * (noFade and 1 or fade.mult))
+    src:setVolume(Audio.master * Audio.sfx * (gain or 1)
+        * (noFade and 1 or fade.mult * duckMult()))
     src:play()
     return src
 end
@@ -196,7 +208,7 @@ function Audio.playAt(name, x, y, gain, jitter, world)
     srcGain[src] = gain or 1
     srcNoFade[src] = nil
     srcWorld[src] = true
-    src:setVolume(Audio.master * Audio.sfx * (gain or 1) * fade.mult)
+    src:setVolume(Audio.master * Audio.sfx * (gain or 1) * fade.mult * duckMult())
     src:play()
     return src
 end
@@ -251,6 +263,7 @@ function Audio.playAmbience(set)
 end
 
 function Audio.stopAmbience()
+    Audio.setLowHealth(false) -- leaving a run must kill the heartbeat + duck
     if ambience.bed then ambience.bed:stop() end
     ambience.bed, ambience.set = nil, nil
 end
@@ -260,15 +273,42 @@ local function applyVolumes()
     for _, pool in pairs(pools) do
         for _, s in ipairs(pool) do
             if s:isPlaying() and not srcNoFade[s] then
-                s:setVolume(Audio.master * Audio.sfx * (srcGain[s] or 1) * fade.mult)
+                s:setVolume(Audio.master * Audio.sfx * (srcGain[s] or 1)
+                    * fade.mult * duckMult())
             end
         end
     end
     if ambience.bed then
         -- the pause duck survives volume changes made from the pause menu
         ambience.bed:setVolume(Audio.master * Audio.music * TUNE.audio.bedGain * fade.mult
-            * (muffled and TUNE.audio.muffleDuck or 1))
+            * (muffled and TUNE.audio.muffleDuck or 1) * duckMult())
     end
+    if heartbeat and heartbeat:isPlaying() then
+        heartbeat:setVolume(Audio.master * Audio.sfx * TUNE.audio.heartbeatGain)
+    end
+end
+
+-- Critical-health state, driven every frame by World:update. Entering it
+-- ducks everything and starts the heartbeat loop; leaving restores.
+function Audio.setLowHealth(on)
+    if on == lowHealth then return end
+    lowHealth = on
+    if on then
+        if not heartbeat then
+            local path = 'assets/sounds/effects/heartbeat.wav'
+            if love.filesystem.getInfo(path) then
+                heartbeat = love.audio.newSource(path, 'static')
+                heartbeat:setLooping(true)
+            end
+        end
+        if heartbeat then
+            heartbeat:setVolume(Audio.master * Audio.sfx * TUNE.audio.heartbeatGain)
+            heartbeat:play()
+        end
+    elseif heartbeat then
+        heartbeat:stop()
+    end
+    applyVolumes()
 end
 
 -- Run-start fade: everything audible rises from silence over dur secs.

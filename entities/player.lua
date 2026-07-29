@@ -161,6 +161,16 @@ function Player:update(dt, world)
         if pop.t >= TUNE.hud.popupTime then self.moneyPopup = nil end
     end
 
+    -- any health drop (zombies, fire, spikes, holes) = red vignette + grunt.
+    -- Cooldown so per-frame damage (spikes) can't machine-gun the cue.
+    self.hurtCue = math.max(0, (self.hurtCue or 0) - dt)
+    if self.lastHealth and self.health < self.lastHealth and self.hurtCue <= 0 then
+        require('ui.fx').damageVignette()
+        Audio.play('hurt', 0.9)
+        self.hurtCue = TUNE.player.hurtCueCooldown
+    end
+    self.lastHealth = self.health
+
     -- FALLING INTO A HOLE: no input until back on ground
     if self.falling then
         self.fallTimer = self.fallTimer + dt

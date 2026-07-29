@@ -441,6 +441,10 @@ function World:update(dt)
     if self.player.health <= 0 then
         self.gameOver = true
     end
+
+    -- critical health: world ducks, heartbeat runs (off again on death)
+    Audio.setLowHealth(self.player.health > 0
+        and self.player.health <= TUNE.player.lowHealthThreshold)
 end
 
 function World:draw()
