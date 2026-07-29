@@ -362,7 +362,7 @@ return {
         -- damage = contact hit on the player (slow hits hardest, fast lightest)
         slow   = { speed = 30, lifeMult = 1,    size = 48, damage = 25, losShortcut = true },
         normal = { speed = 60, lifeMult = 0.5,  size = 32, damage = 20, breaksCrates = true },
-        fast   = { speed = 90, lifeMult = 0.25, size = 21, damage = 15, breaksCrates = true },
+        fast   = { speed = 90, lifeMult = 0.25, size = 21, damage = 20, breaksCrates = true },
     },
 
     waves = {
@@ -374,8 +374,8 @@ return {
         lifeGrowth = 1.1,       -- ...then x this per wave afterwards
 
         spawnDelayStart = 2,    -- secs between spawns on wave 1
-        spawnDelayDecay = 0.96, -- delay multiplied by this each wave (0.96 = slow creep)
-        spawnDelayFloor = 0.5,  -- delay never drops below this
+        spawnDelayDecay = 0.9,  -- delay multiplied by this each wave
+        spawnDelayFloor = 0.3,  -- delay never drops below this
 
         startIntermission = 5,  -- secs of "WAVE N" banner before spawning starts
         endIntermission = 5,    -- secs of "WAVE COMPLETE" before the next wave

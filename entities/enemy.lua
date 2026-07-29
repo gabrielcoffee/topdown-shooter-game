@@ -157,10 +157,11 @@ function Enemy:followPlayer(dt, world)
     self.repathTimer = self.repathTimer - dt
     if self.repathTimer <= 0 then
         self.repathTimer = TUNE.zombies.repathTime
-        -- clear line of sight: nil path lands in the beeline branch below,
-        -- so the zombie walks straight instead of tracing grid corners
-        if self.losShortcut and losClear(world, cx, cy, pcx, pcy,
-                (self.colW or self.width) / 2 + 1, self.breaksCrates) then
+        -- clear straight line = beelining allowed; losShortcut types also
+        -- skip that tick's A* and just walk it
+        self.beelineOK = losClear(world, cx, cy, pcx, pcy,
+            (self.colW or self.width) / 2 + 1, self.breaksCrates)
+        if self.losShortcut and self.beelineOK then
             self.path = nil
         else
             self.path = Path.find(world.map, world:blockedTiles(self.breaksCrates),
@@ -173,8 +174,14 @@ function Enemy:followPlayer(dt, world)
     local nearPlayer = math.abs(myCol - pCol) <= 1 and math.abs(myRow - pRow) <= 1
 
     if nearPlayer or not self.path or self.pathIndex > #self.path then
-        -- same/adjacent tile, or no route found: head straight at the player
-        nx, ny = dirTo(cx, cy, pcx, pcy)
+        -- same/adjacent tile, or no route found: head straight at the
+        -- player — but only when the line is actually clear. "No route"
+        -- with a closed door in between used to fall through here and the
+        -- zombie ground its face into the door; now it waits at it and
+        -- keeps re-checking every repath tick.
+        if self.beelineOK ~= false then
+            nx, ny = dirTo(cx, cy, pcx, pcy)
+        end
     else
         -- walk waypoint tile centers; a wall-pinned body can sit a few px off
         -- a wall-adjacent tile center, so the reach radius must absorb that

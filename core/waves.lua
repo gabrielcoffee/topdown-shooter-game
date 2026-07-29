@@ -97,16 +97,23 @@ function Waves:slamBanner()
     flux.to(self, TUNE.fx.titleSlamTime, { bannerY = 190 }):ease('quartin')
 end
 
--- Points in a room the player has never entered stay inactive
+-- Spawns follow the player: only points in the CURRENT room are active.
+-- A room without markers falls back to visited rooms, then to every point
+-- (a map without markers must never crash the spawner).
 function Waves:activePoints(world)
-    local active = {}
+    local inRoom, visited = {}, {}
+    local current = world.currentRoom and world.currentRoom.name
     for _, sp in ipairs(self.spawnPoints) do
+        if sp.roomName == current then
+            table.insert(inRoom, sp)
+        end
         if not sp.roomName or world.visitedRooms[sp.roomName] then
-            table.insert(active, sp)
+            table.insert(visited, sp)
         end
     end
-    if #active == 0 then return self.spawnPoints end
-    return active
+    if #inRoom > 0 then return inRoom end
+    if #visited > 0 then return visited end
+    return self.spawnPoints
 end
 
 function Waves:spawnOne(world)
