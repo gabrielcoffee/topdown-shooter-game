@@ -65,17 +65,6 @@ function options:enter()
         volumeItem('options.music', 'music'),
         brightnessItem(),
         {
-            label = 'options.light', type = 'cycle',
-            value = function()
-                return T(SETTINGS.lightMode == 'aim'
-                    and 'options.light_aim' or 'options.light_around')
-            end,
-            cycle = function()
-                SETTINGS.lightMode =
-                    SETTINGS.lightMode == 'aim' and 'around' or 'aim'
-            end,
-        },
-        {
             label = 'options.language', type = 'cycle',
             value = function() return i18n.names[i18n.lang] end,
             cycle = function(dir)

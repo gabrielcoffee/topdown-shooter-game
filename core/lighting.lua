@@ -141,19 +141,6 @@ function Lighting:update(dt, world)
     local px, py = world.player:getCenter()
     self.playerLight:setPosition(px, py)
 
-    -- LIGHT option: omni pool around the player, or a flashlight cone
-    -- following the aim (held item angle tracks the crosshair)
-    if (SETTINGS and SETTINGS.lightMode) == 'aim' then
-        local held = world.player.items[world.player.itemIndex]
-        self.playerLight:setAngle(math.rad(TUNE.lighting.aimConeDeg))
-        self.playerLight:setDirection(held and held.angle or 0)
-        self.playerLight:setRange(TUNE.lighting.aimRange)
-    else
-        -- setAngle can't express "full circle" (it wraps at pi): raw write
-        self.playerLight.angle = math.pi * 2
-        self.playerLight:setRange(TUNE.lighting.playerRange)
-    end
-
     for i = #self.flashes, 1, -1 do
         local f = self.flashes[i]
         f.t = f.t - dt

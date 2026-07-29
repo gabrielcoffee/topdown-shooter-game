@@ -69,9 +69,12 @@ function gameover:draw()
         love.graphics.print(text, SCREENWIDTH / 2 - f:getWidth(text) / 2, y)
     end
     centered(T('gameover.kills', self.kills), 424, 1, 1, 1)
-    centered(T('gameover.round_record', self.bestWave), 462, 1, 0.85, 0.3)
     if self.newRecord then
-        centered(T('gameover.newrecord'), 500, 1, 0.85, 0.3)
+        centered(T('gameover.round', self.wave) .. ' ' .. T('gameover.newrecord'),
+            462, 1, 0.85, 0.3)
+    else
+        centered(T('gameover.round', self.wave), 462, 1, 1, 1)
+        centered(T('gameover.record', self.bestWave), 500, 1, 0.85, 0.3)
     end
     love.graphics.setFont(font)
     love.graphics.setColor(1, 1, 1)

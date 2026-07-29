@@ -334,9 +334,6 @@ return {
         brightnessStep = 0.02, -- slider snap grid
         playerRange = 230,    -- player light radius, world px
         playerBright = 0.40,  -- player light intensity (1 = blinding white)
-        -- LIGHT: PLAYER AIM option (flashlight cone toward the crosshair)
-        aimConeDeg = 120,     -- cone width, degrees
-        aimRange = 300,       -- cone reach, world px (longer: light is focused)
         muzzleRange = 210,    -- muzzle flash light radius
         muzzleBright = 0.65,  -- muzzle flash intensity
         muzzleTime = 0.06,    -- muzzle flash duration, secs

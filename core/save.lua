@@ -89,8 +89,6 @@ function Save.loadSettings()
         brightness = math.max(TUNE.lighting.brightnessMin,
             math.min(type(s.brightness) == 'number' and s.brightness
                 or TUNE.lighting.ambient, TUNE.lighting.brightnessMax)),
-        -- player light shape: 'around' (omni) or 'aim' (flashlight cone)
-        lightMode = s.lightMode == 'aim' and 'aim' or 'around',
         -- crosshair look (== nil keeps saved false from reading as default)
         crossColor = s.crossColor == 'green' and 'green' or 'white',
         crossOutline = s.crossOutline == nil and true or s.crossOutline,
