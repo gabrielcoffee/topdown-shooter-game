@@ -7,7 +7,6 @@ local Entity = require('entities.entity')
 local Assets = require('core.assets')
 local Color = require('core.color')
 local Gun = require('hand_items.gun')
-local HandItem = require('hand_items.hand_item')
 local Gif = require('core.gif')
 
 local Chest = {}
@@ -74,11 +73,9 @@ function Chest:roll(player)
     local weights = {}
     for key, w in pairs(TUNE.chest.weights) do
         local valid = true
-        if key == 'grenade' and player.grenades >= TUNE.grenade.maxCarry then
-            valid = false
-        elseif key == 'molotov' and player.molotovs >= TUNE.molotov.maxCarry then
-            valid = false
-        elseif key == 'healthpack' and player.items[5] ~= nil then
+        if (key == 'grenade' or key == 'molotov') and player:throwableSpace() <= 0 then
+            valid = false -- slot 4 is one shared pool
+        elseif key == 'healthpack' and player.medkits >= TUNE.healthpack.maxCarry then
             valid = false
         end
         if valid then weights[key] = w end
@@ -186,13 +183,13 @@ function Chest:resolve(world)
         end
         self.toastText = T('hud.chest_refill', r.name)
     elseif r.kind == 'grenade' then
-        player.grenades = math.min(TUNE.grenade.maxCarry, player.grenades + 1)
+        player:addThrowable('he')
         self.toastText = T('hud.chest_grenade')
     elseif r.kind == 'molotov' then
-        player.molotovs = math.min(TUNE.molotov.maxCarry, player.molotovs + 1)
+        player:addThrowable('molotov')
         self.toastText = T('hud.chest_molotov')
     elseif r.kind == 'healthpack' then
-        player.items[5] = HandItem:newHealthPack()
+        player:addMedkit()
         self.toastText = T('hud.chest_health')
     end
 

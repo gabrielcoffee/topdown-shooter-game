@@ -174,8 +174,21 @@ function HandItem:draw(facingLeft)
     love.graphics.setColor(1, 1, 1)
 end
 
-function HandItem:drawHud()
-    love.graphics.print(self.name, 20, SCREENHEIGHT - 40)
+-- Bottom-left readout. The med kit adds a dimmed line under its name saying
+-- what a click is worth, so the heal amount never has to be guessed.
+function HandItem:drawHud(player)
+    local y = SCREENHEIGHT - 40
+    if self.isHealthPack then
+        love.graphics.print(T('hud.medkit', player and player.medkits or 0), 20, y)
+        love.graphics.setFont(smallFont)
+        love.graphics.setColor(1, 1, 1, 0.6)
+        love.graphics.print(T('hud.medkit_hint', TUNE.healthpack.healAmount),
+            20, y + font:getHeight() + 2)
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.setFont(font)
+        return
+    end
+    love.graphics.print(self.name, 20, y)
 end
 
 return HandItem

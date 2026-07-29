@@ -4,6 +4,18 @@ One entry per completed PLAN.md step. Newest on top. Format: date — step — w
 
 ## [Unreleased]
 
+### 2026-07-29 — Inventory stacks, quick-knife, spawn/economy rebalance
+- Slot 4 is now ONE shared pool: 4 throwables total, any mix of grenades and molotovs
+- Slot 5 stacks 2 med kits; using one keeps the kit out while a spare is left
+- Med kit HUD tells you what it's worth: "MED KIT x2" + "CLICK: HEAL +50 HP"
+- Quick-knife: Q (or pressing 3 while the knife is out) flicks to the knife and back
+  to whatever was in hand, with a 0.15s deploy instead of 0.3s
+- Waves start at 5 zombies (was 4) — every wave is +1
+- Fast zombies show up on wave 3 (was 4); the heaviest mix starts wave 6 (was 8)
+- Money: USP 8/hit + 15 kill, AK 5/hit, molotov 5/burn tick, knife kill bonus 30
+- Mystery box $300 (was $350); freeze / double points / fire sale last 20s (was 30)
+- /give medkit added to chat
+
 ### 2026-07-21 — Mystery box, 5-slot hotbar, grenade throw, med kit (steps 4/5/6/9)
 - Shops cut: loot now comes from a BO2-style mystery box chest ($150, reusable, 2s spin)
 - Gun rolls need a second E within 5s or they're lost; duplicate gun = full ammo refill

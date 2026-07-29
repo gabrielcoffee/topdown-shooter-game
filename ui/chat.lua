@@ -74,15 +74,20 @@ local commands = {
     give = { argKind = 'giveable', run = function(arg)
         local p = world.player
         if arg == 'grenade' then
-            p.grenades = math.min(TUNE.grenade.maxCarry, p.grenades + 1)
-            return 'grenades: ' .. p.grenades
+            p:addThrowable('he')
+            return 'grenades: ' .. p.grenades .. ' (pool ' .. (p.grenades + p.molotovs)
+                .. '/' .. TUNE.throwables.maxCarry .. ')'
         elseif arg == 'molotov' then
-            p.molotovs = math.min(TUNE.molotov.maxCarry, p.molotovs + 1)
-            return 'molotovs: ' .. p.molotovs
+            p:addThrowable('molotov')
+            return 'molotovs: ' .. p.molotovs .. ' (pool ' .. (p.grenades + p.molotovs)
+                .. '/' .. TUNE.throwables.maxCarry .. ')'
+        elseif arg == 'medkit' then
+            p:addMedkit()
+            return 'medkits: ' .. p.medkits
         end
         local gun = arg and Gun.newById(arg)
         if not gun then
-            return 'usage: /give <usp|ak47|m4a1|shotgun|grenade|molotov>', true
+            return 'usage: /give <usp|ak47|m4a1|shotgun|grenade|molotov|medkit>', true
         end
         p:giveGun(gun)
         return 'gave ' .. gun.name
@@ -177,7 +182,7 @@ local commands = {
 
 local argOptions = {
     gun = Gun.ids,
-    giveable = { 'usp', 'ak47', 'm4a1', 'shotgun', 'grenade', 'molotov' },
+    giveable = { 'usp', 'ak47', 'm4a1', 'shotgun', 'grenade', 'molotov', 'medkit' },
     zombie = { 'slow', 'normal', 'fast' },
     wave = { 'skip' },
     mode = { 'kills', 'hits' },

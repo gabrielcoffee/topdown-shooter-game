@@ -18,17 +18,20 @@ function Player:new(x, y, width, height)
     obj.color = Color.green
 
     -- Fixed 5 slots: [1] gun A, [2] gun B, [3] knife, [4] grenades, [5] med kit.
-    -- Slots 2 and 5 start empty; the slot-4 HandItem is the permanent held
-    -- representation, obj.grenades is the actual count.
+    -- Slot 2 starts empty; the slot-4 and slot-5 HandItems are permanent held
+    -- representations, obj.grenades / obj.medkits are the actual counts.
     obj.items = {
         [1] = Gun:newUSP(),
         [3] = HandItem:newKnife(),
         [4] = HandItem:newGrenade(),
+        [5] = HandItem:newHealthPack(),
     }
     obj.itemIndex = 1
     obj.lastGunSlot = 1
+    obj.lastSlot = 3      -- slot the Q quick-knife swaps back to
     obj.grenades = 0
     obj.molotovs = 0
+    obj.medkits = 0
     obj.throwableType = 'grenade' -- which throwable slot 4 shows ('grenade'|'molotov')
 
     obj.maxHealth = TUNE.player.maxHealth
@@ -53,6 +56,7 @@ function Player:new(x, y, width, height)
     obj.rReleased = true
     obj.eReleased = true
     obj.gReleased = true
+    obj.qReleased = true
 
     obj.running = false   -- SPRINT state: shift held + moving, no aim/shoot
     obj.runLocked = false -- firing locks sprint until shift is re-pressed
@@ -79,12 +83,33 @@ end
 function Player:slotValid(i)
     if i == 3 then return true end
     if i == 4 then return self.grenades > 0 or self.molotovs > 0 end
+    if i == 5 then return self.medkits > 0 end
     return self.items[i] ~= nil
 end
 
 -- Count of the throwable currently out in slot 4
 function Player:throwableCount()
     return self.throwableType == 'molotov' and self.molotovs or self.grenades
+end
+
+-- Slot 4 is one shared pool: grenades + molotovs vs TUNE.throwables.maxCarry
+function Player:throwableSpace()
+    return TUNE.throwables.maxCarry - (self.grenades + self.molotovs)
+end
+
+-- +1 of a kind if the shared pool has room. Returns true when it landed.
+function Player:addThrowable(kind)
+    if self:throwableSpace() <= 0 then return false end
+    if kind == 'molotov' then self.molotovs = self.molotovs + 1
+    else self.grenades = self.grenades + 1 end
+    return true
+end
+
+-- +1 med kit if slot 5 has room. Returns true when it landed.
+function Player:addMedkit()
+    if self.medkits >= TUNE.healthpack.maxCarry then return false end
+    self.medkits = self.medkits + 1
+    return true
 end
 
 local function throwableItem(kind)
@@ -114,15 +139,18 @@ function Player:syncThrowable()
     end
 end
 
-function Player:selectSlot(i)
+-- fast = quick-knife swap (Q), which deploys quicker than a normal swap
+function Player:selectSlot(i, fast)
     if i == self.itemIndex or not self:slotValid(i) then return end
 
     local outgoing = self.items[self.itemIndex]
     if outgoing and outgoing.isGun then
         outgoing:cancelReload()
     end
+    self.lastSlot = self.itemIndex
     self.itemIndex = i
-    self.switchTimer = TUNE.player.switchDelay -- deploy: can't act instantly
+    -- deploy: can't act instantly
+    self.switchTimer = fast and TUNE.player.knifeSwapDelay or TUNE.player.switchDelay
     if i == 1 or i == 2 then self.lastGunSlot = i end
 
     -- CS-style deploy sound for whatever lands in hand
@@ -139,6 +167,26 @@ function Player:selectSlot(i)
     if newItem.isGun and newItem.curClip <= 0 then
         newItem:reload()
     end
+end
+
+-- Q (or 3 while the knife is already out): flick to the knife and, pressed
+-- again, straight back to whatever was in hand before — gun, grenade or med
+-- kit. CoD quick-melee feel: shorter deploy than a normal swap both ways.
+function Player:quickKnife()
+    if self.itemIndex ~= 3 then
+        self:selectSlot(3, true)
+        return
+    end
+    local back = self.lastSlot
+    if back == 3 or not self:slotValid(back) then
+        -- what we came from is gone (gun dropped, last grenade thrown):
+        -- fall back to a gun, then anything else usable
+        back = nil
+        for _, i in ipairs({ self.lastGunSlot, 1, 2, 4, 5 }) do
+            if i ~= 3 and self:slotValid(i) then back = i break end
+        end
+    end
+    if back then self:selectSlot(back, true) end
 end
 
 -- Mouse wheel: step to the next/prev valid slot, wrapping (Minecraft-style)
@@ -303,12 +351,19 @@ function Player:update(dt, world)
         if down and not self.slotHeld[i] then
             if i == 4 and self.itemIndex == 4 then
                 self:cycleThrowable() -- 4 again = swap grenade/molotov
+            elseif i == 3 then
+                self:quickKnife()     -- 3 again = back to the last item
             else
                 self:selectSlot(i)
             end
         end
         self.slotHeld[i] = down
     end
+
+    -- Q: quick-knife toggle (knife <-> whatever was in hand)
+    local qPressed = not typing and love.keyboard.isDown('q')
+    if qPressed and self.qReleased then self:quickKnife() end
+    self.qReleased = not qPressed
 
     -- mouse in world coords; the camera is clamped at map edges, so use it
     -- instead of assuming the player is centered on screen. getPosition is
@@ -361,10 +416,11 @@ function Player:update(dt, world)
         self:syncThrowable() -- last of this type: flip to the other if loaded
         if not self:slotValid(4) then self:selectSlot(3) end
     elseif leftPressed and not deploying and self.leftReleased and heldItem.isHealthPack
-        and self.health < self.maxHealth then
+        and self.health < self.maxHealth and self.medkits > 0 then
         self.health = math.min(self.maxHealth, self.health + TUNE.healthpack.healAmount)
-        self.items[5] = nil
-        self:selectSlot(3)
+        self.medkits = self.medkits - 1
+        -- one still in the bag: keep it out, otherwise fall back to the knife
+        if not self:slotValid(5) then self:selectSlot(3) end
     end
 
     self.leftReleased = not leftPressed
@@ -542,7 +598,7 @@ function Player:drawHitbox()
 end
 
 function Player:drawHud()
-    self.items[self.itemIndex]:drawHud() -- bottom-left: held item + ammo
+    self.items[self.itemIndex]:drawHud(self) -- bottom-left: held item + ammo
 
     -- bottom-right stack: HP on the bottom line, money right above it,
     -- earned "+$n" floating up above both
@@ -715,7 +771,7 @@ function Player:serialize()
         grenades = self.grenades,
         molotovs = self.molotovs,
         throwableType = self.throwableType,
-        hasHealthPack = self.items[5] ~= nil,
+        medkits = self.medkits,
         gunSlots = gunSlots,
     }
 end
@@ -739,10 +795,27 @@ function Player:restore(data)
         end
         self.items[i] = gun or nil
     end
-    self.items[5] = data.hasHealthPack and HandItem:newHealthPack() or nil
+    -- old saves carried a single hasHealthPack flag instead of a count
+    self.medkits = math.min(TUNE.healthpack.maxCarry,
+        data.medkits or (data.hasHealthPack and 1 or 0))
     self.grenades = data.grenades or 0
     self.molotovs = data.molotovs or 0
+    -- saves written under per-type caps can total more than the shared cap:
+    -- trim the stowed type first, the one in hand last
     self.throwableType = data.throwableType == 'molotov' and 'molotov' or 'grenade'
+    local over = -self:throwableSpace()
+    if over > 0 then
+        local stowedIsMolotov = self.throwableType ~= 'molotov'
+        local stowed = stowedIsMolotov and self.molotovs or self.grenades
+        local cut = math.min(over, stowed)
+        if stowedIsMolotov then self.molotovs = self.molotovs - cut
+        else self.grenades = self.grenades - cut end
+        over = over - cut
+        if over > 0 then
+            if stowedIsMolotov then self.grenades = math.max(0, self.grenades - over)
+            else self.molotovs = math.max(0, self.molotovs - over) end
+        end
+    end
     self.items[4] = HandItem:newGrenade(
         self.throwableType == 'molotov' and 'molotov' or nil)
     self:syncThrowable()

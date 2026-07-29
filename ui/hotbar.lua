@@ -74,6 +74,10 @@ function Hotbar.draw(player)
                     love.graphics.setColor(1, 1, 1, 0.35)
                     love.graphics.print('x' .. other, x + 4, y0 + size - 12)
                 end
+            elseif item.isHealthPack then
+                local txt = 'x' .. player.medkits
+                love.graphics.print(txt,
+                    x + size - smallFont:getWidth(txt) - 4, y0 + size - 12)
             end
         end
 

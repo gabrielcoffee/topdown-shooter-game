@@ -63,9 +63,10 @@ function Powerup:apply(world)
             local gun = player.items[i]
             if gun then gun:refill() end
         end
-        player.grenades = TUNE.grenade.maxCarry
-        if player.molotovs > 0 then
-            player.molotovs = TUNE.molotov.maxCarry
+        -- slot 4 is one pool: top the CURRENT type up until the pool is full,
+        -- leaving whatever is stowed of the other type untouched
+        while player:throwableSpace() > 0 do
+            player:addThrowable(player.throwableType)
         end
     elseif self.kind == 'instakill' then
         world.buffs.instakill = P.instakillTime

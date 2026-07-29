@@ -25,6 +25,7 @@ return {
         hurtCueCooldown = 0.5,   -- secs between hurt grunt + red vignette cues
         lowHealthThreshold = 25, -- at or below: sounds duck + heartbeat loop
         switchDelay = 0.3,    -- secs after a weapon swap before it can act (blocks quick-switch)
+        knifeSwapDelay = 0.15, -- shorter lockout for the Q quick-knife (and Q back to the last item)
     },
 
     movement = {
@@ -68,10 +69,10 @@ return {
         --   maxHits       = zombies one bullet can damage before it stops (pierces maxHits-1)
         --   hitReward     = $ per damaging hit, killBonus = $ extra on the kill
         usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 2,   bulletLife = 0.5,
-                   hitReward = 6, killBonus = 10, maxHits = 3,
+                   hitReward = 8, killBonus = 15, maxHits = 3,
                    baseSpread = 0.008, moveSpread = 0.120, recoilPerShot = 0.030, recoilMax = 0.15, recoilDelay = 0.30, recoilRecover = 0.40 },
         ak47   = { damage = 40, clip = 30, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7,
-                   hitReward = 4, killBonus = 10, maxHits = 4,
+                   hitReward = 5, killBonus = 10, maxHits = 4,
                    baseSpread = 0.012, moveSpread = 0.220, recoilPerShot = 0.035, recoilMax = 0.30, recoilDelay = 0.25, recoilRecover = 0.45 },
         m4a1   = { damage = 35, clip = 25, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7,
                    hitReward = 5, killBonus = 10, maxHits = 4,
@@ -121,7 +122,7 @@ return {
         settleTime = 0.085, -- secs to swing from run pose to real aim (~5 frames)
     },
 
-    knife   = { damage = 60,  hitReward = 20, killBonus = 20,
+    knife   = { damage = 60,  hitReward = 20, killBonus = 30,
                 -- knife pays most per hit: risk close = get paid
                 range = 44,          -- arc reach from player center, px
                 arcDeg = 110,        -- swing arc width, degrees (aiming matters)
@@ -137,7 +138,6 @@ return {
                 fuse = 1.2,        -- secs from throw to blast
                 blastRadius = 80,  -- world px; flat damage inside
                 maxRange = 240,    -- max throw distance from the player, world px
-                maxCarry = 3,
                 -- targeting preview: dotted throw arc + dotted blast circle
                 aimDotSpacing = 10,  -- px between dots on both guides
                 aimDotSize = 1.5,    -- dot radius, world px
@@ -153,10 +153,12 @@ return {
                 blastRadius = 80,  -- same area as the grenade
                 maxRange = 160, throwSpeed = 240, -- shorter throw than the grenade (240)
                 spreadTime = 0.6,  -- secs the fire takes to grow from the impact to full radius
-                maxCarry = 2,      -- stronger per unit than grenades (3)
-                hitReward = 4, killBonus = 10 }, -- hitReward per burn tick
+                hitReward = 5, killBonus = 10 }, -- hitReward per burn tick
 
-    healthpack = { healAmount = 50 },
+    -- slot 4 is ONE pool: grenades + molotovs together can't pass maxCarry
+    throwables = { maxCarry = 4 },
+
+    healthpack = { healAmount = 50, maxCarry = 2 }, -- slot 5 stacks maxCarry kits
 
     -- CoD-style wall buys (GunWall entities placed in LDtk; gun + optional price)
     wallbuy = { interactPad = 4,
@@ -175,10 +177,10 @@ return {
         pickupPad = 6,        -- px around the drop where walking over grabs it
         nukeMoney = 400,      -- flat cash for a nuke (both modes)
         instakillTime = 30,   -- secs every weapon one-shots
-        freezeTime = 30,      -- secs zombies can't move or attack
-        doublePointsTime = 30, doubleMult = 2,
+        freezeTime = 20,      -- secs zombies can't move or attack
+        doublePointsTime = 20, doubleMult = 2,
         fireSaleCost = 50,    -- mystery box price while fire sale runs
-        fireSaleTime = 30,    -- secs the sale lasts
+        fireSaleTime = 20,    -- secs the sale lasts
         carpenterMoney = 200, -- flat cash when carpenter rebuilds the crates
         carrierPulseSpeed = 6, -- glow ring pulse, rad/s
     },
@@ -371,7 +373,7 @@ return {
     },
 
     waves = {
-        quotaBase = 3,          -- zombies in wave w = this + w*(w+1)/2 -> 4, 6, 9, 13, 18, 24...
+        quotaBase = 4,          -- zombies in wave w = this + w*(w+1)/2 -> 5, 7, 10, 14, 19, 25...
 
         -- chance a spawn comes from a room right next door instead of the
         -- player's own room. Only rooms already visited AND reachable right
@@ -393,8 +395,8 @@ return {
         -- spawn mix: last entry whose fromWave <= wave applies
         weights = {
             { fromWave = 1, slow = 70, normal = 30, fast = 0 },
-            { fromWave = 4, slow = 40, normal = 45, fast = 15 },
-            { fromWave = 8, slow = 20, normal = 45, fast = 35 },
+            { fromWave = 3, slow = 40, normal = 45, fast = 15 },
+            { fromWave = 6, slow = 20, normal = 45, fast = 35 },
         },
     },
 }
