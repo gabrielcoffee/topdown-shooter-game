@@ -46,9 +46,17 @@ function Hotbar.draw(player)
         love.graphics.rectangle('line', x, y0, size, size, 3, 3)
         love.graphics.setLineWidth(1)
 
+        -- use cooldown (throwables / med kits): 0..1 left, drives a dim + bar
+        local cd = 0
+        if i == 4 and player.throwTimer > 0 then
+            cd = player.throwTimer / TUNE.throwables.useDelay
+        elseif i == 5 and player.healTimer > 0 then
+            cd = player.healTimer / TUNE.healthpack.useDelay
+        end
+
         if item then
-            -- greyed out when unusable (no grenades left)
-            local a = valid and 1 or 0.25
+            -- greyed out when unusable (no grenades left) or still cooling down
+            local a = valid and (cd > 0 and 0.45 or 1) or 0.25
             local tint = item.iconTint
             if tint then -- molotov placeholder: grenade art tinted orange
                 love.graphics.setColor(tint[1], tint[2], tint[3], a)
@@ -79,6 +87,13 @@ function Hotbar.draw(player)
                 love.graphics.print(txt,
                     x + size - smallFont:getWidth(txt) - 4, y0 + size - 12)
             end
+        end
+
+        -- cooldown sweep: a bar along the bottom edge filling back to full
+        if cd > 0 then
+            love.graphics.setColor(1, 1, 1, 0.7)
+            love.graphics.rectangle('fill', x + 2, y0 + size - 3,
+                (size - 4) * (1 - cd), 2)
         end
 
         -- slot number

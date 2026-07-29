@@ -70,6 +70,8 @@ function Player:new(x, y, width, height)
     if love.mouse.isDown(1) then obj.lockedInputs.mouse1 = true end
     obj.slotHeld = {}     -- per-slot key state, so holding a number can't re-select
     obj.switchTimer = 0   -- deploy lockout after a weapon swap (blocks quick-switch)
+    obj.throwTimer = 0    -- secs until the next throw is allowed (stacked grenades)
+    obj.healTimer = 0     -- secs until the next med kit use is allowed
 
     obj.animState = 'idle'
     obj.animRun = Animation:new(Assets.quads.player, 2, 4, 0.1)
@@ -124,7 +126,7 @@ function Player:cycleThrowable()
     if count <= 0 then return end
     self.throwableType = other
     self.items[4] = throwableItem(other)
-    Audio.play('grenade_draw', 0.7)
+    Audio.play('grenade_pull', 0.7) -- CS-style pin pull when the grenade comes out
 end
 
 -- Keep slot 4 pointing at a loaded throwable: if the current type ran dry
@@ -160,7 +162,7 @@ function Player:selectSlot(i, fast)
     elseif newItem.isKnife then
         Audio.play('knife_swing', 0.5)
     elseif newItem.isThrowable then
-        Audio.play('grenade_draw', 0.7)
+        Audio.play('grenade_pull', 0.7) -- CS-style pin pull when the grenade comes out
     end
 
     -- switching to an empty gun starts its reload right away
@@ -265,6 +267,16 @@ function Player:update(dt, world)
     if self.switchTimer > 0 then
         self.switchTimer = self.switchTimer - dt
     end
+    -- per-item use cooldowns: stacked throwables / med kits can't be spammed
+    if self.throwTimer > 0 then
+        self.throwTimer = self.throwTimer - dt
+        -- cooldown over with another one in the bag: pin pull, CS-style, so
+        -- the ear knows the next grenade is live
+        if self.throwTimer <= 0 and self.itemIndex == 4 and self:throwableCount() > 0 then
+            Audio.play('grenade_pull', 0.7)
+        end
+    end
+    if self.healTimer > 0 then self.healTimer = self.healTimer - dt end
 
     -- locked buttons free up once released (no and/or here: false isDown(1)
     -- would fall through into keyboard.isDown('mouse1') and crash)
@@ -402,7 +414,8 @@ function Player:update(dt, world)
             self.vy = self.vy + math.sin(aim) * TUNE.knife.lungeSpeed
         end
     elseif leftPressed and not deploying and self.leftReleased
-        and heldItem.isThrowable and self:throwableCount() > 0 then
+        and heldItem.isThrowable and self:throwableCount() > 0
+        and self.throwTimer <= 0 then
         local cx, cy = self:getCenter()
         -- lands exactly where the targeting preview says (cursor clamped to maxRange)
         local tx, ty = require('ui.grenade_aim').target(world)
@@ -413,12 +426,18 @@ function Player:update(dt, world)
             world:addEntity(ThrownGrenade:new(cx, cy, tx, ty))
             self.grenades = self.grenades - 1
         end
+        Audio.playAt('grenade_throw', cx, cy, 0.8, TUNE.audio.pitchJitter, world)
+        self.throwTimer = TUNE.throwables.useDelay -- a full pool can't be dumped at once
         self:syncThrowable() -- last of this type: flip to the other if loaded
         if not self:slotValid(4) then self:selectSlot(3) end
     elseif leftPressed and not deploying and self.leftReleased and heldItem.isHealthPack
-        and self.health < self.maxHealth and self.medkits > 0 then
+        and self.health < self.maxHealth and self.medkits > 0
+        and self.healTimer <= 0 then
+        local cx, cy = self:getCenter()
         self.health = math.min(self.maxHealth, self.health + TUNE.healthpack.healAmount)
         self.medkits = self.medkits - 1
+        self.healTimer = TUNE.healthpack.useDelay
+        Audio.playAt('medkit_heal', cx, cy, 0.9, TUNE.audio.pitchJitter, world)
         -- one still in the bag: keep it out, otherwise fall back to the knife
         if not self:slotValid(5) then self:selectSlot(3) end
     end

@@ -4,6 +4,13 @@ One entry per completed PLAN.md step. Newest on top. Format: date — step — w
 
 ## [Unreleased]
 
+### 2026-07-29 — Grenade + med kit sounds, 1s use cooldowns
+- CS-style pin pull when a grenade comes into hand (deploy, type cycle, and again
+  when the throw cooldown ends with another one in the bag)
+- Throw whoosh on release; med kit has a bandage-wrap + confirm-chime heal sound
+- Grenades and med kits can only be used once per second — the hotbar slot dims
+  and a bar fills back along its bottom edge while it cools down
+
 ### 2026-07-29 — Inventory stacks, quick-knife, spawn/economy rebalance
 - Slot 4 is now ONE shared pool: 4 throwables total, any mix of grenades and molotovs
 - Slot 5 stacks 2 med kits; using one keeps the kit out while a spare is left

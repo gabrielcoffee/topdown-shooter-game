@@ -38,3 +38,16 @@ They auto-register at boot; the game already calls them (silent until files exis
 ## Molotov fire (added 2026-07-29)
 - **fire_loop** (looping burn under every fire patch): "Fireplace Sound loop" by PagDev (CC0) — https://opengameart.org/content/fireplace-sound-loop. Mono 7.5s seamless loop (highpassed, +15dB, 0.5s crossfade seam).
 - **molotov_break** (bottle shatter + ignite): glass break from "75 CC0 breaking / falling / hit sfx" by rubberduck (CC0) — https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx, layered with a lowpassed slice of the PagDev fire loop as the ignite whoosh.
+
+## Grenade handling + med kit (added 2026-07-29)
+No Counter-Strike audio is shipped — Valve's `pinpull.wav` is copyrighted and can't
+go in the repo. These are CS-*style* sounds built from scratch / from CC0 sources:
+- **grenade_pull** (deploy: pin pull): synthesized — inharmonic metal partials for the
+  ring tick and the spoon clack, filtered-noise scrape for the pin sliding out. Voiced
+  after the CS pinpull's three-beat shape (tick - scrape - clack). Overwrite the file
+  with a real recording anytime.
+- **grenade_throw** (release whoosh): the CC0 swish (`knife_swing1`, "Swishes Sound Pack")
+  slowed 1.35x + lowpassed for a heavier arm, layered with a synthesized low air sweep
+  and a cloth-grip transient.
+- **medkit_heal** (heal confirm): `paper00` (repo CC0 rustle) resampled twice into a
+  bandage wrap, plus a soft detuned D5 -> G5 confirm chime and a quiet breath swell.
