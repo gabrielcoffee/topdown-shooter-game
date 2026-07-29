@@ -73,6 +73,11 @@ function Powerup:apply(world)
         world.buffs.freeze = P.freezeTime
     elseif self.kind == 'doublepoints' then
         world.buffs.doublepoints = P.doublePointsTime
+    elseif self.kind == 'firesale' then
+        world.buffs.firesale = P.fireSaleTime
+    elseif self.kind == 'carpenter' then
+        world:rebuildCrates()
+        player:addMoney(P.carpenterMoney)
     end
 
     world.pickupToast = { text = T('powerup.' .. self.kind), t = 2 }
@@ -128,6 +133,24 @@ function Powerup:draw()
         love.graphics.print(txt, cx - smallFont:getWidth(txt) / 2,
             cy - smallFont:getHeight() / 2)
         love.graphics.setFont(font)
+    elseif k == 'firesale' then
+        love.graphics.setColor(0.3, 0.9, 0.35)
+        love.graphics.circle('fill', cx, cy, 12)
+        love.graphics.setColor(0, 0.25, 0.05)
+        love.graphics.setFont(smallFont)
+        local txt = '$'
+        love.graphics.print(txt, cx - smallFont:getWidth(txt) / 2,
+            cy - smallFont:getHeight() / 2)
+        love.graphics.setFont(font)
+    elseif k == 'carpenter' then
+        love.graphics.setColor(0.62, 0.42, 0.18)
+        love.graphics.rectangle('fill', cx - 11, cy - 9, 22, 18, 2, 2)
+        love.graphics.setColor(0.85, 0.65, 0.35)
+        love.graphics.setLineWidth(2)
+        love.graphics.line(cx - 11, cy - 9, cx + 11, cy + 9)
+        love.graphics.line(cx - 11, cy + 9, cx + 11, cy - 9)
+        love.graphics.rectangle('line', cx - 11, cy - 9, 22, 18, 2, 2)
+        love.graphics.setLineWidth(1)
     end
 
     love.graphics.setColor(1, 1, 1)

@@ -166,7 +166,8 @@ return {
     powerups = {
         carrierChance = 0.25, -- chance a fast zombie spawns carrying one
         maxPerWave = 2,       -- carrier cap per wave
-        weights = { nuke = 20, maxammo = 25, instakill = 20, freeze = 15, doublepoints = 20 },
+        weights = { nuke = 20, maxammo = 25, instakill = 20, freeze = 15,
+                    doublepoints = 20, firesale = 15, carpenter = 10 },
         lifetime = 20,        -- secs the drop stays on the ground
         blinkTime = 3, blinkInterval = 0.15,
         pickupPad = 6,        -- px around the drop where walking over grabs it
@@ -174,6 +175,9 @@ return {
         instakillTime = 30,   -- secs every weapon one-shots
         freezeTime = 10,      -- secs zombies can't move or attack
         doublePointsTime = 30, doubleMult = 2,
+        fireSaleCost = 50,    -- mystery box price while fire sale runs
+        fireSaleTime = 30,    -- secs the sale lasts
+        carpenterMoney = 200, -- flat cash when carpenter rebuilds the crates
         carrierPulseSpeed = 6, -- glow ring pulse, rad/s
     },
 

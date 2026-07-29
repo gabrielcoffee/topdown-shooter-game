@@ -527,10 +527,11 @@ function Player:drawHud()
     if self.touchingChest then
         local c = self.touchingChest
         if c.state == 'idle' then
-            if self.money >= TUNE.chest.cost then
-                prompt = T('hud.chest_spin', TUNE.chest.cost)
+            local cost = c:currentCost() -- fire sale discounts it
+            if self.money >= cost then
+                prompt = T('hud.chest_spin', cost)
             else
-                prompt = T('hud.chest_poor', TUNE.chest.cost)
+                prompt = T('hud.chest_poor', cost)
                 red = true
             end
         elseif c.state == 'offering' then

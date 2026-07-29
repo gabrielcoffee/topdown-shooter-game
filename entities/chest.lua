@@ -54,6 +54,14 @@ end
 function Chest:openLid()  self.lidDir = 1  end
 function Chest:closeLid() self.lidDir = -1 end
 
+-- Spin price right now: fire sale power-up slashes it while it runs
+function Chest:currentCost()
+    if world and world.buffs and world.buffs.firesale > 0 then
+        return TUNE.powerups.fireSaleCost
+    end
+    return TUNE.chest.cost
+end
+
 -- quads cycled above the box while spinning (tint = molotov placeholder)
 local spinQuads = {
     { q = 'pistol' }, { q = 'ak47' }, { q = 'm4a1' }, { q = 'shotgun' },
@@ -105,7 +113,7 @@ end
 
 function Chest:interact(player, world)
     if self.state == 'idle' then
-        if player:trySpend(TUNE.chest.cost) then
+        if player:trySpend(self:currentCost()) then
             self.result = self:roll(player)
             self.state = 'spinning'
             self.timer = TUNE.chest.spinTime
@@ -218,8 +226,12 @@ function Chest:draw()
     local cx = x + self.width / 2
 
     if self.state == 'idle' then
-        local txt = '$' .. TUNE.chest.cost
-        love.graphics.setColor(1, 0.85, 0.35)
+        local txt = '$' .. self:currentCost()
+        if self:currentCost() < TUNE.chest.cost then
+            love.graphics.setColor(0.4, 1, 0.4) -- fire sale: discount reads green
+        else
+            love.graphics.setColor(1, 0.85, 0.35)
+        end
         love.graphics.print(txt, cx - smallFont:getWidth(txt)/2, top - smallFont:getHeight() - 2)
 
         if self.toastText then

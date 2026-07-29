@@ -36,7 +36,8 @@ function World:new(opts)
         -- the SETTINGS fallback covers U-reload and gameover restart
         economy = opts.economy or (SETTINGS and SETTINGS.economy) or 'kills',
         -- timed power-up buffs, secs left (0 = off)
-        buffs = { instakill = 0, freeze = 0, doublepoints = 0 },
+        buffs = { instakill = 0, freeze = 0, doublepoints = 0, firesale = 0 },
+        crateSpawns = {}, -- original crate spots, for the carpenter power-up
         pickupToast = nil, -- { text, t } power-up pickup banner
         gameOver = false
     }
@@ -62,6 +63,8 @@ function World:new(opts)
     for _, o in ipairs(levelDef.objects or {}) do
         if o.type == 'crate' then
             local crate = Crate:new(o.x, o.y)
+            table.insert(obj.crateSpawns, { x = o.x, y = o.y })
+            crate.originIndex = #obj.crateSpawns -- carpenter rebuilds by spot
             obj:addEntity(crate)
             obj.lighting:trackOccluder(crate)
         elseif o.type == 'door' then
@@ -260,6 +263,43 @@ function World:getTouchingDroppedGun(player)
     end
 end
 
+-- Carpenter power-up: rebuild destroyed crates at their original map spots.
+-- Live crates (even pushed away) keep their spot claimed; a spot with a
+-- player or zombie standing on it is skipped so nobody gets entombed.
+-- Returns how many crates came back.
+function World:rebuildCrates()
+    local claimed = {}
+    for _, e in ipairs(self.entities) do
+        if e.type == 'crate' and not e.toRemove and e.originIndex then
+            claimed[e.originIndex] = true
+        end
+    end
+
+    local built = 0
+    local ts = TUNE.crate.size
+    for i, sp in ipairs(self.crateSpawns) do
+        if not claimed[i] then
+            local blocked = false
+            for _, e in ipairs(self.entities) do
+                if (e.type == 'enemy' or e.isPlayer) and not e.toRemove
+                    and e.x < sp.x + ts and e.x + e.width > sp.x
+                    and e.y < sp.y + ts and e.y + e.height > sp.y then
+                    blocked = true
+                    break
+                end
+            end
+            if not blocked then
+                local crate = Crate:new(sp.x, sp.y)
+                crate.originIndex = i
+                self:addEntity(crate)
+                self.lighting:trackOccluder(crate)
+                built = built + 1
+            end
+        end
+    end
+    return built
+end
+
 -- Buying a door: remember its id (activates linked spawn points), then remove it
 function World:openDoor(door)
     if door.id then
@@ -454,7 +494,7 @@ function World:draw()
 
     -- active power-up buffs stack under the money readout
     local by = 80
-    for _, k in ipairs({ 'instakill', 'freeze', 'doublepoints' }) do
+    for _, k in ipairs({ 'instakill', 'freeze', 'doublepoints', 'firesale' }) do
         if self.buffs[k] > 0 then
             love.graphics.setColor(1, 0.85, 0.3)
             love.graphics.print(

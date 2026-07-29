@@ -66,6 +66,8 @@ return {
     ['powerup.instakill']    = 'INSTA-KILL',
     ['powerup.freeze']       = 'FREEZE',
     ['powerup.doublepoints'] = 'DOUBLE POINTS',
+    ['powerup.firesale']     = 'FIRE SALE',
+    ['powerup.carpenter']    = 'CARPENTER',
     ['hud.buff_timer']       = '%s %ds',
 
     ['hud.wave']          = 'WAVE %d',

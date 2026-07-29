@@ -188,7 +188,8 @@ local argOptions = {
     zombie = { 'slow', 'normal', 'fast' },
     wave = { 'skip' },
     mode = { 'kills', 'hits' },
-    powerup = { 'nuke', 'maxammo', 'instakill', 'freeze', 'doublepoints' },
+    powerup = { 'nuke', 'maxammo', 'instakill', 'freeze', 'doublepoints',
+                'firesale', 'carpenter' },
 }
 
 -- Prefix filter over the token being typed. The leading slash is optional;

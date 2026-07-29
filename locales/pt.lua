@@ -66,6 +66,8 @@ return {
     ['powerup.instakill']    = 'MORTE INSTANTÂNEA',
     ['powerup.freeze']       = 'CONGELAR',
     ['powerup.doublepoints'] = 'PONTOS EM DOBRO',
+    ['powerup.firesale']     = 'LIQUIDAÇÃO',
+    ['powerup.carpenter']    = 'CARPINTEIRO',
     ['hud.buff_timer']       = '%s %ds',
 
     ['hud.wave']          = 'ONDA %d',
