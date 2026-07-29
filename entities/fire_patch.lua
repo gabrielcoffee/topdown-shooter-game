@@ -3,10 +3,15 @@
 -- tickInterval damages every zombie, crate AND the player inside the current
 -- radius — with line of sight from the center, so fire never burns through
 -- solid walls. Player burns ignore contact invuln (zone denial: standing in
--- fire keeps hurting). Visuals are per-frame particle bursts (Vfx.fire) + a
--- flickering point light; the entity itself draws nothing.
+-- fire keeps hurting). Visuals: a scatter of animated fire.gif sprites over the
+-- burn area (each pops in when the spread reaches it), plus ember particles
+-- (Vfx.fire) and a flickering point light.
 
 local Entity = require('entities.entity')
+local Audio = require('core.audio')
+local Gif = require('core.gif')
+
+local GOLDEN = 2.39996323 -- rad; golden-angle spiral = even disc coverage
 
 local FirePatch = {}
 FirePatch.__index = FirePatch
@@ -23,6 +28,47 @@ function FirePatch:new(x, y)
     return obj
 end
 
+-- Scatter the flame sprites over the burn disc. Needs the world for the wall
+-- checks, so this runs on the first update rather than in :new.
+function FirePatch:spawnFlames(world)
+    local M = TUNE.molotov
+    local F = M.flame
+    local cx, cy = self:getCenter()
+    self.gif = Gif.load('assets/fire.gif')
+    self.flames = {}
+
+    for i = 1, F.count do
+        -- sqrt spacing keeps the density even instead of clumping at the center
+        local frac = (i - 0.5) / F.count
+        local dist = M.blastRadius * math.sqrt(frac) * (0.85 + love.math.random() * 0.3)
+        local ang = i * GOLDEN + love.math.random() * 0.4
+        local dx, dy = math.cos(ang) * dist, math.sin(ang) * dist
+        local fx, fy = cx + dx, cy + dy
+        -- fire doesn't burn inside walls or around corners
+        if not world.map:isSolidAt(fx, fy) and not world.map:wallBetween(cx, cy, fx, fy) then
+            local jitter = 1 + (love.math.random() * 2 - 1) * F.scaleJitter
+            table.insert(self.flames, {
+                dx = dx, dy = dy,
+                -- outer flames a bit smaller: reads as the fire thinning out
+                scale = F.scale * (1 - F.scaleFalloff * (dist / M.blastRadius)) * jitter,
+                appearAt = M.spreadTime * (dist / M.blastRadius),
+                frameOffset = love.math.random(0, self.gif.frames - 1),
+                speed = 0.92 + love.math.random() * 0.16, -- slight desync of the loops
+                flip = love.math.random() < 0.5 and -1 or 1,
+                phase = love.math.random() * math.pi * 2,
+            })
+        end
+    end
+    -- lower flames drawn last so they overlap the ones behind them
+    table.sort(self.flames, function(a, b) return a.dy < b.dy end)
+end
+
+-- Ground decal: sort from the top of the burn area so zombies/player walking
+-- through the fire draw in front of the flames instead of being covered.
+function FirePatch:sortY()
+    return self.y + self.height - TUNE.molotov.blastRadius
+end
+
 function FirePatch:currentRadius()
     local M = TUNE.molotov
     return M.blastRadius * math.min(1, self.age / M.spreadTime)
@@ -36,13 +82,24 @@ function FirePatch:update(dt, world)
         local cx, cy = self:getCenter()
         self.light = world.lighting:addPoint(cx, cy, 1, 0.55, 0.2,
             M.blastRadius * 2.2)
+        self:spawnFlames(world)
+        -- burn loop: rises with the spread, dies out with the flames
+        self.sound = Audio.loopAt('fire_loop', cx, cy, 0)
+    end
+
+    -- loop volume tracks the fire: fades up as it spreads, down as it burns out
+    if self.sound then
+        local up = math.min(1, self.age / M.spreadTime)
+        local left = M.burnTime - self.age
+        local down = math.min(1, math.max(0, left / M.flame.fadeTime))
+        Audio.setLoopGain(self.sound, M.fireGain * up * down)
     end
 
     local radius = self:currentRadius()
     local cx, cy = self:getCenter()
 
-    -- flames: continuous burst emission over the burning area
-    world.vfx:fireBurst(cx, cy, radius)
+    -- embers on top of the flame sprites
+    world.vfx:fireBurst(cx, cy, radius, M.flame.emberFactor)
 
     self.tickTimer = self.tickTimer - dt
     if self.tickTimer <= 0 then
@@ -71,12 +128,48 @@ function FirePatch:update(dt, world)
 
     if self.age >= M.burnTime then
         if self.light then world.lighting:removePoint(self.light) end
+        Audio.stopLoop(self.sound)
+        self.sound = nil
         world:removeEntity(self)
     end
 end
 
 function FirePatch:draw()
-    -- particles + light carry the visual; no placeholder body
+    if not self.flames then return end
+    local M, F = TUNE.molotov, TUNE.molotov.flame
+    local cx, cy = self:getCenter()
+    local g = self.gif
+    local ox, oy = g.width / 2, g.height - 2 -- flames sit on the ground
+
+    -- whole patch fades and shrinks away over the last fadeTime secs
+    local dying = 1
+    local left = M.burnTime - self.age
+    if left < F.fadeTime then dying = math.max(0, left / F.fadeTime) end
+
+    -- burnt ground + heat glow so the scattered flames read as one burning area
+    local radius = self:currentRadius()
+    love.graphics.setColor(0.05, 0.02, 0.02, F.scorchAlpha * dying)
+    love.graphics.circle('fill', cx, cy, radius)
+    love.graphics.setBlendMode('add')
+    love.graphics.setColor(0.6, 0.22, 0.06, F.glowAlpha * dying)
+    love.graphics.circle('fill', cx, cy, radius * 0.9)
+    love.graphics.setBlendMode('alpha')
+
+    for _, f in ipairs(self.flames) do
+        local t = self.age - f.appearAt
+        if t > 0 then
+            local pop = math.min(1, t / F.popTime)
+            pop = pop * pop * (3 - 2 * pop) -- smoothstep grow-in
+            local s = f.scale * pop -- size never changes once grown; the patch fades on alpha
+            local bob = math.sin(self.age * F.bobSpeed + f.phase) * F.bobAmp
+            local frame = math.floor(t * F.fps * f.speed + f.frameOffset) % g.frames + 1
+            love.graphics.setColor(1, 1, 1, dying)
+            love.graphics.draw(g.image, g.quads[frame],
+                math.floor(cx + f.dx), math.floor(cy + f.dy + bob),
+                0, s * f.flip, s, ox, oy)
+        end
+    end
+    love.graphics.setColor(1, 1, 1, 1)
 end
 
 return FirePatch

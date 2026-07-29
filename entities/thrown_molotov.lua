@@ -42,8 +42,9 @@ end
 
 function ThrownMolotov:shatter(world)
     world:addEntity(FirePatch:new(self.x, self.y))
-    -- bottle-break placeholder until a real glass SFX exists
-    Audio.playAt('bullet_hit', self.x, self.y, 1, TUNE.audio.pitchJitter, world)
+    -- glass shatter + ignite whoosh
+    Audio.playAt('molotov_break', self.x, self.y, TUNE.molotov.breakGain,
+        TUNE.audio.pitchJitter, world)
     world:removeEntity(self)
 end
 

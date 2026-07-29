@@ -26,6 +26,8 @@ local files = {
     -- draw/pickup clicks (CS-style deploy)
     gun_draw       = 'assets/sounds/weapons/gun_draw.wav',
     grenade_draw   = 'assets/sounds/weapons/grenade_draw.wav',
+    grenade_pull   = 'assets/sounds/weapons/grenade_pull.wav',  -- CS-style pin pull on deploy
+    grenade_throw  = 'assets/sounds/weapons/grenade_throw.wav', -- arm whoosh on release
     -- reload handling
     usp_reload     = 'assets/sounds/weapons/usp_reload.wav',
     ak47_reload    = 'assets/sounds/weapons/ak47_reload.wav',
@@ -48,6 +50,9 @@ local files = {
     knife_hit1     = 'assets/sounds/effects/knife_hit1.wav',
     knife_hit2     = 'assets/sounds/effects/knife_hit2.wav',
     grenade_blast  = 'assets/sounds/effects/grenade_blast.wav',
+    medkit_heal    = 'assets/sounds/effects/medkit_heal.wav',
+    molotov_break  = 'assets/sounds/effects/molotov_break.wav', -- bottle shatter + ignite
+    fire_loop      = 'assets/sounds/effects/fire_loop.wav',     -- looped by FirePatch
     -- player pain grunts (random via the 'hurt' group)
     hurt1          = 'assets/sounds/effects/hurt1.wav',
     hurt2          = 'assets/sounds/effects/hurt2.wav',
@@ -70,6 +75,8 @@ setmetatable(srcNoFade, { __mode = 'k' })
 local srcWorld = {}   -- Source -> true: world one-shot (freezes with the pause)
 setmetatable(srcWorld, { __mode = 'k' })
 local pausedWorld = {} -- sources paused by the pause muffle, resumed on unpause
+local loops = {}      -- looping world sounds owned by entities (fire patches)
+local occlusionTimer = 0 -- loops re-check their wall occlusion on this timer
 local muffled = false  -- pause-muffle state, read by applyVolumes (bed duck)
 local muffleMult = 1   -- smoothed bed duck: eases toward muffleDuck / back to 1
 local lowHealth = false -- ≤25hp state: ducks the world, runs the heartbeat
@@ -214,6 +221,48 @@ function Audio.playAt(name, x, y, gain, jitter, world)
     return src
 end
 
+-- Looping world sound owned by an entity (the molotov fire patch). Lives
+-- outside the one-shot pools: the owner holds the handle and MUST stop it.
+-- gain is live-settable so the owner can fade the loop in/out.
+function Audio.loopAt(name, x, y, gain)
+    local path = files[name]
+    if not path or not love.filesystem.getInfo(path) then return nil end
+    local A = TUNE.audio
+    local src = love.audio.newSource(path, 'static')
+    src:setLooping(true)
+    if src:getChannelCount() == 1 then
+        src:setRelative(false)
+        src:setPosition(x / A.pxPerUnit, y / A.pxPerUnit, 0)
+        src:setAttenuationDistances(A.refDist, A.maxDist)
+        if effectsOk then pcall(src.setEffect, src, 'room') end
+    end
+    local h = { src = src, gain = gain or 1, x = x, y = y }
+    table.insert(loops, h)
+    src:setVolume(Audio.master * Audio.sfx * h.gain * fade.mult * duckMult())
+    src:play()
+    return h
+end
+
+function Audio.setLoopGain(h, gain)
+    if not h then return end
+    h.gain = gain
+    h.src:setVolume(Audio.master * Audio.sfx * gain * fade.mult * duckMult())
+end
+
+function Audio.stopLoop(h)
+    if not h then return end
+    h.src:stop()
+    for i, other in ipairs(loops) do
+        if other == h then table.remove(loops, i) break end
+    end
+end
+
+-- Run teardown: a fire patch that dies with the run never stops its own loop
+function Audio.stopAllLoops()
+    for _, h in ipairs(loops) do h.src:stop() end
+    loops = {}
+end
+
 -- Once per frame from World:update: moves the ears + adapts the room reverb
 -- to how boxed-in the surroundings are
 function Audio.setListener(x, y, world)
@@ -265,6 +314,7 @@ end
 
 function Audio.stopAmbience()
     Audio.setLowHealth(false) -- leaving a run must kill the heartbeat + duck
+    Audio.stopAllLoops()      -- ...and any fire still burning in the dead run
     if ambience.bed then ambience.bed:stop() end
     ambience.bed, ambience.set = nil, nil
 end
@@ -286,6 +336,9 @@ local function applyVolumes()
     end
     if heartbeat and heartbeat:isPlaying() then
         heartbeat:setVolume(Audio.master * Audio.sfx * TUNE.audio.heartbeatGain)
+    end
+    for _, h in ipairs(loops) do
+        h.src:setVolume(Audio.master * Audio.sfx * h.gain * fade.mult * duckMult())
     end
 end
 
@@ -342,7 +395,24 @@ function Audio.update(dt)
         applyVolumes()
     end
 
-    if muffled then return end -- no stingers into a paused world
+    if muffled then return end -- no stingers (and no loop retuning) while paused
+
+    -- looping world sounds re-check the wall between them and the ear
+    occlusionTimer = occlusionTimer - dt
+    if occlusionTimer <= 0 and #loops > 0 then
+        occlusionTimer = 0.2
+        local A = TUNE.audio
+        local w = _G.world
+        for _, h in ipairs(loops) do
+            if w and w.map and w.map:wallBetween(listener.x, listener.y, h.x, h.y) then
+                pcall(h.src.setFilter, h.src,
+                    { type = 'lowpass', volume = 1, highgain = A.occlusionHighgain })
+            else
+                pcall(h.src.setFilter, h.src)
+            end
+        end
+    end
+
     if not ambience.set then return end
     ambience.stingerTimer = ambience.stingerTimer - dt
     if ambience.stingerTimer > 0 then return end
@@ -378,9 +448,11 @@ function Audio.setMuffled(m)
                 end
             end
         end
+        for _, h in ipairs(loops) do h.src:pause() end -- fire freezes with the world
     else
         for _, s in ipairs(pausedWorld) do pcall(s.play, s) end
         pausedWorld = {}
+        for _, h in ipairs(loops) do h.src:play() end
         for _, pool in pairs(pools) do
             for _, s in ipairs(pool) do
                 if s:isPlaying() then pcall(s.setFilter, s) end

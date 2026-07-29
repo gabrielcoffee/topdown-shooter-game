@@ -34,3 +34,7 @@ They auto-register at boot; the game already calls them (silent until files exis
 ## Player hurt + heartbeat (added 2026-07-28)
 - **hurt1-3** (player pain grunts): sliced from "grunts of male death and pain" by thebardofblasphemy (CC0) — https://opengameart.org/content/grunts-male-death-and-pain
 - **heartbeat** (low-health loop): "Heartbeat sounds" by bart (CC0), fast loop variant — https://opengameart.org/content/heartbeat-sounds
+
+## Molotov fire (added 2026-07-29)
+- **fire_loop** (looping burn under every fire patch): "Fireplace Sound loop" by PagDev (CC0) — https://opengameart.org/content/fireplace-sound-loop. Mono 7.5s seamless loop (highpassed, +15dB, 0.5s crossfade seam).
+- **molotov_break** (bottle shatter + ignite): glass break from "75 CC0 breaking / falling / hit sfx" by rubberduck (CC0) — https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx, layered with a lowpassed slice of the PagDev fire loop as the ignite whoosh.

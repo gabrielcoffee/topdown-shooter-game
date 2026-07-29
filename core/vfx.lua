@@ -114,10 +114,11 @@ function Vfx:explosion(x, y)
 end
 
 -- One frame's worth of flames over a burning circle (molotov fire patch)
-function Vfx:fireBurst(x, y, radius)
+-- mult scales the emission down when flame sprites carry most of the visual
+function Vfx:fireBurst(x, y, radius, mult)
     self.fire:moveTo(x, y)
     self.fire:setEmissionArea('uniform', radius, radius)
-    self.fire:emit(math.max(2, math.ceil(radius / 8)))
+    self.fire:emit(math.max(1, math.ceil(radius / 8 * (mult or 1))))
 end
 
 -- Puffs around the mover's feet, drifting off in random directions

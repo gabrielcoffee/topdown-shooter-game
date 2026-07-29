@@ -153,12 +153,29 @@ return {
                 blastRadius = 80,  -- same area as the grenade
                 maxRange = 160, throwSpeed = 240, -- shorter throw than the grenade (240)
                 spreadTime = 0.6,  -- secs the fire takes to grow from the impact to full radius
-                hitReward = 5, killBonus = 10 }, -- hitReward per burn tick
+                hitReward = 5, killBonus = 10, -- hitReward per burn tick
+                breakGain = 0.9,   -- bottle shatter + ignite volume on impact
+                fireGain = 0.85,   -- looping burn sound volume at the patch
+                -- ground-fire sprites (assets/fire.gif): flames scattered over the
+                -- burn area, each popping in as the fire spreads out to it
+                flame = { count = 60,        -- flame sprites over the whole radius
+                          fps = 18,          -- gif playback speed per flame
+                          scale = 1.6,       -- sprite scale (same for every flame)
+                          scaleFalloff = 0,  -- how much smaller the outer flames are (0-1)
+                          scaleJitter = 0,   -- +/- random size variation
+                          popTime = 0.15,    -- secs a flame takes to grow in
+                          fadeTime = 1.2,    -- secs of shrink/fade at the end of burnTime
+                          bobAmp = 1.5, bobSpeed = 7, -- idle up/down sway (px, rad/s)
+                          scorchAlpha = 0.3, -- darkened burnt ground under the fire
+                          glowAlpha = 0.3,   -- additive orange glow over the burn area
+                          emberFactor = 0.4 } }, -- particle embers kept on top of the sprites
 
     -- slot 4 is ONE pool: grenades + molotovs together can't pass maxCarry
-    throwables = { maxCarry = 4 },
+    throwables = { maxCarry = 4,
+                   useDelay = 1 }, -- secs between throws (a full pool can't be dumped at once)
 
-    healthpack = { healAmount = 50, maxCarry = 2 }, -- slot 5 stacks maxCarry kits
+    healthpack = { healAmount = 50, maxCarry = 2, -- slot 5 stacks maxCarry kits
+                   useDelay = 1 }, -- secs between heals
 
     -- CoD-style wall buys (GunWall entities placed in LDtk; gun + optional price)
     wallbuy = { interactPad = 4,
