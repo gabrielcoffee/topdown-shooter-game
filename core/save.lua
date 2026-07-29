@@ -85,9 +85,6 @@ function Save.loadSettings()
         sfx = s.sfx or TUNE.audio.sfxDefault,
         music = s.music or TUNE.audio.musicDefault,
         language = s.language or 'en',
-        -- money model picked in the main menu: 'kills' pays on the killing
-        -- blow, 'hits' pays per hit + a small kill bonus
-        economy = s.economy == 'hits' and 'hits' or 'kills',
         -- crosshair look (== nil keeps saved false from reading as default)
         crossColor = s.crossColor == 'green' and 'green' or 'white',
         crossOutline = s.crossOutline == nil and true or s.crossOutline,

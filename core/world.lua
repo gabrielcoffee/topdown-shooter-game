@@ -32,9 +32,6 @@ function World:new(opts)
         transition = nil, -- set while the camera pans between rooms
         openedDoors = {}, -- door id -> true once bought (persists in saves)
         visitedRooms = {}, -- room name -> true once entered; gates spawn points
-        -- money model for this run ('kills' | 'hits'); menu passes it in,
-        -- the SETTINGS fallback covers U-reload and gameover restart
-        economy = opts.economy or (SETTINGS and SETTINGS.economy) or 'kills',
         -- timed power-up buffs, secs left (0 = off)
         buffs = { instakill = 0, freeze = 0, doublepoints = 0, firesale = 0 },
         crateSpawns = {}, -- original crate spots, for the carpenter power-up
@@ -69,7 +66,7 @@ function World:new(opts)
             obj:addEntity(crate)
             obj.lighting:trackOccluder(crate)
         elseif o.type == 'door' then
-            local door = Door:new(o.x, o.y, o.price, o.id)
+            local door = Door:new(o.x, o.y, o.price, o.id, o.width, o.height)
             obj:addEntity(door)
             obj.lighting:trackOccluder(door)
         elseif o.type == 'chest' then
@@ -529,7 +526,6 @@ end
 function World:serialize()
     return {
         wave = self.waves.wave,
-        economy = self.economy,
         buffs = self.buffs,
         kills = self.kills,
         openedDoors = self.openedDoors,
@@ -539,7 +535,6 @@ function World:serialize()
 end
 
 function World:restore(data)
-    self.economy = data.economy or self.economy
     self.kills = data.kills or 0
     if data.buffs then
         for k in pairs(self.buffs) do

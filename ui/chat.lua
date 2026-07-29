@@ -163,13 +163,6 @@ local commands = {
         world:addEntity(Powerup:new(cx + off, cy, arg))
         return 'dropped ' .. arg
     end },
-    mode = { argKind = 'mode', run = function(arg)
-        if arg ~= 'kills' and arg ~= 'hits' then
-            return 'usage: /mode <kills|hits>  (now: ' .. world.economy .. ')', true
-        end
-        world.economy = arg
-        return 'economy mode: ' .. arg
-    end },
     help = { run = function()
         local out = {}
         for _, n in ipairs(commandNames) do table.insert(out, '/' .. n) end

@@ -88,6 +88,8 @@ function Ldtk.load(path)
                         type = e.__identifier:lower(),
                         x = ox + e.px[1],
                         y = oy + e.px[2],
+                        width = e.width,   -- resizable entities (doors) keep
+                        height = e.height, -- their editor-stretched size
                     }
                     -- entity fields (door price/id, spawn door link, ...)
                     for _, f in ipairs(e.fieldInstances or {}) do

@@ -19,7 +19,6 @@ function HandItem:newKnife()
         isKnife = true,
         damage = TUNE.knife.damage,
         econ = { hitReward = TUNE.knife.hitReward,
-                 killReward = TUNE.knife.killReward,
                  killBonus = TUNE.knife.killBonus },
 
         cdTimer = 0,    -- secs until the next swing is allowed
@@ -74,6 +73,22 @@ function HandItem:swing(aimAngle, player, world)
 
                 hit = true
                 killed = killed or dead
+            end
+        elseif e.type == 'crate' and not e.toRemove then
+            -- crates take knife damage too (same reach/arc/wall rules;
+            -- half the crate's 32px box stands in for a radius)
+            local ecx, ecy = e:getCenter()
+            local dx, dy = ecx - pcx, ecy - pcy
+            local dist = math.sqrt(dx*dx + dy*dy)
+
+            if dist - e.width / 2 <= K.range
+                and math.abs(angleDiff(math.atan2(dy, dx), aimAngle)) <= math.rad(K.arcDeg) / 2
+                and not world.map:wallBetween(pcx, pcy, ecx, ecy) then
+
+                e.health = e.health - self.damage
+                e.flash = true
+                if e.health <= 0 then world:removeEntity(e) end
+                hit = true
             end
         end
     end

@@ -79,8 +79,8 @@ function Enemy:newFast(x, y, wave)
 end
 
 -- Every player-weapon hit funnels through here: applies the damage, pays
--- money per the run's economy mode, honors the instakill power-up. econ =
--- the weapon's payout numbers { hitReward, killReward, killBonus }; nil
+-- money per hit (+ a bonus on the kill), honors the instakill power-up.
+-- econ = the weapon's payout numbers { hitReward, killBonus }; nil
 -- (spikes, holes) hurts without paying and without instakill.
 -- Returns true if this hit killed. Call sites keep their own juice
 -- (blood, knockback, hitstop) — this owns health, flash and money only.
@@ -94,12 +94,8 @@ function Enemy:takeDamage(amount, world, econ)
     local killed = self.health <= 0
     if econ then
         local p = world.player
-        if world.economy == 'hits' then
-            p:addMoney(econ.hitReward or 0)
-            if killed then p:addMoney(econ.killBonus or 0) end
-        elseif killed then
-            p:addMoney(econ.killReward or 0)
-        end
+        p:addMoney(econ.hitReward or 0)
+        if killed then p:addMoney(econ.killBonus or 0) end
     end
     return killed
 end

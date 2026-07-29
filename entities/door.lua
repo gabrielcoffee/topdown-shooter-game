@@ -5,8 +5,11 @@ local Door = {}
 Door.__index = Door
 setmetatable(Door, Entity)
 
-function Door:new(x, y, price, id)
-    local obj = Entity:new(x, y, TUNE.tiles.size, TUNE.tiles.size)
+-- w/h come from the LDtk instance (the entity is resizable in the editor),
+-- so one door can stretch across the 2-tile wall between rooms and read as
+-- a door from both sides. Defaults to one tile.
+function Door:new(x, y, price, id, w, h)
+    local obj = Entity:new(x, y, w or TUNE.tiles.size, h or TUNE.tiles.size)
     obj.type = 'door'
     obj.isObstacle = true
     obj.price = price or TUNE.door.price

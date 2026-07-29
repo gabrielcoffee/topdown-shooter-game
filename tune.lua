@@ -64,16 +64,15 @@ return {
         --   recoilDelay   = secs after the last shot before recovery starts
         --   recoilRecover = recoil lost per second once recovering
         --   maxHits       = zombies one bullet can damage before it stops (pierces maxHits-1)
-        --   killReward    = $ on the killing blow (KILLS economy mode)
-        --   hitReward     = $ per damaging hit, killBonus = $ extra on the kill (HITS mode)
+        --   hitReward     = $ per damaging hit, killBonus = $ extra on the kill
         usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 2,   bulletLife = 0.5,
-                   killReward = 25, hitReward = 6, killBonus = 10, maxHits = 3,
+                   hitReward = 6, killBonus = 10, maxHits = 3,
                    baseSpread = 0.008, moveSpread = 0.120, recoilPerShot = 0.030, recoilMax = 0.15, recoilDelay = 0.30, recoilRecover = 0.40 },
         ak47   = { damage = 40, clip = 30, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7,
-                   killReward = 20, hitReward = 4, killBonus = 10, maxHits = 4,
+                   hitReward = 4, killBonus = 10, maxHits = 4,
                    baseSpread = 0.012, moveSpread = 0.220, recoilPerShot = 0.035, recoilMax = 0.30, recoilDelay = 0.25, recoilRecover = 0.45 },
         m4a1   = { damage = 35, clip = 25, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7,
-                   killReward = 20, hitReward = 5, killBonus = 10, maxHits = 4,
+                   hitReward = 5, killBonus = 10, maxHits = 4,
                    baseSpread = 0.010, moveSpread = 0.200, recoilPerShot = 0.030, recoilMax = 0.26, recoilDelay = 0.25, recoilRecover = 0.45 },
         -- reloadTime = secs PER SHELL; reloadOpenTime = break-open sound before first shell
         -- spread here is the fixed pellet cone; aim spread shifts the whole cone
@@ -84,7 +83,7 @@ return {
                      reloadOpenTime = 0.4, reserve = 32,
                      pumpDelay = 0.12, pumpAnimTime = 0.22,
                      pellets = 14, spread = 0.20, maxHits = 3, -- damage is per pellet
-                     killReward = 20, hitReward = 1, killBonus = 20, -- hitReward is per PELLET hit
+                     hitReward = 1, killBonus = 20, -- hitReward is per PELLET hit
                      baseSpread = 0.025, moveSpread = 0.180, recoilPerShot = 0.080, recoilMax = 0.16, recoilDelay = 0.40, recoilRecover = 0.40 },
     },
 
@@ -120,8 +119,8 @@ return {
         settleTime = 0.085, -- secs to swing from run pose to real aim (~5 frames)
     },
 
-    knife   = { damage = 60,  killReward = 60, hitReward = 20, killBonus = 50,
-                -- knife finish pays most in BOTH modes: risk close = get paid
+    knife   = { damage = 60,  hitReward = 20, killBonus = 50,
+                -- knife pays most per hit: risk close = get paid
                 range = 44,          -- arc reach from player center, px
                 arcDeg = 110,        -- swing arc width, degrees (aiming matters)
                 cooldown = 0.5,      -- secs between swings
@@ -131,7 +130,7 @@ return {
                 knockbackDecay = 8,  -- higher = shove stops sooner
                 hitstop = 0.04,      -- secs the world freezes on connect
                 hitstopKill = 0.09 },-- bigger freeze when the swing kills
-    grenade = { damage = 120, killReward = 15, hitReward = 5, killBonus = 10,
+    grenade = { damage = 120, hitReward = 5, killBonus = 10,
                 throwSpeed = 240,  -- px/sec toward the aim point
                 fuse = 1.2,        -- secs from throw to blast
                 blastRadius = 80,  -- world px; flat damage inside
@@ -153,7 +152,7 @@ return {
                 maxRange = 240, throwSpeed = 240,
                 spreadTime = 0.6,  -- secs the fire takes to grow from the impact to full radius
                 maxCarry = 2,      -- stronger per unit than grenades (3)
-                killReward = 15, hitReward = 2, killBonus = 10 }, -- hitReward per burn tick
+                hitReward = 2, killBonus = 10 }, -- hitReward per burn tick
 
     healthpack = { healAmount = 50 },
 
@@ -165,7 +164,7 @@ return {
     -- power-up drops: fast (runner) zombies may spawn glowing with one and
     -- drop it on death; walk over the drop to grab it
     powerups = {
-        carrierChance = 0.25, -- chance a fast zombie spawns carrying one
+        carrierChance = 0.15, -- chance a fast zombie spawns carrying one
         maxPerWave = 2,       -- carrier cap per wave
         weights = { nuke = 20, maxammo = 25, instakill = 20, freeze = 15,
                     doublepoints = 20, firesale = 15, carpenter = 10 },

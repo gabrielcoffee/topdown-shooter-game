@@ -105,7 +105,7 @@ function playing:keypressed(key)
         TUNE = require('tune')
         Fx.refresh()
         require('core.gif').clearCache() -- edited gifs get re-decoded too
-        world = World:new({ economy = world.economy }) -- restart keeps the mode
+        world = World:new({})
         Audio.playAmbience(world.ambience)
     end
 end

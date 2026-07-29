@@ -47,8 +47,7 @@ function FirePatch:update(dt, world)
     self.tickTimer = self.tickTimer - dt
     if self.tickTimer <= 0 then
         self.tickTimer = self.tickTimer + M.tickInterval
-        local econ = { hitReward = M.hitReward, killReward = M.killReward,
-                       killBonus = M.killBonus }
+        local econ = { hitReward = M.hitReward, killBonus = M.killBonus }
         for _, e in ipairs(world.entities) do
             if not e.toRemove then
                 local ex, ey = e:getCenter()

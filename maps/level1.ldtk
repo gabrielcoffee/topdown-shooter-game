@@ -197,12 +197,12 @@
 				"uid": 11,
 				"tags": [],
 				"exportToToc": false,
-				"allowOutOfBounds": false,
+				"allowOutOfBounds": true,
 				"doc": null,
 				"width": 32,
 				"height": 32,
-				"resizableX": false,
-				"resizableY": false,
+				"resizableX": true,
+				"resizableY": true,
 				"minWidth": null,
 				"maxWidth": null,
 				"minHeight": null,
@@ -845,7 +845,7 @@
 							"__smartColor": "#EAD4AA",
 							"iid": "f428d4e0-6fc0-11f1-9f6f-99c187128916",
 							"width": 32,
-							"height": 32,
+							"height": 64,
 							"defUid": 11,
 							"px": [
 								96,
@@ -944,10 +944,17 @@
 								{
 									"__identifier": "price",
 									"__type": "Int",
-									"__value": null,
+									"__value": 1000,
 									"__tile": null,
 									"defUid": 205,
-									"realEditorValues": []
+									"realEditorValues": [
+										{
+											"id": "V_Int",
+											"params": [
+												1000
+											]
+										}
+									]
 								}
 							],
 							"__worldX": 320,
@@ -1693,8 +1700,8 @@
 						{
 							"__identifier": "GunWall",
 							"__grid": [
-								20,
-								12
+								34,
+								0
 							],
 							"__pivot": [
 								0,
@@ -1703,13 +1710,13 @@
 							"__tags": [],
 							"__tile": null,
 							"__smartColor": "#3E8948",
-							"iid": "7cb2f601-09d3-4908-b96b-67df8089a294",
+							"iid": "093c2400-6fc0-11f1-bfaa-598aa8529567",
 							"width": 32,
 							"height": 32,
 							"defUid": 203,
 							"px": [
-								640,
-								384
+								1088,
+								0
 							],
 							"fieldInstances": [
 								{
@@ -1730,14 +1737,21 @@
 								{
 									"__identifier": "price",
 									"__type": "Int",
-									"__value": null,
+									"__value": 500,
 									"__tile": null,
 									"defUid": 205,
-									"realEditorValues": []
+									"realEditorValues": [
+										{
+											"id": "V_Int",
+											"params": [
+												500
+											]
+										}
+									]
 								}
 							],
-							"__worldX": 1280,
-							"__worldY": 864
+							"__worldX": 1728,
+							"__worldY": 480
 						}
 					]
 				},
@@ -2977,10 +2991,17 @@
 								{
 									"__identifier": "price",
 									"__type": "Int",
-									"__value": null,
+									"__value": 400,
 									"__tile": null,
 									"defUid": 205,
-									"realEditorValues": []
+									"realEditorValues": [
+										{
+											"id": "V_Int",
+											"params": [
+												400
+											]
+										}
+									]
 								}
 							],
 							"__worldX": 32,

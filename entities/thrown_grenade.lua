@@ -51,8 +51,7 @@ function ThrownGrenade:explode(world)
     local G = TUNE.grenade
     local radius = G.blastRadius
     local damage = G.damage
-    local econ = { hitReward = G.hitReward, killReward = G.killReward,
-                   killBonus = G.killBonus }
+    local econ = { hitReward = G.hitReward, killBonus = G.killBonus }
 
     for _, e in ipairs(world.entities) do
         if not e.toRemove then

@@ -32,18 +32,7 @@ function menu:enter()
         label = 'menu.new_game', type = 'action',
         activate = function()
             Audio.play(TUNE.start.sound, TUNE.start.soundGain, true)
-            State.fadeTo('playing', { economy = SETTINGS.economy })
-        end,
-    })
-    table.insert(items, {
-        label = 'menu.economy', type = 'cycle',
-        value = function()
-            return T(SETTINGS.economy == 'hits' and 'menu.eco_hits'
-                or 'menu.eco_kills')
-        end,
-        cycle = function()
-            SETTINGS.economy = SETTINGS.economy == 'hits' and 'kills' or 'hits'
-            Save.saveSettings(SETTINGS)
+            State.fadeTo('playing')
         end,
     })
     table.insert(items, {
