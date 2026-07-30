@@ -101,6 +101,9 @@ function Enemy:takeDamage(amount, world, econ)
     end
     self.health = self.health - amount
     self.flash = true
+    -- sprite types hold the white flash for a few frames; a 1-frame boolean
+    -- vanishes at 60fps on an animated body
+    self.flashTimer = TUNE.zombies.hitFlashTime
     local killed = self.health <= 0
     if econ then
         local p = world.player
@@ -280,6 +283,13 @@ function Enemy:followPlayer(dt, world)
 end
 
 function Enemy:update(dt, world)
+    -- hit flash runs on its own timer, before any early-out: a frozen or
+    -- dying zombie still flashes white when it's shot
+    if (self.flashTimer or 0) > 0 then
+        self.flashTimer = self.flashTimer - dt
+        self.flash = true
+    end
+
     -- dead: stop acting immediately — no posthumous step or contact hit.
     -- Threshold matches the killReward checks (<= 0), so fractional spike
     -- damage can't strand a 0.x hp zombie between the two rules.
@@ -373,6 +383,17 @@ function Enemy:update(dt, world)
 
 end
 
+-- Keeps the sprite's alpha shape, paints every pixel white (hit flash)
+local flashShader
+local function whiteShader()
+    flashShader = flashShader or love.graphics.newShader[[
+        vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
+            return vec4(1.0, 1.0, 1.0, Texel(tex, tc).a * color.a);
+        }
+    ]]
+    return flashShader
+end
+
 -- Animated types: the sprite's feet sit on the bottom of the collision box,
 -- so the body fills the hitbox and any extra sprite height hangs above it.
 function Enemy:drawSprite()
@@ -383,14 +404,13 @@ function Enemy:drawSprite()
     love.graphics.draw(a.image, a.quads[a.index], x, y, 0,
         self.faceX, 1, self.spriteW / 2, self.spriteH)
 
-    -- hit flash: additive white pass instead of the circle's flat white fill
+    -- hit flash: the sprite's silhouette filled solid white (an additive pass
+    -- barely showed up in a dark room)
     if self.flash then
-        love.graphics.setBlendMode('add')
-        love.graphics.setColor(1, 1, 1, 0.9)
+        love.graphics.setShader(whiteShader())
         love.graphics.draw(a.image, a.quads[a.index], x, y, 0,
             self.faceX, 1, self.spriteW / 2, self.spriteH)
-        love.graphics.setBlendMode('alpha')
-        love.graphics.setColor(1, 1, 1)
+        love.graphics.setShader()
     end
     self.flash = false
 end

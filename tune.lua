@@ -368,6 +368,7 @@ return {
         contactCooldown = 1.0, -- secs between hits, per zombie
         attackRange = 6,      -- px beyond touching circles where a hit lands
         growlMin = 6, growlMax = 16, -- secs between random growls, per zombie
+        hitFlashTime = 0.08,  -- secs a hit zombie stays white
         repathTime = 0.4,     -- secs between A* recalculations, per zombie
         waypointRadius = 13,  -- px from a path waypoint that counts as reached
         stuckRepath = 0.35,   -- secs of no progress before forcing an instant repath
