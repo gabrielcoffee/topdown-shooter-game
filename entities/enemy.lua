@@ -71,21 +71,35 @@ function Enemy:newSlow(x, y, wave)
     return newTyped(x, y, wave, TUNE.zombies.slow, Color.red)
 end
 
+-- Gif-driven body: feet on the bottom of the collision box, any extra sprite
+-- height overhangs above it. pingpong = walk cycles that read forward-then-back
+-- (3-frame gifs pop on a hard loop).
+local function attachSprite(obj, path, animTime, pingpong)
+    obj.anim = Animation:fromGif(path, true)
+    if pingpong then obj.anim:setPingPong(true) end
+    obj.anim:setDuration(animTime)
+    -- desync the horde: random frame, and a random leg for ping-pong walkers
+    obj.anim.index = love.math.random(1, obj.anim.totalFrames)
+    if pingpong and love.math.random() < 0.5 then obj.anim.dir = -1 end
+    local _, _, sw, sh = obj.anim.quads[1]:getViewport()
+    obj.spriteW, obj.spriteH = sw, sh
+    obj.faceX = 1
+    return obj
+end
+
 function Enemy:newNormal(x, y, wave)
-    return newTyped(x, y, wave, TUNE.zombies.normal, Color.magenta)
+    local obj = newTyped(x, y, wave, TUNE.zombies.normal, Color.magenta)
+    -- 32x32 gif, 3 frames: sprite fills the hitbox exactly
+    return attachSprite(obj, 'assets/medium_zombie.gif',
+        TUNE.zombies.normal.animTime, true)
 end
 
 function Enemy:newFast(x, y, wave)
     local obj = newTyped(x, y, wave, TUNE.zombies.fast, Color.yellow)
     -- 16x24 gif: bottom 16px = the body (the collision circle), top 8px is
     -- head/shoulder overhang drawn above the hitbox
-    obj.anim = Animation:fromGif('assets/fast_zombie.gif', true)
-    obj.anim:setDuration(TUNE.zombies.fast.animTime)
-    obj.anim.index = love.math.random(1, obj.anim.totalFrames) -- desync the horde
-    local _, _, sw, sh = obj.anim.quads[1]:getViewport()
-    obj.spriteW, obj.spriteH = sw, sh
-    obj.faceX = 1
-    return obj
+    return attachSprite(obj, 'assets/fast_zombie.gif',
+        TUNE.zombies.fast.animTime, false)
 end
 
 -- Every player-weapon hit funnels through here: applies the damage, pays
