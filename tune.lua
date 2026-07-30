@@ -121,7 +121,7 @@ return {
         settleTime = 0.085, -- secs to swing from run pose to real aim (~5 frames)
     },
 
-    knife   = { damage = 60,  hitReward = 20, killBonus = 20,
+    knife   = { damage = 40,  hitReward = 20, killBonus = 20,
                 -- knife pays most per hit: risk close = get paid
                 range = 44,          -- arc reach from player center, px
                 arcDeg = 110,        -- swing arc width, degrees (aiming matters)
