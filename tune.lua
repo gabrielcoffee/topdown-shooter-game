@@ -65,10 +65,10 @@ return {
         --   maxHits       = zombies one bullet can damage before it stops (pierces maxHits-1)
         --   hitReward     = $ per damaging hit, killBonus = $ extra on the kill
         usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 2,   bulletLife = 0.5,
-                   hitReward = 8, killBonus = 15, maxHits = 3,
+                   hitReward = 6, killBonus = 10, maxHits = 3,
                    baseSpread = 0.008, moveSpread = 0.120, recoilPerShot = 0.030, recoilMax = 0.15, recoilDelay = 0.30, recoilRecover = 0.40 },
         ak47   = { damage = 40, clip = 30, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7,
-                   hitReward = 5, killBonus = 10, maxHits = 4,
+                   hitReward = 4, killBonus = 10, maxHits = 4,
                    baseSpread = 0.012, moveSpread = 0.220, recoilPerShot = 0.035, recoilMax = 0.30, recoilDelay = 0.25, recoilRecover = 0.45 },
         m4a1   = { damage = 35, clip = 25, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7,
                    hitReward = 5, killBonus = 10, maxHits = 4,
@@ -118,7 +118,7 @@ return {
         settleTime = 0.085, -- secs to swing from run pose to real aim (~5 frames)
     },
 
-    knife   = { damage = 60,  hitReward = 20, killBonus = 30,
+    knife   = { damage = 60,  hitReward = 20, killBonus = 20,
                 -- knife pays most per hit: risk close = get paid
                 range = 44,          -- arc reach from player center, px
                 arcDeg = 110,        -- swing arc width, degrees (aiming matters)
@@ -149,7 +149,7 @@ return {
                 blastRadius = 80,  -- same area as the grenade
                 maxRange = 160, throwSpeed = 240, -- shorter throw than the grenade (240)
                 spreadTime = 0.6,  -- secs the fire takes to grow from the impact to full radius
-                hitReward = 5, killBonus = 10, -- hitReward per burn tick
+                hitReward = 4, killBonus = 10, -- hitReward per burn tick
                 breakGain = 0.9,   -- bottle shatter + ignite volume on impact
                 fireGain = 0.85,   -- looping burn sound volume at the patch
                 -- ground-fire sprites (assets/fire.gif): flames scattered over the
