@@ -16,10 +16,6 @@ return {
         colSize = 16,         -- AABB collision box (tiles/obstacles), 16x16
         colOffsetX = 8,       -- px inset from sprite left  (centered in x)
         colOffsetY = 16,      -- px inset from sprite top   (box sits in the lower half)
-        -- head circle (inert for now; reserved for future co-op headshots)
-        headRadius = 5,
-        headOffsetX = 16,     -- head center, px from sprite left (centered)
-        headOffsetY = 8,      -- head center, px from sprite top  (upper area)
         hitFlashTime = 0.12,  -- secs the sprite flashes white when hit
         contactInvulnTime = 0.8, -- secs of invulnerability (sprite blinks) after a zombie contact hit
         hurtCueCooldown = 0.5,   -- secs between hurt grunt + red vignette cues

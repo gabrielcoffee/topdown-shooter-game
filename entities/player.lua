@@ -40,9 +40,6 @@ function Player:new(x, y, width, height)
     -- 16x16 AABB in the lower half of the 32px sprite (tiles/obstacles)
     obj.colOX, obj.colOY = TUNE.player.colOffsetX, TUNE.player.colOffsetY
     obj.colW, obj.colH = TUNE.player.colSize, TUNE.player.colSize
-    -- head circle: inert for now, reserved for future co-op headshots
-    obj.headRadius = TUNE.player.headRadius
-    obj.headOX, obj.headOY = TUNE.player.headOffsetX, TUNE.player.headOffsetY
     obj.flashTimer = 0                  -- white flash when hit
     obj.dustTimer = 0                   -- next movement dust puff
     obj.hitboxColor = {0, 1, 1} -- cyan: stands out over the sprite
@@ -594,26 +591,6 @@ function Player:draw()
     if flashing then
         love.graphics.setShader()
     end
-end
-
--- Head center (sprite-relative). Inert for now; future co-op headshots.
-function Player:headCenter()
-    return self.x + self.headOX, self.y + self.headOY
-end
-
--- Debug overlay (H): body circle (Entity), the 16x16 AABB, and the head circle
-function Player:drawHitbox()
-    Entity.drawHitbox(self) -- cyan body circle vs zombies
-
-    love.graphics.setLineWidth(1)
-    -- collision AABB (tiles/obstacles)
-    love.graphics.setColor(1, 1, 0, 0.8)
-    love.graphics.rectangle('line', self.x + self.colOX, self.y + self.colOY, self.colW, self.colH)
-    -- head circle (magenta)
-    local hx, hy = self:headCenter()
-    love.graphics.setColor(1, 0.3, 0.9, 0.9)
-    love.graphics.circle('line', hx, hy, self.headRadius)
-    love.graphics.setColor(Color.white())
 end
 
 function Player:drawHud()

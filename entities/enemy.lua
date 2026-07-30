@@ -192,12 +192,41 @@ function Enemy:followPlayer(dt, world)
         end
         self.pathIndex = 1
 
+        -- Path smoothing: aim at the FARTHEST early waypoint reachable in a
+        -- straight body-width line. A fresh path starts at the zombie's own
+        -- tile center — often slightly behind a body mid-turn, so every
+        -- repath tick used to yank it back a step at wall corners (the
+        -- corner stutter). Lookahead capped to bound the losClear cost.
+        if self.path then
+            local half = (self.colW or self.width) / 2 + 1
+            for i = 1, math.min(#self.path, 6) do
+                local wp = self.path[i]
+                if losClear(world, cx, cy, (wp.col - 0.5) * ts, (wp.row - 0.5) * ts,
+                    half, self.smashMode) then
+                    self.pathIndex = i
+                else
+                    break
+                end
+            end
+        end
+
         -- Beeline gate: a zero-width line, so only a real blocker (wall,
         -- closed door, crate) vetoes it. The body-width line used to gate
         -- this, which froze fat zombies a step short of a player hugging a
         -- wall — their own bulk clipped the wall the player was pressed on.
         self.beelineOK = bodyClear
             or losClear(world, cx, cy, pcx, pcy, 0, self.smashMode)
+
+        -- Crate-breaker whose straight line is blocked ONLY by crates: walk
+        -- it anyway and chew through. Without this, a player hiding behind a
+        -- crate one tile away left the zombie frozen — adjacent tile means
+        -- the A* route is unused, the beeline was vetoed by the crate, and
+        -- smashMode never turned on ("forgot" it can chew).
+        if not self.beelineOK and self.breaksCrates
+            and losClear(world, cx, cy, pcx, pcy, 0, true) then
+            self.beelineOK = true
+            self.smashMode = true
+        end
     end
 
     local nx, ny = 0, 0

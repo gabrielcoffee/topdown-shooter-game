@@ -93,6 +93,19 @@ function Entity:_resolveAxis(world, axis, dt)
     -- this is colOX/colOY, not the default inset — using inset drifts the snap.
     local offX, offY = bx - self.x, by - self.y
 
+    -- Eject direction out of a blocker spanning [lo,hi]: out the NEAREST face,
+    -- velocity sign only as tie-break. Velocity alone is wrong for a body left
+    -- overlapping by a multi-obstacle wedge (two crates against a wall): it
+    -- either skipped the snap entirely (v == 0, overlap persisted) or snapped
+    -- out the FAR face — the teleport-through-doors bug.
+    local function ejectDir(lo, hi, p0, p1, v)
+        local penLo = p1 - lo   -- depth past the low face (eject = -1)
+        local penHi = hi - p0   -- depth past the high face (eject = +1)
+        if penLo < penHi then return -1
+        elseif penHi < penLo then return 1
+        else return (v < 0) and 1 or -1 end
+    end
+
     -- solid tiles (loop cols/rows the box overlaps, 0-based)
     local c0, c1 = math.floor(bx / ts), math.floor((bx + bw - 0.001) / ts)
     local r0, r1 = math.floor(by / ts), math.floor((by + bh - 0.001) / ts)
@@ -100,12 +113,18 @@ function Entity:_resolveAxis(world, axis, dt)
         for col = c0, c1 do
             if world.map:isSolidAt(col * ts, row * ts) then
                 if axis == 'x' then
-                    if self.vx > 0 then self.x = col * ts - bw - offX
-                    elseif self.vx < 0 then self.x = (col + 1) * ts - offX end
+                    if ejectDir(col * ts, (col + 1) * ts, bx, bx + bw, self.vx) < 0 then
+                        self.x = col * ts - bw - offX
+                    else
+                        self.x = (col + 1) * ts - offX
+                    end
                     self.vx = 0
                 else
-                    if self.vy > 0 then self.y = row * ts - bh - offY
-                    elseif self.vy < 0 then self.y = (row + 1) * ts - offY end
+                    if ejectDir(row * ts, (row + 1) * ts, by, by + bh, self.vy) < 0 then
+                        self.y = row * ts - bh - offY
+                    else
+                        self.y = (row + 1) * ts - offY
+                    end
                     self.vy = 0
                 end
                 bx, by = collisionBox(self)
@@ -129,8 +148,13 @@ function Entity:_resolveAxis(world, axis, dt)
             and bx < ex1 and bx + bw > ex0
             and by < ey1 and by + bh > ey0 then
 
-            local sign = (axis == 'x') and (self.vx > 0 and 1 or -1)
-                                        or (self.vy > 0 and 1 or -1)
+            local eject
+            if axis == 'x' then
+                eject = ejectDir(e.x, e.x + e.width, bx, bx + bw, self.vx)
+            else
+                eject = ejectDir(e.y, e.y + e.height, by, by + bh, self.vy)
+            end
+            local sign = -eject -- the crate gives way AWAY from the mover
 
             -- player pushes crates positionally: the crate moves right now
             -- (speed-capped, clipped by its own collisions), then we clamp
@@ -148,12 +172,12 @@ function Entity:_resolveAxis(world, axis, dt)
             end
 
             if axis == 'x' then
-                if self.vx > 0 then self.x = e.x - bw - offX
-                elseif self.vx < 0 then self.x = e.x + e.width - offX end
+                if eject < 0 then self.x = e.x - bw - offX
+                else self.x = e.x + e.width - offX end
                 if not keepSpeed then self.vx = 0 end
             else
-                if self.vy > 0 then self.y = e.y - bh - offY
-                elseif self.vy < 0 then self.y = e.y + e.height - offY end
+                if eject < 0 then self.y = e.y - bh - offY
+                else self.y = e.y + e.height - offY end
                 if not keepSpeed then self.vy = 0 end
             end
             bx, by = collisionBox(self)
@@ -249,13 +273,26 @@ function Entity:draw()
     self.flash = false
 end
 
--- Debug overlay (H key): collision circle on top of any sprite
+-- Debug overlay (H key): draws the colliders actually used.
+-- Obstacles (crates, doors, wall buys, chests) collide as their full AABB —
+-- movement, bullets and A* all use the box, never a circle.
+-- Everything else: the combat circle (bullets/knife/shoving), plus the
+-- wall-collision box when the entity has a custom one (yellow).
 function Entity:drawHitbox()
     local c = self.hitboxColor or {0, 1, 0}
     love.graphics.setLineWidth(1)
     love.graphics.setColor(c[1], c[2], c[3], 0.9)
-    local cx, cy = self:getCenter()
-    love.graphics.circle('line', cx, cy, self.radius)
+    if self.isObstacle then
+        love.graphics.rectangle('line', self.x, self.y, self.width, self.height)
+    else
+        local cx, cy = self:getCenter()
+        love.graphics.circle('line', cx, cy, self.radius)
+        if self.colW then
+            love.graphics.setColor(1, 1, 0, 0.8)
+            love.graphics.rectangle('line',
+                self.x + self.colOX, self.y + self.colOY, self.colW, self.colH)
+        end
+    end
     love.graphics.setColor(Color.white())
 end
 
