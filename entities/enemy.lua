@@ -72,8 +72,8 @@ function Enemy:newSlow(x, y, wave)
 end
 
 -- Gif-driven body: feet on the bottom of the collision box, any extra sprite
--- height overhangs above it. pingpong = walk cycles that read forward-then-back
--- (3-frame gifs pop on a hard loop).
+-- height overhangs above it. pingpong = play the cycle forward-then-back
+-- (1-2-3-2) instead of a plain repeating loop.
 local function attachSprite(obj, path, animTime, pingpong)
     obj.anim = Animation:fromGif(path, true)
     if pingpong then obj.anim:setPingPong(true) end
@@ -91,7 +91,7 @@ function Enemy:newNormal(x, y, wave)
     local obj = newTyped(x, y, wave, TUNE.zombies.normal, Color.magenta)
     -- 32x32 gif, 3 frames: sprite fills the hitbox exactly
     return attachSprite(obj, 'assets/medium_zombie.gif',
-        TUNE.zombies.normal.animTime, true)
+        TUNE.zombies.normal.animTime, false)
 end
 
 function Enemy:newFast(x, y, wave)
@@ -452,16 +452,19 @@ function Enemy:draw()
         love.graphics.setColor(1, 1, 1)
     end
 
-    -- Shows the enemy health
-    local hp = math.ceil(self.health)
-    local fontWidth = smallFont:getWidth(hp)
-    local fontHeight = smallFont:getHeight()
+    -- Remaining health above the body -- debug readout only, so it rides the
+    -- H hitbox overlay instead of cluttering the normal view
+    if showHitboxes then
+        local hp = math.ceil(self.health)
+        local fontWidth = smallFont:getWidth(hp)
+        local fontHeight = smallFont:getHeight()
 
-    love.graphics.setFont(smallFont)
-    love.graphics.setColor(Color.red())
-    love.graphics.print(hp, self.x + self.width/2 - fontWidth/2, self.y - fontHeight)
-    love.graphics.setColor(Color.white())
-    love.graphics.setFont(font)
+        love.graphics.setFont(smallFont)
+        love.graphics.setColor(Color.red())
+        love.graphics.print(hp, self.x + self.width/2 - fontWidth/2, self.y - fontHeight)
+        love.graphics.setColor(Color.white())
+        love.graphics.setFont(font)
+    end
 end
 
 return Enemy

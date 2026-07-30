@@ -386,9 +386,9 @@ return {
         -- damage = contact hit on the player (slow hits hardest, fast lightest)
         slow   = { speed = 30, lifeMult = 1,    size = 48, damage = 25, losShortcut = true },
         -- normal uses assets/medium_zombie.gif (32x32, 3 frames): sprite fills
-        -- the hitbox exactly. Animation ping-pongs (1-2-3-2) instead of looping.
+        -- the hitbox exactly. Plain repeating loop (1-2-3-1-2-3...).
         normal = { speed = 60, lifeMult = 0.5,  size = 32, damage = 20, breaksCrates = true,
-                   animTime = 0.7 }, -- secs for one full there-and-back walk cycle
+                   animTime = 0.7 }, -- secs for one full walk-cycle loop
         -- fast uses assets/fast_zombie.gif (16x24): size = the body circle,
         -- which is the BOTTOM 16px of the sprite; the top 8px overhang above it
         fast   = { speed = 90, lifeMult = 0.25, size = 16, damage = 20, breaksCrates = true,
