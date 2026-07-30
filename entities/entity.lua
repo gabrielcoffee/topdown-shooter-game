@@ -148,6 +148,37 @@ function Entity:_resolveAxis(world, axis, dt)
             and bx < ex1 and bx + bw > ex0
             and by < ey1 and by + bh > ey0 then
 
+            -- Corner shave: sliver contact on the PERPENDICULAR axis (catching
+            -- a crate/door corner by a few px) neither blocks nor pushes — the
+            -- mover eases sideways off the corner instead, a couple px per
+            -- frame. Kills the crate-seam bug: a 2px clip on the crate above
+            -- the one being pushed used to steal the push, restart its ramp
+            -- and shove the player off line.
+            local ov, shaveDir
+            if axis == 'x' then
+                ov = math.min(by + bh, e.y + e.height) - math.max(by, e.y)
+                shaveDir = (by + bh/2 < e.y + e.height/2) and -1 or 1
+            else
+                ov = math.min(bx + bw, e.x + e.width) - math.max(bx, e.x)
+                shaveDir = (bx + bw/2 < e.x + e.width/2) and -1 or 1
+            end
+            if ov <= TUNE.movement.cornerTolerance then
+                local step = shaveDir * math.min(ov, 2)
+                local sx, sy = bx, by
+                if axis == 'x' then sy = by + step else sx = bx + step end
+                -- shaved box must not enter a wall; blocked = no shave, and the
+                -- sliver simply doesn't collide this frame (max 6px, invisible
+                -- under the sprite inset)
+                if not (world.map:isSolidAt(sx, sy)
+                    or world.map:isSolidAt(sx + bw - 0.001, sy)
+                    or world.map:isSolidAt(sx, sy + bh - 0.001)
+                    or world.map:isSolidAt(sx + bw - 0.001, sy + bh - 0.001)) then
+                    if axis == 'x' then self.y = self.y + step
+                    else self.x = self.x + step end
+                    bx, by = collisionBox(self)
+                end
+            else
+
             local eject
             if axis == 'x' then
                 eject = ejectDir(e.x, e.x + e.width, bx, bx + bw, self.vx)
@@ -181,6 +212,7 @@ function Entity:_resolveAxis(world, axis, dt)
                 if not keepSpeed then self.vy = 0 end
             end
             bx, by = collisionBox(self)
+            end
         end
     end
 end

@@ -21,11 +21,16 @@ end
 -- has no velocity of its own, it moves by the player's penetration right here
 -- (speed-capped, then clipped by its own walls/obstacles). Returns whether it
 -- gave way, so the pusher knows to keep his speed against this face.
+-- Speed cap ramps: starts at a crawl the moment contact lands and works up to
+-- full WALK speed over pushRampTime (heavy-box feel). Sprinting doesn't push
+-- faster — a crate never outruns walk speed.
 function Crate:pushBy(axis, sign, penetration, dt, world, pusherSpeed)
     self.pushedNow = true
-    if self.pushTimer < TUNE.crate.pushDelay then return false end
 
-    local cap = pusherSpeed * TUNE.crate.pushSpeedMult * dt
+    local C = TUNE.crate
+    local k = math.min(1, self.pushTimer / C.pushRampTime)
+    local speed = TUNE.player.baseSpeed * (C.pushStartFrac + (1 - C.pushStartFrac) * k)
+    local cap = speed * dt
     if world.map:typeAt(self:getCenter()) == 'water' then
         cap = cap * TUNE.tiles.waterSpeedMult
     end
@@ -52,8 +57,9 @@ function Crate:pushBy(axis, sign, penetration, dt, world, pusherSpeed)
 end
 
 function Crate:update(dt, world)
-    -- pushTimer counts continuous contact (any face); the grace window keeps
-    -- it alive through 1-frame contact gaps so the delay doesn't restart
+    -- pushTimer counts continuous contact (any face) and drives the push
+    -- speed ramp; the grace window keeps it alive through 1-frame contact
+    -- gaps so the ramp doesn't restart
     if self.pushedNow then
         self.pushTimer = self.pushTimer + dt
         self.graceTimer = 0

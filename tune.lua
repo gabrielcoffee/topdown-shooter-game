@@ -28,6 +28,7 @@ return {
         accelTime = 0.22,   -- secs to reach max speed (snappier start)
         decelTime = 0.20,   -- secs to stop from max speed (small glide)
         collisionInset = 4, -- px shaved off each AABB side vs tiles (32px body fits 32px gaps)
+        cornerTolerance = 6, -- px: catching a crate/door corner by this little slides you off it instead of blocking/pushing
         -- movement inaccuracy window, as fractions of baseSpeed (CS: 34%..95%):
         -- below floor = perfectly accurate, above ceil = full moveSpread
         spreadSpeedFloor = 0.34,
@@ -49,8 +50,10 @@ return {
         nudgePx = 20,          -- px the player drifts into the new room during the pan
     },
 
-    crate = { pushDelay = 0.5, size = 32, health = 100, pushSpeedMult = 0.5,
-              pushGrace = 0.15 }, -- secs of lost contact before a push resets
+    crate = { size = 32, health = 100,
+              pushRampTime = 1.2,   -- secs of continuous pushing until the crate reaches full walk speed
+              pushStartFrac = 0.12, -- fraction of walk speed the push starts at (crawls, no dead delay)
+              pushGrace = 0.15 },   -- secs of lost contact before the ramp resets
     door  = { price = 250, interactPad = 4 },
 
     guns = {
