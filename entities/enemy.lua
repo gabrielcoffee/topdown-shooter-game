@@ -1,4 +1,5 @@
 local Entity = require('entities.entity')
+local Animation = require('core.animation')
 local Color = require('core.color')
 local Path = require('core.path')
 local Audio = require('core.audio')
@@ -75,7 +76,16 @@ function Enemy:newNormal(x, y, wave)
 end
 
 function Enemy:newFast(x, y, wave)
-    return newTyped(x, y, wave, TUNE.zombies.fast, Color.yellow)
+    local obj = newTyped(x, y, wave, TUNE.zombies.fast, Color.yellow)
+    -- 16x24 gif: bottom 16px = the body (the collision circle), top 8px is
+    -- head/shoulder overhang drawn above the hitbox
+    obj.anim = Animation:fromGif('assets/fast_zombie.gif', true)
+    obj.anim:setDuration(TUNE.zombies.fast.animTime)
+    obj.anim.index = love.math.random(1, obj.anim.totalFrames) -- desync the horde
+    local _, _, sw, sh = obj.anim.quads[1]:getViewport()
+    obj.spriteW, obj.spriteH = sw, sh
+    obj.faceX = 1
+    return obj
 end
 
 -- Every player-weapon hit funnels through here: applies the damage, pays
@@ -272,6 +282,14 @@ function Enemy:update(dt, world)
 
     self:followPlayer(dt, world)
 
+    -- sprite types: run cycle + facing (frozen/dead returned above, so a
+    -- statue or a corpse holds its frame)
+    if self.anim then
+        self.anim:update(dt)
+        if self.vx > 5 then self.faceX = 1
+        elseif self.vx < -5 then self.faceX = -1 end
+    end
+
     -- spikes hurt, water/mud slow, holes kill
     self:applyTileEffects(dt, world)
 
@@ -326,6 +344,28 @@ function Enemy:update(dt, world)
 
 end
 
+-- Animated types: the sprite's feet sit on the bottom of the collision box,
+-- so the body fills the hitbox and any extra sprite height hangs above it.
+function Enemy:drawSprite()
+    local a = self.anim
+    local x = math.floor(self.x + self.width / 2)
+    local y = math.floor(self.y + self.height)
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.draw(a.image, a.quads[a.index], x, y, 0,
+        self.faceX, 1, self.spriteW / 2, self.spriteH)
+
+    -- hit flash: additive white pass instead of the circle's flat white fill
+    if self.flash then
+        love.graphics.setBlendMode('add')
+        love.graphics.setColor(1, 1, 1, 0.9)
+        love.graphics.draw(a.image, a.quads[a.index], x, y, 0,
+            self.faceX, 1, self.spriteW / 2, self.spriteH)
+        love.graphics.setBlendMode('alpha')
+        love.graphics.setColor(1, 1, 1)
+    end
+    self.flash = false
+end
+
 function Enemy:draw()
     -- power-up carrier: pulsing gold glow under the body
     if self.carrier then
@@ -339,7 +379,7 @@ function Enemy:draw()
         love.graphics.setColor(1, 1, 1)
     end
 
-    Entity.draw(self)
+    if self.anim then self:drawSprite() else Entity.draw(self) end
 
     -- frozen: icy tint over the body
     if world and world.buffs and world.buffs.freeze > 0 then

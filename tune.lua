@@ -386,7 +386,10 @@ return {
         -- damage = contact hit on the player (slow hits hardest, fast lightest)
         slow   = { speed = 30, lifeMult = 1,    size = 48, damage = 25, losShortcut = true },
         normal = { speed = 60, lifeMult = 0.5,  size = 32, damage = 20, breaksCrates = true },
-        fast   = { speed = 90, lifeMult = 0.25, size = 21, damage = 20, breaksCrates = true },
+        -- fast uses assets/fast_zombie.gif (16x24): size = the body circle,
+        -- which is the BOTTOM 16px of the sprite; the top 8px overhang above it
+        fast   = { speed = 90, lifeMult = 0.25, size = 16, damage = 20, breaksCrates = true,
+                   animTime = 0.45 }, -- secs for one full run-cycle loop
     },
 
     waves = {
