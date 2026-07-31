@@ -89,9 +89,12 @@ end
 
 function Enemy:newNormal(x, y, wave)
     local obj = newTyped(x, y, wave, TUNE.zombies.normal, Color.magenta)
-    -- 32x32 gif, 3 frames: sprite fills the hitbox exactly
-    return attachSprite(obj, 'assets/medium_zombie.gif',
+    -- 36x40 gif, 4 frames: sprite centered on the 32px collision circle on
+    -- both axes (4px overhang above and below, 2px each side)
+    attachSprite(obj, 'assets/normal_zombie.gif',
         TUNE.zombies.normal.animTime, false)
+    obj.spriteCenterY = true
+    return obj
 end
 
 function Enemy:newFast(x, y, wave)
@@ -408,22 +411,30 @@ local function whiteShader()
     return flashShader
 end
 
--- Animated types: the sprite's feet sit on the bottom of the collision box,
--- so the body fills the hitbox and any extra sprite height hangs above it.
+-- Animated types: by default the sprite's feet sit on the bottom of the
+-- collision box, extra height hangs above it. spriteCenterY types are
+-- centered on the hitbox instead (overhang split top/bottom).
 function Enemy:drawSprite()
     local a = self.anim
     local x = math.floor(self.x + self.width / 2)
-    local y = math.floor(self.y + self.height)
+    local y, oy
+    if self.spriteCenterY then
+        y = math.floor(self.y + self.height / 2)
+        oy = self.spriteH / 2
+    else
+        y = math.floor(self.y + self.height)
+        oy = self.spriteH
+    end
     love.graphics.setColor(1, 1, 1)
     love.graphics.draw(a.image, a.quads[a.index], x, y, 0,
-        self.faceX, 1, self.spriteW / 2, self.spriteH)
+        self.faceX, 1, self.spriteW / 2, oy)
 
     -- hit flash: the sprite's silhouette filled solid white (an additive pass
     -- barely showed up in a dark room)
     if self.flash then
         love.graphics.setShader(whiteShader())
         love.graphics.draw(a.image, a.quads[a.index], x, y, 0,
-            self.faceX, 1, self.spriteW / 2, self.spriteH)
+            self.faceX, 1, self.spriteW / 2, oy)
         love.graphics.setShader()
     end
     self.flash = false

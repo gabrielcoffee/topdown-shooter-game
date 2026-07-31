@@ -385,8 +385,9 @@ return {
         -- (no A*, no grid corners); blocked line falls back to normal A*
         -- damage = contact hit on the player (slow hits hardest, fast lightest)
         slow   = { speed = 30, lifeMult = 1,    size = 48, damage = 25, losShortcut = true },
-        -- normal uses assets/medium_zombie.gif (32x32, 3 frames): sprite fills
-        -- the hitbox exactly. Plain repeating loop (1-2-3-1-2-3...).
+        -- normal uses assets/normal_zombie.gif (36x40, 4 frames): sprite is
+        -- centered on the 32px collision circle on both axes. Plain repeating
+        -- loop (1-2-3-4-1...).
         normal = { speed = 60, lifeMult = 0.5,  size = 32, damage = 20, breaksCrates = true,
                    animTime = 0.7 }, -- secs for one full walk-cycle loop
         -- fast uses assets/fast_zombie.gif (16x24): size = the body circle,
