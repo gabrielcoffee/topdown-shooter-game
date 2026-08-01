@@ -49,8 +49,10 @@ local function waveLife(wave)
 end
 
 -- All numbers come from tune.lua
-local function newTyped(x, y, wave, t, color)
+local function newTyped(x, y, wave, kind, color)
+    local t = TUNE.zombies[kind]
     local obj = Enemy:new(x, y, t.size, t.size)
+    obj.kind = kind -- 'slow'|'normal'|'fast', needed to rebuild from a save
     obj.speed = t.speed
     obj.health = waveLife(wave or 1) * t.lifeMult
     obj.color = color
@@ -65,10 +67,6 @@ local function newTyped(x, y, wave, t, color)
     obj.colW, obj.colH = box, box
     obj.colOX, obj.colOY = (t.size - box) / 2, (t.size - box) / 2
     return obj
-end
-
-function Enemy:newSlow(x, y, wave)
-    return newTyped(x, y, wave, TUNE.zombies.slow, Color.red)
 end
 
 -- Gif-driven body: feet on the bottom of the collision box, any extra sprite
@@ -87,8 +85,18 @@ local function attachSprite(obj, path, animTime, pingpong)
     return obj
 end
 
+function Enemy:newSlow(x, y, wave)
+    local obj = newTyped(x, y, wave, 'slow', Color.red)
+    -- 54x60 gif, 4 frames (normal sprite 1.5x, red palette): centered on the
+    -- 48px collision circle on both axes
+    attachSprite(obj, 'assets/slow_zombie.gif',
+        TUNE.zombies.slow.animTime, false)
+    obj.spriteCenterY = true
+    return obj
+end
+
 function Enemy:newNormal(x, y, wave)
-    local obj = newTyped(x, y, wave, TUNE.zombies.normal, Color.magenta)
+    local obj = newTyped(x, y, wave, 'normal', Color.magenta)
     -- 36x40 gif, 4 frames: sprite centered on the 32px collision circle on
     -- both axes (4px overhang above and below, 2px each side)
     attachSprite(obj, 'assets/normal_zombie.gif',
@@ -98,7 +106,7 @@ function Enemy:newNormal(x, y, wave)
 end
 
 function Enemy:newFast(x, y, wave)
-    local obj = newTyped(x, y, wave, TUNE.zombies.fast, Color.yellow)
+    local obj = newTyped(x, y, wave, 'fast', Color.yellow)
     -- 16x24 gif: bottom 16px = the body (the collision circle), top 8px is
     -- head/shoulder overhang drawn above the hitbox
     return attachSprite(obj, 'assets/fast_zombie.gif',

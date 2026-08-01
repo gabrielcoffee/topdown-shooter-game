@@ -384,7 +384,10 @@ return {
         -- losShortcut: clear straight line to the player = walk it directly
         -- (no A*, no grid corners); blocked line falls back to normal A*
         -- damage = contact hit on the player (slow hits hardest, fast lightest)
-        slow   = { speed = 30, lifeMult = 1,    size = 48, damage = 25, losShortcut = true },
+        -- slow uses assets/slow_zombie.gif (54x60, 4 frames): the normal
+        -- sprite scaled 1.5x and recolored red, centered on the 48px circle
+        slow   = { speed = 30, lifeMult = 1,    size = 48, damage = 25, losShortcut = true,
+                   animTime = 1.4 }, -- secs per walk loop (half the normal's pace)
         -- normal uses assets/normal_zombie.gif (36x40, 4 frames): sprite is
         -- centered on the 32px collision circle on both axes. Plain repeating
         -- loop (1-2-3-4-1...).
