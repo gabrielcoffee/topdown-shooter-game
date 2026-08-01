@@ -80,6 +80,7 @@ local function applyTune(obj, t)
     obj.damage = t.damage
     obj.bulletLifeTime = t.bulletLife
     obj.reloadingTime = t.reloadTime
+    obj.reloadAnimTime = t.reloadAnimTime -- gif pacing; nil = stretch to reloadTime
     obj.bulletDelay = t.bulletDelay
     obj.spread = t.spread
     obj.pellets = t.pellets
@@ -296,8 +297,10 @@ function Gun:reload()
     self.reloadTimer = 0
     self.reloadOpening = self.shellSfx ~= nil
     if self.reloadAnim then
-        -- gif plays exactly once over the tuned reload time
-        self.reloadAnim:setDuration(self.reloadingTime)
+        -- gif plays exactly once, paced by reloadAnimTime (matched to the
+        -- reload SFX) when set — otherwise stretched over the reload time.
+        -- A shorter gif holds its last frame until the reload actually ends.
+        self.reloadAnim:setDuration(self.reloadAnimTime or self.reloadingTime)
         self.reloadAnim:restart()
     end
     if self.reloadSfx then

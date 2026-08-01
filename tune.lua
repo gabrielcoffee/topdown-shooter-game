@@ -71,7 +71,10 @@ return {
         --   recoilRecover = recoil lost per second once recovering
         --   maxHits       = zombies one bullet can damage before it stops (pierces maxHits-1)
         --   hitReward     = $ per damaging hit, killBonus = $ extra on the kill
-        usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 2,   bulletLife = 0.5,
+        --   reloadAnimTime = secs the reload gif takes (matched to the reload
+        --                    sound; gif then holds its last frame until
+        --                    reloadTime ends). Omit = gif stretched to reloadTime.
+        usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 2,   reloadAnimTime = 1.6, bulletLife = 0.5,
                    hitReward = 6, killBonus = 10, maxHits = 3,
                    baseSpread = 0.008, moveSpread = 0.120, recoilPerShot = 0.030, recoilMax = 0.15, recoilDelay = 0.30, recoilRecover = 0.40 },
         ak47   = { damage = 40, clip = 30, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7,
