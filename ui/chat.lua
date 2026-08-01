@@ -1,7 +1,8 @@
 -- Minecraft-style chat console: bottom-left, game keeps running while typing.
 -- T opens it (gated by TUNE.dev.enabled in playing.lua), Esc or Enter close
--- it. The line opens empty; commands work with or without a leading slash. Recent lines linger and fade like Minecraft chat; while open the full
--- recent log shows solid.
+-- it. Commands need a leading slash; a bare line just echoes into the log
+-- like a chat message. Recent lines linger and fade like Minecraft chat;
+-- while open the full recent log shows solid.
 --
 -- The input line is a real text field: caret, arrow keys, word jumps, shift
 -- selection, Cmd/Ctrl + C/V/X/A. The mouse can select inside the input line
@@ -53,13 +54,13 @@ local function killAllZombies()
 end
 
 local zombieFactories = {
-    slow = function(x, y, w) return Enemy:newSlow(x, y, w) end,
-    normal = function(x, y, w) return Enemy:newNormal(x, y, w) end,
-    fast = function(x, y, w) return Enemy:newFast(x, y, w) end,
+    slow_zombie = function(x, y, w) return Enemy:newSlow(x, y, w) end,
+    normal_zombie = function(x, y, w) return Enemy:newNormal(x, y, w) end,
+    fast_zombie = function(x, y, w) return Enemy:newFast(x, y, w) end,
 }
 
-local commandNames = { 'money', 'give', 'drop', 'god', 'ungod', 'heal', 'ammo',
-                       'wave', 'spawn', 'mode', 'wallbuy', 'powerup',
+local commandNames = { 'money', 'give', 'god', 'heal', 'ammo',
+                       'wave', 'spawn', 'wallbuy', 'powerup',
                        'help', 'clear' }
 
 -- run(arg) -> log text, isError
@@ -89,22 +90,22 @@ local commands = {
         if not gun then
             return 'usage: /give <usp|ak47|m4a1|shotgun|grenade|molotov|medkit>', true
         end
+        if p.items[1] and p.items[2] then -- both gun slots taken: lands in front
+            DroppedGun.dropNear(world, gun, p)
+            return 'slots full, dropped ' .. gun.name
+        end
         p:giveGun(gun)
         return 'gave ' .. gun.name
     end },
-    drop = { argKind = 'gun', run = function(arg)
-        local gun = arg and Gun.newById(arg)
-        if not gun then return 'usage: /drop <usp|ak47|m4a1|shotgun>', true end
-        DroppedGun.dropNear(world, gun, world.player)
-        return 'dropped ' .. gun.name
-    end },
-    god = { run = function()
-        world.player.godMode = true
-        return 'god mode ON (/ungod to turn off)'
-    end },
-    ungod = { run = function()
-        world.player.godMode = false
-        return 'god mode OFF'
+    god = { argKind = 'god', run = function(arg)
+        if arg == 'off' then
+            world.player.godMode = false
+            return 'god mode OFF'
+        elseif arg == nil or arg == 'on' then
+            world.player.godMode = true
+            return 'god mode ON (hold shift to fly, /god off to disable)'
+        end
+        return 'usage: /god [on|off]', true
     end },
     heal = { run = function()
         world.player.health = world.player.maxHealth
@@ -128,17 +129,26 @@ local commands = {
         world.waves:startWave(n)
         return 'wave ' .. n .. (n == 0 and ' (sandbox, no zombies)' or '')
     end },
-    spawn = { argKind = 'zombie', run = function(arg)
+    spawn = { argKind = 'zombie', run = function(arg, arg2)
         local factory = arg and zombieFactories[arg]
-        if not factory then return 'usage: /spawn <slow|normal|fast>', true end
-        local t = TUNE.zombies[arg]
+        local count = arg2 and tonumber(arg2) or 1
+        if not factory or count % 1 ~= 0 or count < 1 then
+            return 'usage: /spawn <slow_zombie|normal_zombie|fast_zombie> [count]', true
+        end
+        count = math.min(count, TUNE.chat.maxSpawn)
+        local t = TUNE.zombies[arg:gsub('_zombie$', '')]
         local p = world.player
         local cx, cy = p:getCenter()
         local off = TUNE.droppedGun.dropOffset * (p.facingLeft and -1 or 1)
-        local x = math.max(0, math.min(cx + off - t.size/2, world.mapW - t.size))
-        local y = math.max(0, math.min(cy - t.size/2, world.mapH - t.size))
-        world:addEntity(factory(x, y, world.waves.wave))
-        return 'spawned ' .. arg .. ' zombie'
+        for i = 1, count do
+            -- past the first, scatter them so a batch doesn't stack on one spot
+            local jx = (i > 1) and love.math.random(-48, 48) or 0
+            local jy = (i > 1) and love.math.random(-48, 48) or 0
+            local x = math.max(0, math.min(cx + off + jx - t.size/2, world.mapW - t.size))
+            local y = math.max(0, math.min(cy + jy - t.size/2, world.mapH - t.size))
+            world:addEntity(factory(x, y, world.waves.wave))
+        end
+        return 'spawned ' .. count .. 'x ' .. arg
     end },
     wallbuy = { argKind = 'gun', run = function(arg)
         if not (arg and TUNE.wallbuy.prices[arg]) then
@@ -159,7 +169,8 @@ local commands = {
     end },
     powerup = { argKind = 'powerup', run = function(arg)
         if not (arg and TUNE.powerups.weights[arg]) then
-            return 'usage: /powerup <nuke|maxammo|instakill|freeze|doublepoints>', true
+            return 'usage: /powerup <nuke|maxammo|instakill|freeze|doublepoints|'
+                .. 'firesale|carpenter>', true
         end
         local Powerup = require('entities.powerup')
         local p = world.player
@@ -183,25 +194,24 @@ local commands = {
 local argOptions = {
     gun = Gun.ids,
     giveable = { 'usp', 'ak47', 'm4a1', 'shotgun', 'grenade', 'molotov', 'medkit' },
-    zombie = { 'slow', 'normal', 'fast' },
+    zombie = { 'slow_zombie', 'normal_zombie', 'fast_zombie' },
     wave = { 'skip' },
-    mode = { 'kills', 'hits' },
+    god = { 'on', 'off' },
     powerup = { 'nuke', 'maxammo', 'instakill', 'freeze', 'doublepoints',
                 'firesale', 'carpenter' },
 }
 
--- Prefix filter over the token being typed. The leading slash is optional;
--- suggestions mirror whichever style is being typed.
+-- Prefix filter over the token being typed. Commands are slash-only, so
+-- nothing is suggested until the line starts with '/'.
 local function computeSuggestions(buffer)
     local out = {}
-    if buffer == '' then return out end
-    local slash = buffer:sub(1, 1) == '/'
-    local body = slash and buffer:sub(2) or buffer
+    if buffer:sub(1, 1) ~= '/' then return out end
+    local body = buffer:sub(2)
     local cmd, rest = body:match('^(%S+)%s+(.*)$')
     if not cmd then
         for _, name in ipairs(commandNames) do
             if name:sub(1, #body) == body then
-                table.insert(out, slash and ('/' .. name) or name)
+                table.insert(out, '/' .. name)
             end
         end
     else
@@ -300,7 +310,7 @@ end
 
 function Chat.openChat()
     Chat.open = true
-    Chat.buffer = ''    -- opens empty; the slash is optional
+    Chat.buffer = ''    -- opens empty; type '/' to command
     Chat.caret = 0
     Chat.anchor = nil
     Chat.scrollX = 0
@@ -347,14 +357,15 @@ local function runLine(line)
     if #Chat.history > TUNE.chat.maxLog then table.remove(Chat.history, 1) end
 
     Chat.post('> ' .. line)
-    local body = line:match('^/(.*)$') or line -- slash optional
-    local cmd, arg = body:match('^(%S+)%s*(%S*)')
+    local body = line:match('^/(.*)$')
+    if not body then return end -- no slash: plain chat line, echoed above
+    local cmd, a1, a2 = body:match('^(%S+)%s*(%S*)%s*(%S*)')
     if not cmd then return end
     local c = commands[cmd]
     if c then
-        Chat.post(c.run(arg ~= '' and arg or nil))
+        Chat.post(c.run(a1 ~= '' and a1 or nil, a2 ~= '' and a2 or nil))
     else
-        Chat.post('unknown command: ' .. cmd .. ' (try help)', true)
+        Chat.post('unknown command: ' .. cmd .. ' (try /help)', true)
     end
 end
 

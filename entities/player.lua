@@ -57,6 +57,7 @@ function Player:new(x, y, width, height)
 
     obj.running = false   -- SPRINT state: shift held + moving, no aim/shoot
     obj.runLocked = false -- firing locks sprint until shift is re-pressed
+    obj.flying = false    -- god mode + shift: noclip fly instead of sprint
 
     obj.falling = false
     obj.fallTimer = 0
@@ -311,9 +312,19 @@ function Player:update(dt, world)
     local shiftHeld = keyDown('lshift') or keyDown('rshift')
     if not shiftHeld then self.runLocked = false end
     self.running = shiftHeld and not self.runLocked and (moveX ~= 0 or moveY ~= 0)
-    self.maxSpeed = self.speed * (self.running and TUNE.player.runSpeedMult or 1)
-    self:accelToward(dt, moveX, moveY, world)
-    self:moveAndCollide(dt, world)
+    -- god mode turns the sprint into a fly: through walls, over tiles, no dust
+    self.flying = (self.godMode and self.running) or false
+    self.maxSpeed = self.speed * (self.flying and TUNE.dev.flySpeedMult
+        or (self.running and TUNE.player.runSpeedMult or 1))
+    self:accelToward(dt, moveX, moveY, world, self.flying)
+    if self.flying then
+        -- noclip: only the map edge clamps; stopping lands (and the normal
+        -- collision pass next frame snaps out of anything solid)
+        self.x = math.max(0, math.min(self.x + self.vx * dt, world.mapW - self.width))
+        self.y = math.max(0, math.min(self.y + self.vy * dt, world.mapH - self.height))
+    else
+        self:moveAndCollide(dt, world)
+    end
 
     -- CS-style movement accuracy: fully accurate below the floor (34% of run
     -- speed in CS), inaccuracy ramps linearly up to the ceiling (95%). Fast
@@ -324,13 +335,14 @@ function Player:update(dt, world)
     local ceil = base * TUNE.movement.spreadSpeedCeil
     self.moveFactor = math.max(0, math.min(1, (spd - floor) / (ceil - floor)))
 
-    -- spikes / water / mud / hole
-    self:applyTileEffects(dt, world)
+    -- spikes / water / mud / hole — flying passes over all of it
+    if not self.flying then self:applyTileEffects(dt, world) end
 
     -- dust puffs around the feet while actually moving (lunge/shove included);
     -- walking kicks up a fraction of the sprint amount
     self.dustTimer = self.dustTimer - dt
-    if self.dustTimer <= 0 and self.vx*self.vx + self.vy*self.vy > 400 then
+    if self.dustTimer <= 0 and not self.flying
+        and self.vx*self.vx + self.vy*self.vy > 400 then
         self.dustTimer = TUNE.fx.dustInterval
         local mult = self.running and 1 or TUNE.fx.dustWalkMult
         local count = math.max(1, math.floor(TUNE.fx.dustCount * mult + 0.5))
@@ -342,7 +354,7 @@ function Player:update(dt, world)
     -- steps seconds apart, which read as "footsteps randomly missing"
     self.stepTimer = (self.stepTimer or 0) - dt
     local spd2 = self.vx*self.vx + self.vy*self.vy
-    if self.stepTimer <= 0 and spd2 > 400 then
+    if self.stepTimer <= 0 and spd2 > 400 and not self.flying then
         local A = TUNE.audio
         local slower = math.min(TUNE.player.baseSpeed / math.sqrt(spd2), A.stepMaxStretch)
         self.stepTimer = A.stepInterval * slower

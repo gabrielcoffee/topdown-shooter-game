@@ -55,11 +55,13 @@ end
 
 -- Accelerate velocity toward dir * maxSpeed. Water lowers max speed,
 -- mud cuts acceleration AND deceleration.
-function Entity:accelToward(dt, dirX, dirY, world)
+function Entity:accelToward(dt, dirX, dirY, world, airborne)
     local tile = world.map:typeAt(self:getCenter())
     local maxSpeed = self.maxSpeed or 0
-    if tile == 'water' then maxSpeed = maxSpeed * TUNE.tiles.waterSpeedMult end
-    local mult = (tile == 'mud') and TUNE.tiles.mudAccelMult or 1
+    if tile == 'water' and not airborne then
+        maxSpeed = maxSpeed * TUNE.tiles.waterSpeedMult
+    end
+    local mult = (tile == 'mud' and not airborne) and TUNE.tiles.mudAccelMult or 1
 
     local function approach(v, target)
         local time = (target ~= 0) and TUNE.movement.accelTime or TUNE.movement.decelTime

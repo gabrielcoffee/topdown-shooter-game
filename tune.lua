@@ -239,18 +239,24 @@ return {
     hud = { popupTime = 1.0, popupRise = 18,
             reloadBarW = 70, reloadBarH = 8, reloadBarGap = 14 },
 
-    dev = { enabled = true }, -- master switch for the chat console (T)
+    dev = { enabled = true,     -- master switch for the chat console (T)
+            flySpeedMult = 2 }, -- god-mode fly (shift held): speed vs base walk
     chat = {
         showTime = 8,   -- secs a line stays on screen before fading (chat closed)
         fadeTime = 1,   -- secs of the fade-out at the end of showTime
         maxVisible = 8, -- most lines drawn at once
         maxLog = 50,    -- lines kept in memory (scrollback + sent history)
+        maxSpawn = 30,  -- cap on /spawn <type> <count>
     },
     droppedGun = { interactPad = 4,    -- px around a dropped gun where E picks it up
                    dropOffset = 40,    -- px in front of the player where drops land
                    lifetime = 8,       -- secs a gun stays on the ground before vanishing
                    blinkTime = 2,      -- secs of blinking at the end of that life
-                   blinkInterval = 0.15 }, -- secs per blink on/off step
+                   blinkInterval = 0.15, -- secs per blink on/off step
+                   bounceUp = 160,       -- px/s upward hop when a gun hits the ground
+                   bounceGravity = 700,  -- px/s^2 pulling the hop back down
+                   bounceRestitution = 0.45, -- fraction of speed kept per rebound
+                   bounceMinSpeed = 40 },    -- rebounds slower than this settle flat
 
     bullet = { speed = 540 },
 

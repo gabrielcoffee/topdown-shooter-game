@@ -16,6 +16,8 @@ function DroppedGun:new(x, y, gun)
     obj.type = 'dropped_gun'
     obj.gun = gun
     obj.bobTimer = 0
+    obj.z = 0                         -- faked height above the ground
+    obj.vz = TUNE.droppedGun.bounceUp -- fresh drops hop and bounce before settling
     obj.life = TUNE.droppedGun.lifetime
     setmetatable(obj, DroppedGun)
     return obj
@@ -34,7 +36,19 @@ function DroppedGun.dropNear(world, gun, ent)
 end
 
 function DroppedGun:update(dt, world)
-    self.bobTimer = self.bobTimer + dt
+    local D = TUNE.droppedGun
+    if self.vz ~= 0 or self.z > 0 then
+        -- ballistic hop: each landing keeps a fraction of the speed until flat
+        self.vz = self.vz - D.bounceGravity * dt
+        self.z = self.z + self.vz * dt
+        if self.z <= 0 and self.vz < 0 then
+            self.z = 0
+            self.vz = -self.vz * D.bounceRestitution
+            if self.vz < D.bounceMinSpeed then self.vz = 0 end
+        end
+    else
+        self.bobTimer = self.bobTimer + dt -- idle bob starts once settled
+    end
     self.life = self.life - dt
     if self.life <= 0 then self.toRemove = true end
 end
@@ -49,13 +63,17 @@ function DroppedGun:draw()
     local quad = Assets.quads[Gun.quadName(self.gun.id)][1]
     local _, _, qw, qh = quad:getViewport()
     local cx, cy = self:getCenter()
-    local bob = math.sin(self.bobTimer * 4) * 2
+    local airborne = self.z > 0 or self.vz ~= 0
+    local bob = airborne and 0 or math.sin(self.bobTimer * 4) * 2
 
-    love.graphics.setColor(0, 0, 0, 0.25)
-    love.graphics.ellipse('fill', math.floor(cx), math.floor(cy + qh/2 + 2), qw/2, 3)
+    -- shadow shrinks and fades the higher the gun bounces
+    local h = math.min(1, self.z / 40)
+    love.graphics.setColor(0, 0, 0, 0.25 * (1 - h * 0.6))
+    love.graphics.ellipse('fill', math.floor(cx), math.floor(cy + qh/2 + 2),
+        qw/2 * (1 - h * 0.4), 3)
     love.graphics.setColor(1, 1, 1)
     love.graphics.draw(Assets.spritesheet, quad,
-        math.floor(cx), math.floor(cy + bob), 0, 1, 1, qw/2, qh/2)
+        math.floor(cx), math.floor(cy + bob - self.z), 0, 1, 1, qw/2, qh/2)
 end
 
 return DroppedGun
