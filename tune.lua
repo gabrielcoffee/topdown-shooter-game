@@ -375,15 +375,15 @@ return {
         -- wind: constant low sway + gusts sweeping the map in +x, all scaled
         -- by a slow "weather" wave — calm spells, then the wind picks up
         wind = {
-            amp = 2.2,        -- px the tip drifts in the constant sway
-            speed = 1.7,      -- sway rate
-            gustAmp = 5,      -- extra px at the peak of a gust
+            amp = 5,          -- px the tip drifts in the constant sway
+            speed = 2,        -- sway rate
+            gustAmp = 9,      -- extra px at the peak of a gust
             gustSpeed = 0.5,  -- gusts per second
             gustWave = 0.004, -- how tight the gust wave is (lower = wider front)
-            stiffness = 1.5,  -- bend curve (higher = only the tip really moves)
+            stiffness = 1.2,  -- bend curve (higher = only the tip really moves)
             lullSpeed = 0.35, -- how fast calm/windy spells cycle (noise samples/sec)
-            lullFloor = 0.15, -- wind strength left in a full lull (0-1)
-            lullBias = 2.2,   -- higher = calm more of the time, windy bursts sharper
+            lullFloor = 0.4,  -- wind strength left in a full lull (0-1)
+            lullBias = 1.6,   -- higher = calm more of the time, windy bursts sharper
         },
     },
 
