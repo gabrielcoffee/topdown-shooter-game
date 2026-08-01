@@ -54,6 +54,7 @@ local files = {
     molotov_break  = 'assets/sounds/effects/molotov_break.wav', -- bottle shatter + ignite
     door_unlock    = 'assets/sounds/effects/door_unlock.wav',   -- key click + bolt clunk on door buy
     spin_wheel     = 'assets/sounds/spin_wheel.mp3',            -- mystery box item roulette
+    crate_open     = 'assets/sounds/crate_open.mp3',            -- mystery box lid opening
     fire_loop      = 'assets/sounds/effects/fire_loop.wav',     -- looped by FirePatch
     -- player pain grunts (random via the 'hurt' group)
     hurt1          = 'assets/sounds/effects/hurt1.wav',

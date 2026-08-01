@@ -65,7 +65,7 @@ end
 -- quads cycled above the box while spinning (tint = molotov placeholder)
 local spinQuads = {
     { q = 'pistol' }, { q = 'ak47' }, { q = 'm4a1' }, { q = 'shotgun' },
-    { q = 'grenade' }, { q = 'grenade', tint = { 1, 0.5, 0.15 } }, { q = 'medkit' },
+    { q = 'grenade' }, { q = 'molotov' }, { q = 'medkit' },
 }
 
 -- spinQuads index that shows a roll result (the wheel must land on it)
@@ -76,7 +76,7 @@ local function resultIndex(r)
     elseif r.kind == 'healthpack' then want = 7
     else -- gun or refill: the gun's own sprite
         for i, e in ipairs(spinQuads) do
-            if not e.tint and e.q == r.gunId then want = i break end
+            if e.q == r.gunId then want = i break end
         end
     end
     return want
@@ -130,6 +130,8 @@ function Chest:interact(player, world)
             self.state = 'spinning'
             self.timer = TUNE.chest.spinTime
             self:openLid()
+            local cx, cy = self:getCenter()
+            Audio.playAt('crate_open', cx, cy)
         end
     elseif self.state == 'offering' then
         self:giveGun(player)
@@ -200,10 +202,7 @@ end
 
 -- Spin over: guns wait for a second E, everything else applies now
 function Chest:resolve(world)
-    if self.spinSound then
-        self.spinSound:stop()
-        self.spinSound = nil
-    end
+    self.spinSound = nil -- tail rings out on its own; next spin grabs a fresh voice
     local player = world.player
     local r = self.result
 
@@ -306,16 +305,17 @@ function Chest:draw()
                 cx - smallFont:getWidth(self.toastText)/2, top - smallFont:getHeight() - 14)
         end
     elseif self.state == 'spinning' then
-        -- item sprites flicker above the box, bobbing slightly
+        -- item sprites flicker above the box, bobbing slightly, and the whole
+        -- carousel rises out of the box over the spin (spinRise px below at
+        -- the start, at its final height when the wheel stops)
         local entry = spinQuads[self.spinQuad]
         local quad = Assets.quads[entry.q][1]
         local _, _, qw, qh = quad:getViewport()
         local bob = math.sin(self.timer * 10) * 2
-        local t = entry.tint
-        if t then love.graphics.setColor(t[1], t[2], t[3])
-        else love.graphics.setColor(1, 1, 1) end
+        local rise = TUNE.chest.spinRise * (self.timer / TUNE.chest.spinTime)
+        love.graphics.setColor(1, 1, 1)
         love.graphics.draw(Assets.spritesheet, quad,
-            math.floor(cx), math.floor(top - 14 + bob), 0, 1, 1, qw/2, qh/2)
+            math.floor(cx), math.floor(top - 14 + bob + rise), 0, 1, 1, qw/2, qh/2)
     elseif self.state == 'offering' then
         local quad = Assets.quads[Gun.quadName(self.result.gunId)][1]
         local _, _, qw, qh = quad:getViewport()

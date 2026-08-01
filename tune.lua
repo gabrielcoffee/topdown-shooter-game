@@ -220,6 +220,7 @@ return {
         spinCycleStart = 0.04,
         spinCycleEnd = 0.5,
         spinSlowdown = 2.5,   -- ramp shape (higher = stays fast longer, brakes harder)
+        spinRise = 32,        -- px below the final height the cycling sprite starts at
         takeWindow = 8.0,     -- secs to press E and take a rolled gun
         openTime = 0.25,      -- secs for the lid open (and close) animation
         interactPad = 32,     -- px around the 64x32 box where E buys/takes
