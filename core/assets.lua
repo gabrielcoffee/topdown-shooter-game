@@ -49,6 +49,40 @@ Assets.wallArt = {
     shotgun = love.graphics.newImage('assets/shotgun_wall.png'),
 }
 
+-- Tile art with random variants: tile type -> horizontal strip of 32x32
+-- cells on the spritesheet. A strip only activates when every declared cell
+-- is painted, so entries can be declared before the art is exported — the
+-- map keeps its flat-color fallback until the full strip exists.
+local tileVariantDefs = {
+    ground = { x = 0, y = 288, count = 4 },
+}
+
+Assets.tileVariants = {}
+do
+    local data = love.image.newImageData('assets/spritesheet.png')
+
+    local function cellPainted(x, y)
+        if x + 32 > data:getWidth() or y + 32 > data:getHeight() then return false end
+        for py = y, y + 31 do
+            for px = x, x + 31 do
+                local _, _, _, a = data:getPixel(px, py)
+                if a > 0 then return true end
+            end
+        end
+        return false
+    end
+
+    for tileType, def in pairs(tileVariantDefs) do
+        local quads = {}
+        for i = 0, def.count - 1 do
+            if not cellPainted(def.x + i * 32, def.y) then quads = nil break end
+            quads[#quads + 1] = love.graphics.newQuad(
+                def.x + i * 32, def.y, 32, 32, Assets.spritesheet)
+        end
+        Assets.tileVariants[tileType] = quads
+    end
+end
+
 -- Quads for the images
 Assets.quads = {
     player = loadQuads(0, 0, 32, 32, 4),

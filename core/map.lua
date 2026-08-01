@@ -1,7 +1,15 @@
+local Assets = require('core.assets')
+
 local Map = {}
 Map.__index = Map
 
--- Placeholder colors per tile type, used until a real tileset PNG exists
+-- Stable pseudo-random pick per cell (classic sin-fract hash): the same
+-- tile always shows the same variant, no stored state, no per-frame flicker.
+local function variantIndex(col, row, n)
+    return math.floor((math.sin(col * 127.1 + row * 311.7) * 43758.5453) % 1 * n) + 1
+end
+
+-- Placeholder colors per tile type, used until real tile art exists
 local typeColors = {
     ground = {0.42, 0.38, 0.30},
     solid  = {0.22, 0.22, 0.26},
@@ -106,11 +114,18 @@ function Map:draw(camX, camY)
         for col = c0, c1 do
             local id = self.grid[row][col]
             local x, y = (col - 1) * ts, (row - 1) * ts
-            if self.tileset and self.quads[id] then
+            local t = self.tileTypes[id] or 'ground'
+            local variants = Assets.tileVariants[t]
+            if variants then
+                -- hand-drawn art with variants wins over tileset and colors
+                love.graphics.setColor(1, 1, 1)
+                love.graphics.draw(Assets.spritesheet,
+                    variants[variantIndex(col, row, #variants)], x, y)
+            elseif self.tileset and self.quads[id] then
                 love.graphics.setColor(1, 1, 1)
                 love.graphics.draw(self.tileset, self.quads[id], x, y)
             else
-                local c = typeColors[self.tileTypes[id] or 'ground']
+                local c = typeColors[t]
                 love.graphics.setColor(c[1], c[2], c[3])
                 love.graphics.rectangle('fill', x, y, ts, ts)
             end
