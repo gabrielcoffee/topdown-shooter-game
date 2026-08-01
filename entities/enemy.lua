@@ -158,6 +158,18 @@ function Enemy:takeDamage(amount, world, econ)
         p:addMoney(econ.hitReward or 0)
         if killed then p:addMoney(econ.killBonus or 0) end
     end
+
+    -- blood decal on the floor: sometimes on a hit, usually on the kill;
+    -- landed somewhere on the body, never on a wall (Decals checks)
+    if world.decals then
+        local chance = killed and TUNE.fx.decalDeathChance or TUNE.fx.decalHitChance
+        if love.math.random() < chance then
+            local cx, cy = self:getCenter()
+            world.decals:add(
+                cx + (love.math.random() * 2 - 1) * self.width / 2,
+                cy + (love.math.random() * 2 - 1) * self.height / 2)
+        end
+    end
     return killed
 end
 

@@ -69,6 +69,7 @@ function Waves:new(spawnPoints)
         spawnPoints = spawnPoints,
         bannerY = -160,
         carriersThisWave = 0, -- power-up carriers spawned this wave (capped)
+        pending = {},    -- telegraphed spawns: ground haze now, zombie in 1s
     }
     setmetatable(obj, Waves)
     return obj
@@ -81,6 +82,7 @@ function Waves:startWave(n)
     self.timer = TUNE.waves.startIntermission
     self.remaining = (n == 0) and 0 or quotaFor(n) -- wave 0: sandbox, no zombies
     self.carriersThisWave = 0
+    self.pending = {} -- a forced wave switch drops half-telegraphed spawns
     self:slamBanner()
 end
 
@@ -104,7 +106,9 @@ function Waves:serialize()
         wave = self.wave,
         state = self.state,
         timer = self.timer,
-        remaining = self.remaining,
+        -- mid-telegraph spawns fold back into the owed count; they re-run
+        -- their telegraph on load instead of popping in with no warning
+        remaining = self.remaining + #self.pending,
         spawnTimer = self.spawnTimer,
         carriersThisWave = self.carriersThisWave,
         pendingWave = self.pendingWave,
@@ -119,6 +123,7 @@ function Waves:restore(d)
     self.spawnTimer = math.max(0, d.spawnTimer or 0)
     self.carriersThisWave = d.carriersThisWave or 0
     self.pendingWave = d.pendingWave
+    self.pending = {}
     -- banner states come back with the title already slammed down
     if self.state == 'wave_start' or self.state == 'wave_end' then
         self.bannerY = 190
@@ -155,12 +160,20 @@ function Waves:activePoints(world)
     return self.spawnPoints
 end
 
-function Waves:spawnOne(world)
+-- Telegraph first: pick the point and type now, puff a haze cloud in the
+-- zombie's colors over its spawn spot, and only materialize it after
+-- telegraphTime (the classic "something is coming" beat)
+function Waves:queueSpawn(world)
     local points = self:activePoints(world)
     if #points == 0 then return end -- map without spawn markers: never crash
-    local sp = points[love.math.random(#points)]
-    local t = pickType(self.wave)
+    table.insert(self.pending, {
+        sp = points[love.math.random(#points)],
+        t = pickType(self.wave),
+        timer = TUNE.waves.telegraphTime,
+    })
+end
 
+function Waves:materialize(world, sp, t)
     -- center the zombie on the spawn tile; sizes differ per type
     local half = TUNE.tiles.size / 2
     local size = TUNE.zombies[t].size
@@ -199,13 +212,27 @@ function Waves:update(dt, world)
     elseif self.state == 'active' then
         self.spawnTimer = self.spawnTimer - dt
         while self.remaining > 0 and self.spawnTimer <= 0 do
-            self:spawnOne(world)
+            self:queueSpawn(world)
             self.remaining = self.remaining - 1
             self.spawnTimer = self.spawnTimer + delayFor(self.wave)
         end
 
+        -- telegraphed spawns: haze every frame, zombie when the timer runs out
+        local half = TUNE.tiles.size / 2
+        for i = #self.pending, 1, -1 do
+            local p = self.pending[i]
+            p.timer = p.timer - dt
+            world.vfx:spawnCloud(p.sp.x + half, p.sp.y + half,
+                TUNE.zombies[p.t].size / 2, TUNE.zombies[p.t].cloudColor)
+            if p.timer <= 0 then
+                self:materialize(world, p.sp, p.t)
+                table.remove(self.pending, i)
+            end
+        end
+
         -- wave 0 never ends: free roam until a chat command moves it on
-        if self.wave > 0 and self.remaining == 0 and liveEnemies(world) == 0 then
+        if self.wave > 0 and self.remaining == 0 and #self.pending == 0
+            and liveEnemies(world) == 0 then
             self.state = 'wave_end'
             self.timer = TUNE.waves.endIntermission
             self:slamBanner()

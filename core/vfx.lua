@@ -24,17 +24,32 @@ function Vfx.new()
     local self = setmetatable({}, Vfx)
     local dot = softDot(8, 1.2)
 
+    -- blood: heavy droplets thrown forward from the wound (dark, chunky,
+    -- decal-colored) + a finer mist that hangs a beat longer around the hit
     self.blood = love.graphics.newParticleSystem(dot, 600)
-    self.blood:setParticleLifetime(0.25, 0.7)
-    self.blood:setSpread(1.1)
-    self.blood:setSpeed(30, 150)
-    self.blood:setLinearDamping(2, 4)
-    self.blood:setSizes(0.9, 0.7, 0.3)
+    self.blood:setParticleLifetime(0.2, 0.6)
+    self.blood:setSpread(0.9)
+    self.blood:setSpeed(50, 220)
+    self.blood:setLinearDamping(3, 6)
+    self.blood:setSizes(1.1, 0.8, 0.35)
     self.blood:setSizeVariation(1)
     self.blood:setColors(
-        0.75, 0.05, 0.05, 1,
-        0.55, 0.03, 0.03, 0.9,
-        0.30, 0.01, 0.01, 0
+        0.72, 0.06, 0.06, 1,
+        0.45, 0.04, 0.04, 0.95,
+        0.25, 0.02, 0.02, 0
+    )
+
+    self.bloodMist = love.graphics.newParticleSystem(dot, 400)
+    self.bloodMist:setParticleLifetime(0.35, 0.9)
+    self.bloodMist:setSpread(math.pi * 2) -- hangs around the wound, all sides
+    self.bloodMist:setSpeed(8, 45)
+    self.bloodMist:setLinearDamping(1.5, 3)
+    self.bloodMist:setSizes(1.5, 1.1, 0.4)
+    self.bloodMist:setSizeVariation(1)
+    self.bloodMist:setColors(
+        0.5, 0.03, 0.03, 0.55,
+        0.32, 0.02, 0.02, 0.4,
+        0.18, 0.01, 0.01, 0
     )
 
     self.sparks = love.graphics.newParticleSystem(dot, 200)
@@ -49,7 +64,7 @@ function Vfx.new()
 
     -- movement dust: the muzzle-flash sprite frames at constant low alpha
     -- (no fade — each puff plays the 3 frames and pops out)
-    self.dust = love.graphics.newParticleSystem(Assets.spritesheet, 300)
+    self.dust = love.graphics.newParticleSystem(Assets.spritesheet, 600)
     self.dust:setQuads(unpack(Assets.quads.muzzle))
     local _, _, qw, qh = Assets.quads.muzzle[1]:getViewport()
     self.dust:setOffset(qw / 2, qh / 2)
@@ -94,6 +109,23 @@ function Vfx.new()
         0.35, 0.27, 0.08, 0
     )
 
+    -- stone chips knocked off walls by bullets
+    self.chips = love.graphics.newParticleSystem(dot, 200)
+    self.chips:setParticleLifetime(0.15, 0.4)
+    self.chips:setSpread(1.2)
+    self.chips:setSpeed(40, 150)
+    self.chips:setLinearDamping(4, 8)
+    self.chips:setSizes(0.8, 0.5, 0.2)
+    self.chips:setSizeVariation(1)
+    self.chips:setColors(
+        0.62, 0.60, 0.56, 0.9,
+        0.45, 0.44, 0.42, 0.7,
+        0.3, 0.3, 0.3, 0
+    )
+
+    -- spawn-telegraph haze: dust clones tinted per zombie type, made lazily
+    self.clouds = {}
+
     self.boom = love.graphics.newParticleSystem(dot, 300)
     self.boom:setParticleLifetime(0.15, 0.5)
     self.boom:setSpread(math.pi * 2)
@@ -110,11 +142,41 @@ function Vfx.new()
     return self
 end
 
--- angle = incoming bullet angle; blood sprays forward from the hit
+-- angle = incoming bullet/swing angle; droplets spray forward from the hit
+-- while the mist blooms around the wound itself (knives and bullets alike)
 function Vfx:bloodSplatter(x, y, angle)
     self.blood:moveTo(x, y)
     self.blood:setDirection(angle)
     self.blood:emit(TUNE.fx.bloodParticles)
+    self.bloodMist:moveTo(x, y)
+    self.bloodMist:emit(TUNE.fx.bloodMistParticles)
+end
+
+-- Zombie spawn telegraph: ground haze in the incoming zombie's colors,
+-- puffing over a patch the size of its body, every frame for the telegraph
+-- second. A particle system's color ramp repaints LIVE particles, so each
+-- tint gets its own lazy clone of the dust system instead of a shared one.
+function Vfx:spawnCloud(x, y, half, color)
+    local sys = self.clouds[color]
+    if not sys then
+        sys = self.dust:clone()
+        sys:setColors(color[1], color[2], color[3], TUNE.fx.spawnCloudOpacity)
+        self.clouds[color] = sys
+    end
+    sys:moveTo(x, y)
+    sys:setEmissionArea('uniform', half, half)
+    sys:emit(TUNE.fx.spawnCloudRate)
+end
+
+-- Bullet met a wall: a spark pinch bouncing back off the surface + a few
+-- gray stone chips knocked out where it struck
+function Vfx:wallHit(x, y, angle)
+    self.sparks:moveTo(x, y)
+    self.sparks:setDirection(angle + math.pi) -- ricochet back the way it came
+    self.sparks:emit(4)
+    self.chips:moveTo(x, y)
+    self.chips:setDirection(angle + math.pi)
+    self.chips:emit(5)
 end
 
 function Vfx:muzzleSparks(x, y, angle)
@@ -166,23 +228,29 @@ end
 
 function Vfx:update(dt)
     self.blood:update(dt)
+    self.bloodMist:update(dt)
     self.sparks:update(dt)
+    self.chips:update(dt)
     self.boom:update(dt)
     self.dust:update(dt)
     self.fire:update(dt)
     self.wood:update(dt)
+    for _, sys in pairs(self.clouds) do sys:update(dt) end
 end
 
 -- Ground-level effects, drawn before entities so they stay under them
 function Vfx:drawUnder()
     love.graphics.draw(self.dust)
+    for _, sys in pairs(self.clouds) do love.graphics.draw(sys) end
     love.graphics.setColor(1, 1, 1)
 end
 
 -- Drawn in world space, after entities
 function Vfx:draw()
+    love.graphics.draw(self.bloodMist)
     love.graphics.draw(self.blood)
     love.graphics.draw(self.wood)
+    love.graphics.draw(self.chips)
     love.graphics.setBlendMode('add')
     love.graphics.draw(self.sparks)
     love.graphics.draw(self.boom)

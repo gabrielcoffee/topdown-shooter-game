@@ -226,10 +226,7 @@ return {
         spinCycleEnd = 0.5,
         spinSlowdown = 2.5,   -- ramp shape (higher = stays fast longer, brakes harder)
         spinRise = 32,        -- px below the final height the cycling sprite starts at
-        -- box lighting: constant torch-colored glow on the box, plus a warm
-        -- player-colored glow on the cycling/offered item
-        glow = 0.25,          -- box glow as a fraction of torch brightness
-        glowRange = 130,      -- box glow radius, world px
+        -- warm player-colored glow on the cycling/offered item
         spinGlow = 0.5,       -- item glow as a fraction of the player light
         spinGlowRange = 115,  -- item glow radius, world px
         takeWindow = 8.0,     -- secs to press E and take a rolled gun
@@ -364,7 +361,17 @@ return {
         fogAlpha = 0.5,  -- overall fog layer opacity
 
         -- gameplay
-        bloodParticles = 18, -- per bullet hit
+        bloodParticles = 18,    -- forward droplets per hit (bullet AND knife)
+        bloodMistParticles = 8, -- lingering red haze around the wound, per hit
+
+        -- permanent blood splats on the floor (core/decals)
+        decalHitChance = 0.25,  -- chance per damaging hit (bullet/knife/nade/fire)
+        decalDeathChance = 0.8, -- chance on the kill
+        decalMax = 1500,        -- splats kept; oldest overwritten past this
+
+        -- zombie spawn telegraph haze (colors live on each zombie type)
+        spawnCloudRate = 2,      -- particles per frame while telegraphing
+        spawnCloudOpacity = 0.35,
 
         -- movement dust (muzzle-flash sprite, faded, drifts randomly)
         dustInterval = 0.12, -- secs between puffs while moving
@@ -386,9 +393,9 @@ return {
         -- wind: constant low sway + gusts sweeping the map in +x, all scaled
         -- by a slow "weather" wave — calm spells, then the wind picks up
         wind = {
-            amp = 5,          -- px the tip drifts in the constant sway
+            amp = 7,          -- px the tip drifts in the constant sway
             speed = 2,        -- sway rate
-            gustAmp = 9,      -- extra px at the peak of a gust
+            gustAmp = 13,     -- extra px at the peak of a gust
             gustSpeed = 0.5,  -- gusts per second
             gustWave = 0.004, -- how tight the gust wave is (lower = wider front)
             stiffness = 1.2,  -- bend curve (higher = only the tip really moves)
@@ -438,16 +445,20 @@ return {
         -- damage = contact hit on the player (slow hits hardest, fast lightest)
         -- slow uses assets/slow_zombie.gif (54x60, 4 frames): the normal
         -- sprite scaled 1.5x and recolored red, centered on the 48px circle
+        -- cloudColor = spawn-telegraph haze tint, sampled from each type's sprite
         slow   = { speed = 30, lifeMult = 1,    size = 48, damage = 25, losShortcut = true,
+                   cloudColor = { 0.61, 0.34, 0.28 },
                    animTime = 1.4 }, -- secs per walk loop (half the normal's pace)
         -- normal uses assets/normal_zombie.gif (36x40, 4 frames): sprite is
         -- centered on the 32px collision circle on both axes. Plain repeating
         -- loop (1-2-3-4-1...).
         normal = { speed = 60, lifeMult = 0.5,  size = 32, damage = 20, breaksCrates = true,
+                   cloudColor = { 0.36, 0.61, 0.47 },
                    animTime = 0.7 }, -- secs for one full walk-cycle loop
         -- fast uses assets/fast_zombie.gif (16x24): size = the body circle,
         -- which is the BOTTOM 16px of the sprite; the top 8px overhang above it
         fast   = { speed = 90, lifeMult = 0.25, size = 16, damage = 20, breaksCrates = true,
+                   cloudColor = { 0.68, 0.72, 0.2 },
                    animTime = 0.45 }, -- secs for one full run-cycle loop
     },
 
@@ -458,6 +469,8 @@ return {
         -- player's own room. Only rooms already visited AND reachable right
         -- now count (a locked door between them = not next door).
         adjacentRoomChance = 0.25,
+
+        telegraphTime = 1, -- secs of colored spawn haze before the zombie appears
 
         lifeBase = 20,          -- wave-1 zombie life, before the type multiplier
         lifePerWave = 20,       -- +this per wave while wave <= lifeLinearUntil

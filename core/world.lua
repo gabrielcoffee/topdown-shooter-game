@@ -11,6 +11,7 @@ local GunWall = require('entities.gun_wall')
 local PlayerSpawn = require('entities.player_spawn')
 local Lighting = require('core.lighting')
 local Decor = require('core.decor')
+local Decals = require('core.decals')
 local Vfx = require('core.vfx')
 local Waves = require('core.waves')
 local Crosshair = require('ui.crosshair')
@@ -53,6 +54,7 @@ function World:new(opts)
 
     obj.lighting = Lighting.new(obj.map) -- solid tiles + torches from the map
     obj.decor = Decor.new(obj.map, obj.map.scenery) -- scattered props + torches
+    obj.decals = Decals.new(obj.map) -- permanent blood splats on the floor
     obj.vfx = Vfx.new()
 
     table.insert(obj.entities, obj.player)
@@ -79,10 +81,6 @@ function World:new(opts)
             local chest = Chest:new(o.x, o.y)
             obj:addEntity(chest)
             obj.lighting:trackOccluder(chest)
-            -- the box glows like a dim torch so it reads from across the room
-            local g = TUNE.lighting.torchBright * TUNE.chest.glow
-            obj.lighting:addPoint(o.x + chest.width / 2, o.y - 8,
-                g, g * 0.62, g * 0.25, TUNE.chest.glowRange)
         elseif o.type == 'gunwall' then
             local wall = GunWall:new(o.x, o.y, o.gun, o.price)
             obj:addEntity(wall)
@@ -554,6 +552,7 @@ function World:draw()
     -- scene drawn in world coords; lighting darkens + applies lights on top
     self.lighting:draw(function()
         self.map:draw(camX, camY)
+        self.decals:draw() -- dried blood sits on the dirt, under the grass
         self.decor:draw(self) -- grass, rocks, torches: above the dirt, under everyone
 
         self.vfx:drawUnder() -- ground dust stays below everyone

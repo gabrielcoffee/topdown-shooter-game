@@ -67,6 +67,7 @@ function Bullet:checkHits(world)
     -- walls stop bullets (bullet_hit samples are wall-impact sounds)
     if world.map:isSolidAt(self.x, self.y) then
         world:removeEntity(self)
+        world.vfx:wallHit(self.x, self.y, self.angle)
         Audio.playAt('bullet_hit', self.x, self.y, 1, TUNE.audio.pitchJitter, world)
         return
     end
@@ -77,6 +78,7 @@ function Bullet:checkHits(world)
             and self.x > e.x and self.x < e.x + e.width
             and self.y > e.y and self.y < e.y + e.height then
             world:removeEntity(self)
+            world.vfx:wallHit(self.x, self.y, self.angle)
             if e.type == 'crate' then
                 e.health = e.health - self.damage
                 e.flash = true
