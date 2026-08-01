@@ -106,6 +106,7 @@ function Gun:newUSP()
     obj.type = GUNTYPE.semi
     obj.shotSfx = 'usp_shot'
     obj.reloadSfx = 'usp_reload'
+    obj.reloadAnim = Animation:fromGif('assets/usp_reload.gif', false)
     obj.shellQuad = Assets.quads.shell_pistol[1]
     obj.shellDrop = { 'pistol_shell' } -- casing-hit-ground SFX
     obj.ox = 4
