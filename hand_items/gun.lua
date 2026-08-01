@@ -171,6 +171,8 @@ function Gun:newShotgun()
     obj.type = GUNTYPE.shotgun
     obj.shotSfx = 'shotgun_shot'
     obj.reloadSfx = 'shotgun_reload' -- break-open + tick, plays before shells go in
+    -- looping shell-insert gif: one cycle per shell (re-synced as each lands)
+    obj.reloadAnim = Animation:fromGif('assets/shotgun_reload.gif', true)
     obj.shellSfx = { 'shell1', 'shell2', 'shell3' }
     obj.shellQuad = Assets.quads.shell_shotgun[1]
     obj.shellDrop = { 'shell1', 'shell2', 'shell3' } -- brass hull bounce
@@ -257,11 +259,14 @@ function Gun:update(dt, px, py, mx, my)
                 if self.reloadTimer >= (self.reloadOpenTime or 0) then
                     self.reloadOpening = false
                     self.reloadTimer = 0
+                    -- shells start going in now: lock the gif to the cadence
+                    if self.reloadAnim then self.reloadAnim:restart() end
                 end
             elseif self.reloadTimer >= self.reloadingTime then
                 self.reloadTimer = 0
                 self.curClip = self.curClip + 1
                 self.bulletsLeft = self.bulletsLeft - 1
+                if self.reloadAnim then self.reloadAnim:restart() end
                 Audio.playAt(self.shellSfx[love.math.random(#self.shellSfx)], self.x, self.y)
                 if self.curClip >= self.maxClip or self.bulletsLeft <= 0 then
                     self.reloading = false

@@ -97,9 +97,18 @@ function Player:throwableSpace()
     return TUNE.throwables.maxCarry - (self.grenades + self.molotovs)
 end
 
--- +1 of a kind if the shared pool has room. Returns true when it landed.
-function Player:addThrowable(kind)
+-- Room for one more of this kind? Shared pool AND the per-kind cap must agree
+-- (4 total, never perKindMax+1 of one kind). 'molotov' counts molotovs,
+-- anything else ('he'/'grenade') counts grenades.
+function Player:canAddThrowable(kind)
     if self:throwableSpace() <= 0 then return false end
+    local n = kind == 'molotov' and self.molotovs or self.grenades
+    return n < TUNE.throwables.perKindMax
+end
+
+-- +1 of a kind if it fits. Returns true when it landed.
+function Player:addThrowable(kind)
+    if not self:canAddThrowable(kind) then return false end
     if kind == 'molotov' then self.molotovs = self.molotovs + 1
     else self.grenades = self.grenades + 1 end
     return true

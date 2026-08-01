@@ -173,8 +173,10 @@ return {
                           glowAlpha = 0.3,   -- additive orange glow over the burn area
                           emberFactor = 0.4 } }, -- particle embers kept on top of the sprites
 
-    -- slot 4 is ONE pool: grenades + molotovs together can't pass maxCarry
+    -- slot 4 is ONE pool: grenades + molotovs together can't pass maxCarry,
+    -- and one kind alone can't pass perKindMax (4 total, never 4 of one)
     throwables = { maxCarry = 4,
+                   perKindMax = 3,
                    useDelay = 1 }, -- secs between throws (a full pool can't be dumped at once)
 
     healthpack = { healAmount = 50, maxCarry = 2, -- slot 5 stacks maxCarry kits
@@ -182,7 +184,7 @@ return {
 
     -- CoD-style wall buys (GunWall entities placed in LDtk; gun + optional price)
     wallbuy = { interactPad = 4,
-                ammoFactor = 0.5, -- ammo refill price = gun price x this
+                ammoFactor = 0.6, -- ammo refill price = gun price x this
                 prices = { usp = 150, ak47 = 700, m4a1 = 600, shotgun = 500 } },
 
     -- power-up drops: fast (runner) zombies may spawn glowing with one and
@@ -221,6 +223,12 @@ return {
         spinCycleEnd = 0.5,
         spinSlowdown = 2.5,   -- ramp shape (higher = stays fast longer, brakes harder)
         spinRise = 32,        -- px below the final height the cycling sprite starts at
+        -- box lighting: constant torch-colored glow on the box, plus a warm
+        -- player-colored glow on the cycling/offered item
+        glow = 0.25,          -- box glow as a fraction of torch brightness
+        glowRange = 130,      -- box glow radius, world px
+        spinGlow = 0.5,       -- item glow as a fraction of the player light
+        spinGlowRange = 115,  -- item glow radius, world px
         takeWindow = 8.0,     -- secs to press E and take a rolled gun
         openTime = 0.25,      -- secs for the lid open (and close) animation
         interactPad = 32,     -- px around the 64x32 box where E buys/takes

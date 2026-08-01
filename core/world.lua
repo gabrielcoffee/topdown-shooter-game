@@ -79,6 +79,10 @@ function World:new(opts)
             local chest = Chest:new(o.x, o.y)
             obj:addEntity(chest)
             obj.lighting:trackOccluder(chest)
+            -- the box glows like a dim torch so it reads from across the room
+            local g = TUNE.lighting.torchBright * TUNE.chest.glow
+            obj.lighting:addPoint(o.x + chest.width / 2, o.y - 8,
+                g, g * 0.62, g * 0.25, TUNE.chest.glowRange)
         elseif o.type == 'gunwall' then
             local wall = GunWall:new(o.x, o.y, o.gun, o.price)
             obj:addEntity(wall)

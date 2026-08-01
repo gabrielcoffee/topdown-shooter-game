@@ -88,8 +88,9 @@ function Chest:roll(player)
     local weights = {}
     for key, w in pairs(TUNE.chest.weights) do
         local valid = true
-        if (key == 'grenade' or key == 'molotov') and player:throwableSpace() <= 0 then
-            valid = false -- slot 4 is one shared pool
+        if key == 'grenade' or key == 'molotov' then
+            -- shared pool + per-kind cap (canAddThrowable checks both)
+            valid = player:canAddThrowable(key)
         elseif key == 'healthpack' and player.medkits >= TUNE.healthpack.maxCarry then
             valid = false
         end
@@ -134,7 +135,28 @@ function Chest:interact(player, world)
             Audio.playAt('crate_open', cx, cy)
         end
     elseif self.state == 'offering' then
-        self:giveGun(player)
+        -- E collects whatever was rolled; if it doesn't fit any more (pool
+        -- filled up during the spin) the offer just keeps waiting
+        local r = self.result
+        if r.kind == 'gun' then
+            self:giveGun(player)
+        elseif r.kind == 'refill' then
+            for i = 1, 2 do
+                local gun = player.items[i]
+                if gun and gun.id == r.gunId then gun:refill() end
+            end
+            self.toastText = T('hud.chest_refill', r.name)
+        elseif r.kind == 'grenade' then
+            if not player:addThrowable('he') then return end
+            self.toastText = T('hud.chest_grenade')
+        elseif r.kind == 'molotov' then
+            if not player:addThrowable('molotov') then return end
+            self.toastText = T('hud.chest_molotov')
+        elseif r.kind == 'healthpack' then
+            if not player:addMedkit() then return end
+            self.toastText = T('hud.chest_health')
+        end
+        if r.kind ~= 'gun' then self.toastTimer = 2 end
         self.state = 'idle'
         self.result = nil
         self:closeLid()
@@ -159,6 +181,21 @@ function Chest:update(dt, world)
     if self.toastTimer > 0 then
         self.toastTimer = self.toastTimer - dt
         if self.toastTimer <= 0 then self.toastText = nil end
+    end
+
+    -- warm glow on the cycling/offered item while the box is live (50% of the
+    -- player light); added lazily so it also comes back after a save load
+    local wantGlow = self.state ~= 'idle'
+    if world and world.lighting then
+        if wantGlow and not self.spinLight then
+            local b = TUNE.lighting.playerBright * TUNE.chest.spinGlow
+            self.spinLight = world.lighting:addPoint(
+                self.x + self.width / 2, self.y - CAP - 14,
+                b, b * 0.88, b * 0.68, TUNE.chest.spinGlowRange)
+        elseif not wantGlow and self.spinLight then
+            world.lighting:removePoint(self.spinLight)
+            self.spinLight = nil
+        end
     end
 
     if self.state == 'spinning' then
@@ -200,39 +237,12 @@ function Chest:update(dt, world)
     end
 end
 
--- Spin over: guns wait for a second E, everything else applies now
+-- Spin over: EVERY reward waits on the lid for an E within the take-window
+-- (walk away and it's lost — the box already ate the money)
 function Chest:resolve(world)
     self.spinSound = nil -- tail rings out on its own; next spin grabs a fresh voice
-    local player = world.player
-    local r = self.result
-
-    if r.kind == 'gun' then
-        self.state = 'offering'
-        self.takeTimer = TUNE.chest.takeWindow
-        return
-    end
-
-    if r.kind == 'refill' then
-        for i = 1, 2 do
-            local gun = player.items[i]
-            if gun and gun.id == r.gunId then gun:refill() end
-        end
-        self.toastText = T('hud.chest_refill', r.name)
-    elseif r.kind == 'grenade' then
-        player:addThrowable('he')
-        self.toastText = T('hud.chest_grenade')
-    elseif r.kind == 'molotov' then
-        player:addThrowable('molotov')
-        self.toastText = T('hud.chest_molotov')
-    elseif r.kind == 'healthpack' then
-        player:addMedkit()
-        self.toastText = T('hud.chest_health')
-    end
-
-    self.toastTimer = 2
-    self.state = 'idle'
-    self.result = nil
-    self:closeLid()
+    self.state = 'offering'
+    self.takeTimer = TUNE.chest.takeWindow
 end
 
 -- Run-save: a paid spin (or a gun waiting on the lid) survives save & quit —
@@ -317,7 +327,14 @@ function Chest:draw()
         love.graphics.draw(Assets.spritesheet, quad,
             math.floor(cx), math.floor(top - 14 + bob + rise), 0, 1, 1, qw/2, qh/2)
     elseif self.state == 'offering' then
-        local quad = Assets.quads[Gun.quadName(self.result.gunId)][1]
+        -- the reward's own sprite waits on the lid (guns and consumables alike)
+        local r = self.result
+        local quadName
+        if r.kind == 'gun' or r.kind == 'refill' then quadName = Gun.quadName(r.gunId)
+        elseif r.kind == 'grenade' then quadName = 'grenade'
+        elseif r.kind == 'molotov' then quadName = 'molotov'
+        else quadName = 'medkit' end
+        local quad = Assets.quads[quadName][1]
         local _, _, qw, qh = quad:getViewport()
         love.graphics.setColor(1, 1, 1)
         love.graphics.draw(Assets.spritesheet, quad,
