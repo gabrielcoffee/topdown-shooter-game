@@ -69,7 +69,10 @@ function World:new(opts)
             obj:addEntity(crate)
             obj.lighting:trackOccluder(crate)
         elseif o.type == 'door' then
-            local door = Door:new(o.x, o.y, o.price, o.id, o.width, o.height)
+            -- manual id field wins (spawn gating links use it); otherwise the
+            -- LDtk iid keeps the door identifiable across saves — without ANY
+            -- id an opened door came back locked on Continue
+            local door = Door:new(o.x, o.y, o.price, o.id or o.iid, o.width, o.height)
             obj:addEntity(door)
             obj.lighting:trackOccluder(door)
         elseif o.type == 'chest' then

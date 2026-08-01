@@ -90,6 +90,9 @@ function Ldtk.load(path)
                         y = oy + e.px[2],
                         width = e.width,   -- resizable entities (doors) keep
                         height = e.height, -- their editor-stretched size
+                        -- LDtk's per-instance uuid: survives moves/resizes,
+                        -- the stable identity for saves when no manual id is set
+                        iid = e.iid,
                     }
                     -- entity fields (door price/id, spawn door link, ...)
                     for _, f in ipairs(e.fieldInstances or {}) do
