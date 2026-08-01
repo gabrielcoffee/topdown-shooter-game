@@ -353,6 +353,8 @@ return {
         rockShare = 0.4,    -- of those, the fraction that are rocks (rest = grass)
         bushChance = 0.05,  -- chance per ground tile for a big 32x32 bush instead
         torchPulse = 0.25,  -- how much the torch sprite brightens with its flame
+        walkPush = 6,       -- px the tips are shoved aside by whoever walks through
+        walkReach = 26,     -- px around a walker where props get pushed
 
         -- wind: constant low sway + gusts sweeping the map in +x
         wind = {

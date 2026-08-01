@@ -547,7 +547,7 @@ function World:draw()
     -- scene drawn in world coords; lighting darkens + applies lights on top
     self.lighting:draw(function()
         self.map:draw(camX, camY)
-        self.decor:draw() -- grass, rocks, torches: above the dirt, under everyone
+        self.decor:draw(self) -- grass, rocks, torches: above the dirt, under everyone
 
         self.vfx:drawUnder() -- ground dust stays below everyone
 

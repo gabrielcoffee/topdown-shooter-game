@@ -30,11 +30,12 @@ local shader = love.graphics.newShader([[
     uniform float t;
     uniform vec4 sway;     // amp px, speed, gust amp px, gust speed
     uniform float gustWave; // gust travel across world x (lower = wider wave)
+    uniform vec4 walkers[8]; // xy = whoever is walking through, z = px, w = reach
 
     vec4 position(mat4 transform_projection, vec4 vertex_position) {
         vBounds = UVBounds;
-        float w = WindData.x;
-        if (w > 0.0) {
+        float bw = WindData.x;
+        if (bw > 0.0) {
             float ph = WindData.y + vertex_position.x * 0.035
                                   + vertex_position.y * 0.02;
             float s = sin(t * sway.y + ph) * 0.65
@@ -42,8 +43,21 @@ local shader = love.graphics.newShader([[
             float g = max(sin(t * sway.w - vertex_position.x * gustWave), 0.0);
             g = g * g * g; // gusts stay rare and sharp instead of metronomic
             float bend = s * sway.x + g * sway.z * (0.75 + 0.25 * s);
-            vertex_position.x += bend * w;
-            vertex_position.y += abs(bend) * w * 0.15; // tip arcs down as it leans
+            vec2 push = vec2(bend, abs(bend) * 0.15); // tip arcs down as it leans
+
+            // anything walking through shoves the tips out of its way
+            for (int i = 0; i < 8; i++) {
+                vec4 wk = walkers[i];
+                if (wk.w > 0.0) {
+                    vec2 d = vertex_position.xy - wk.xy;
+                    float dist = length(d);
+                    if (dist < wk.w) {
+                        float k = 1.0 - dist / wk.w;
+                        push += normalize(d + vec2(0.001, 0.0)) * k * k * wk.z;
+                    }
+                }
+            }
+            vertex_position.xy += push * bw;
         }
         return transform_projection * vertex_position;
     }
@@ -229,7 +243,42 @@ function Decor:bake(props)
     return mesh
 end
 
-function Decor:draw()
+-- Up to 8 movers near the view, fed to the shader so props part around them
+local MAX_WALKERS = 8
+
+function Decor:walkers(world)
+    local list = self.walkerBuf or {}
+    self.walkerBuf = list
+    for i = 1, MAX_WALKERS do list[i] = list[i] or { 0, 0, 0, 0 } end
+
+    local push, reach = TUNE.props.walkPush, TUNE.props.walkReach
+    local viewW, viewH = SCREENWIDTH / SCALE, SCREENHEIGHT / SCALE
+    local n = 0
+
+    local function add(e)
+        if n >= MAX_WALKERS then return end
+        local x, y = e:getCenter()
+        if x < world.camX - reach or x > world.camX + viewW + reach
+            or y < world.camY - reach or y > world.camY + viewH + reach then
+            return
+        end
+        n = n + 1
+        local w = list[n]
+        w[1], w[2], w[3], w[4] = x, y, push, reach
+    end
+
+    add(world.player)
+    for _, e in ipairs(world.entities) do
+        if e.type == 'enemy' and not e.toRemove then add(e) end
+    end
+    for i = n + 1, MAX_WALKERS do
+        local w = list[i]
+        w[1], w[2], w[3], w[4] = 0, 0, 0, 0
+    end
+    return list
+end
+
+function Decor:draw(world)
     local t = love.timer.getTime()
 
     if self.mesh then
@@ -239,6 +288,7 @@ function Decor:draw()
         shader:send('t', t)
         shader:send('sway', { w.amp, w.speed, w.gustAmp, w.gustSpeed })
         shader:send('gustWave', w.gustWave)
+        shader:send('walkers', unpack(self:walkers(world)))
         love.graphics.setColor(1, 1, 1)
         love.graphics.draw(self.mesh)
         love.graphics.setShader(prev)
