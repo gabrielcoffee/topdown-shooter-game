@@ -54,7 +54,11 @@ return {
               pushRampTime = 1.2,   -- secs of continuous pushing until the crate reaches full walk speed
               pushStartFrac = 0.12, -- fraction of walk speed the push starts at (crawls, no dead delay)
               pushGrace = 0.15 },   -- secs of lost contact before the ramp resets
-    door  = { price = 250, interactPad = 4 },
+    door  = { price = 250, interactPad = 12,
+              -- floating lock icon on the player's side of the door
+              lockGap = 8,        -- px between the door face and the icon
+              lockFadeFar = 200,  -- px: icon fully invisible at this distance
+              lockFadeNear = 110 }, -- px: fully opaque from here in
 
     guns = {
         -- aim model (all angles in radians):

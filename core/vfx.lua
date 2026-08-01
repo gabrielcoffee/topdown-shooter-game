@@ -79,6 +79,21 @@ function Vfx.new()
         0.5, 0.1, 0.05, 0
     )
 
+    -- door-open burst: wood chips in the door's gold/brown palette, scattered
+    -- over the whole slab the moment it unlocks
+    self.wood = love.graphics.newParticleSystem(dot, 200)
+    self.wood:setParticleLifetime(0.3, 0.8)
+    self.wood:setSpread(math.pi * 2)
+    self.wood:setSpeed(30, 130)
+    self.wood:setLinearDamping(2.5, 5)
+    self.wood:setSizes(1.3, 0.8, 0.3)
+    self.wood:setSizeVariation(1)
+    self.wood:setColors(
+        0.85, 0.70, 0.25, 1,
+        0.60, 0.45, 0.12, 0.9,
+        0.35, 0.27, 0.08, 0
+    )
+
     self.boom = love.graphics.newParticleSystem(dot, 300)
     self.boom:setParticleLifetime(0.15, 0.5)
     self.boom:setSpread(math.pi * 2)
@@ -127,12 +142,35 @@ function Vfx:footDust(x, y, count)
     self.dust:emit(count or TUNE.fx.dustCount)
 end
 
+-- Door unlocked: wood chips + a dust cloud over the full door rectangle
+-- (hw/hh = half extents) and a brief gold spark pop where the lock gave way
+function Vfx:doorBurst(cx, cy, hw, hh)
+    self.wood:moveTo(cx, cy)
+    self.wood:setEmissionArea('uniform', hw, hh)
+    self.wood:emit(math.ceil(hw + hh))
+
+    -- dust shares the footstep system; restore its feet-sized area after
+    self.dust:moveTo(cx, cy)
+    self.dust:setEmissionArea('uniform', hw, hh)
+    self.dust:emit(math.ceil((hw + hh) / 2))
+    self.dust:setEmissionArea('uniform', 10, 5)
+
+    -- lock pop: sparks fly out in every direction (they're directional for
+    -- muzzle flashes, so sweep the full circle in a few emits)
+    for i = 0, 5 do
+        self.sparks:moveTo(cx, cy)
+        self.sparks:setDirection(i * math.pi / 3)
+        self.sparks:emit(3)
+    end
+end
+
 function Vfx:update(dt)
     self.blood:update(dt)
     self.sparks:update(dt)
     self.boom:update(dt)
     self.dust:update(dt)
     self.fire:update(dt)
+    self.wood:update(dt)
 end
 
 -- Ground-level effects, drawn before entities so they stay under them
@@ -144,6 +182,7 @@ end
 -- Drawn in world space, after entities
 function Vfx:draw()
     love.graphics.draw(self.blood)
+    love.graphics.draw(self.wood)
     love.graphics.setBlendMode('add')
     love.graphics.draw(self.sparks)
     love.graphics.draw(self.boom)
