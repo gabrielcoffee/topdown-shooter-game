@@ -8,6 +8,7 @@ local Assets = require('core.assets')
 local Color = require('core.color')
 local Gun = require('hand_items.gun')
 local Gif = require('core.gif')
+local Audio = require('core.audio')
 
 local Chest = {}
 Chest.__index = Chest
@@ -64,8 +65,22 @@ end
 -- quads cycled above the box while spinning (tint = molotov placeholder)
 local spinQuads = {
     { q = 'pistol' }, { q = 'ak47' }, { q = 'm4a1' }, { q = 'shotgun' },
-    { q = 'grenade' }, { q = 'grenade', tint = { 1, 0.5, 0.15 } },
+    { q = 'grenade' }, { q = 'grenade', tint = { 1, 0.5, 0.15 } }, { q = 'medkit' },
 }
+
+-- spinQuads index that shows a roll result (the wheel must land on it)
+local function resultIndex(r)
+    local want
+    if r.kind == 'grenade' then want = 5
+    elseif r.kind == 'molotov' then want = 6
+    elseif r.kind == 'healthpack' then want = 7
+    else -- gun or refill: the gun's own sprite
+        for i, e in ipairs(spinQuads) do
+            if not e.tint and e.q == r.gunId then want = i break end
+        end
+    end
+    return want
+end
 
 -- Weighted pick over categories that can currently help the player.
 -- Owned-gun rolls become an ammo refill for that gun.
@@ -145,10 +160,28 @@ function Chest:update(dt, world)
     end
 
     if self.state == 'spinning' then
-        self.spinTimer = self.spinTimer + dt
-        if self.spinTimer >= TUNE.chest.spinCycleTime then
-            self.spinTimer = 0
-            self.spinQuad = self.spinQuad % #spinQuads + 1
+        -- wheel spin loop: also restarts after loading a mid-spin save
+        if not self.spinSound then
+            local cx, cy = self:getCenter()
+            self.spinSound = Audio.playAt('spin_wheel', cx, cy)
+        end
+
+        -- roulette pacing: secs per sprite ramps from spinCycleStart to
+        -- spinCycleEnd — a blur at first, then ticking to a stop
+        local C = TUNE.chest
+        local p = 1 - math.max(self.timer, 0) / C.spinTime
+        local step = C.spinCycleStart
+            + (C.spinCycleEnd - C.spinCycleStart) * p ^ C.spinSlowdown
+
+        if self.timer <= step then
+            -- last tick: land on the sprite of what was actually rolled
+            self.spinQuad = resultIndex(self.result) or self.spinQuad
+        else
+            self.spinTimer = self.spinTimer + dt
+            if self.spinTimer >= step then
+                self.spinTimer = 0
+                self.spinQuad = self.spinQuad % #spinQuads + 1
+            end
         end
 
         self.timer = self.timer - dt
@@ -167,6 +200,10 @@ end
 
 -- Spin over: guns wait for a second E, everything else applies now
 function Chest:resolve(world)
+    if self.spinSound then
+        self.spinSound:stop()
+        self.spinSound = nil
+    end
     local player = world.player
     local r = self.result
 
