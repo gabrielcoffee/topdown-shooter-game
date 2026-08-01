@@ -14,9 +14,13 @@
 -- so a field ripples in sequence rather than wobbling in unison.
 
 local Assets = require('core.assets')
+local Animation = require('core.animation')
 
 local Decor = {}
 Decor.__index = Decor
+
+-- Animated torch flame: preferred over the sheet cell when the gif exists
+local TORCH_GIF = 'assets/torch.gif'
 
 local SEGMENTS_BIG = 8   -- horizontal slices for a 32px prop
 local SEGMENTS_SMALL = 4 -- ... for a 16px prop
@@ -108,7 +112,10 @@ function Decor.new(map, scenery)
 
     -- torches: floor tiles with a torch mounted on the wall beside them. The
     -- art hangs on the left edge, so mirror it when the wall is on the right.
-    if scenery.torch then
+    if love.filesystem.getInfo(TORCH_GIF) then
+        self.torchAnim = Animation:fromGif(TORCH_GIF)
+    end
+    if scenery.torch or self.torchAnim then
         for row = 1, map.rows do
             for col = 1, map.cols do
                 if map.tileTypes[map.grid[row][col]] == 'torch' then
@@ -152,26 +159,21 @@ function Decor.new(map, scenery)
                             y = ty + (hash(col, row, 4) - 0.5) * (ts - p.h + 12),
                             phase = hash(col, row, 5) * 6.28,
                         }
-                    else
-                        -- up to 3 small props per tile, each rolled on its own
-                        for slot = 1, 3 do
-                            if hash(col, row, 10 + slot) < cfg.density then
-                                local kindRoll = hash(col, row, 20 + slot)
-                                local bucket = (kindRoll < cfg.rockShare)
-                                    and rocks or grass
-                                if #bucket == 0 then
-                                    bucket = (#grass > 0) and grass or rocks
-                                end
-                                if #bucket > 0 then
-                                    local p = pick(bucket, hash(col, row, 30 + slot))
-                                    props[#props + 1] = {
-                                        def = p,
-                                        x = tx + hash(col, row, 40 + slot) * (ts - p.w),
-                                        y = ty + hash(col, row, 50 + slot) * (ts - p.h),
-                                        phase = hash(col, row, 60 + slot) * 6.28,
-                                    }
-                                end
-                            end
+                    elseif hash(col, row, 11) < cfg.smallChance then
+                        -- one small prop: rock or grass by rockShare
+                        local bucket = (hash(col, row, 21) < cfg.rockShare)
+                            and rocks or grass
+                        if #bucket == 0 then
+                            bucket = (#grass > 0) and grass or rocks
+                        end
+                        if #bucket > 0 then
+                            local p = pick(bucket, hash(col, row, 31))
+                            props[#props + 1] = {
+                                def = p,
+                                x = tx + hash(col, row, 41) * (ts - p.w),
+                                y = ty + hash(col, row, 51) * (ts - p.h),
+                                phase = hash(col, row, 61) * 6.28,
+                            }
                         end
                     end
                 end
@@ -283,10 +285,14 @@ function Decor:draw(world)
 
     if self.mesh then
         local w = TUNE.props.wind
+        -- weather envelope: slow noise shaped so the wind mostly idles near
+        -- the floor, then swells for a while and dies back down
+        local env = w.lullFloor + (1 - w.lullFloor)
+            * love.math.noise(t * w.lullSpeed) ^ w.lullBias
         local prev = love.graphics.getShader()
         love.graphics.setShader(shader)
         shader:send('t', t)
-        shader:send('sway', { w.amp, w.speed, w.gustAmp, w.gustSpeed })
+        shader:send('sway', { w.amp * env, w.speed, w.gustAmp * env, w.gustSpeed })
         shader:send('gustWave', w.gustWave)
         shader:send('walkers', unpack(self:walkers(world)))
         love.graphics.setColor(1, 1, 1)
@@ -294,17 +300,25 @@ function Decor:draw(world)
         love.graphics.setShader(prev)
     end
 
-    -- torches pulse with their flame instead of sitting flat
-    local torch = self.scenery.torch
-    if torch then
+    -- torches pulse with their flame instead of sitting flat; the gif animates
+    -- (each torch offset a few frames so they don't all flicker in unison)
+    local anim, torch = self.torchAnim, self.scenery.torch
+    if anim then anim:update(love.timer.getDelta()) end
+    if anim or torch then
         local ft = t * TUNE.lighting.torchFlickerSpeed
         for _, e in ipairs(self.torches) do
             local b = 1 + (love.math.noise(ft + e.phase) - 0.5) * TUNE.props.torchPulse
             love.graphics.setColor(b, b, b)
+            local img, quad = Assets.spritesheet, torch
+            if anim then
+                img = anim.image
+                local off = math.floor(e.phase) % anim.totalFrames
+                quad = anim.quads[(anim.index - 1 + off) % anim.totalFrames + 1]
+            end
             if e.flip then
-                love.graphics.draw(Assets.spritesheet, torch, e.x + 32, e.y, 0, -1, 1)
+                love.graphics.draw(img, quad, e.x + 32, e.y, 0, -1, 1)
             else
-                love.graphics.draw(Assets.spritesheet, torch, e.x, e.y)
+                love.graphics.draw(img, quad, e.x, e.y)
             end
         end
         love.graphics.setColor(1, 1, 1)
