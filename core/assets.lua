@@ -49,38 +49,82 @@ Assets.wallArt = {
     shotgun = love.graphics.newImage('assets/shotgun_wall.png'),
 }
 
--- Tile art with random variants: tile type -> horizontal strip of 32x32
--- cells on the spritesheet. A strip only activates when every declared cell
--- is painted, so entries can be declared before the art is exported — the
--- map keeps its flat-color fallback until the full strip exists.
-local tileVariantDefs = {
-    ground = { x = 0, y = 288, count = 4 },
+-- SCENERY ATLAS ------------------------------------------------------------
+-- One map/biome = one 32px-tall row of the spritesheet, same columns every
+-- time, so a new map is just a new row (level1 = y 256, next one = y 288, ...):
+--
+--   x   0..127  ground, 4 variants        32x32  (needs all 4 to activate)
+--   x 128       torch                     32x32  (flame against the LEFT edge,
+--                                                 mirrored in game by neighbor)
+--   x 160       big prop A                32x32  (sways)
+--   x 192       big prop B                32x32  (sways)
+--   x 224..255  grass, 4 variants         16x16  packed 2x2 (sways)
+--   x 256..287  rock, 4 variants          16x16  packed 2x2 (static)
+--
+-- Every entry activates on its own the moment its cells are painted, so art
+-- can land one sprite at a time — unpainted cells simply stay out of the game.
+-- `wind` and `stem` are per-prop: stem = px at the bottom that stay planted.
+local SCENERY_PROPS = {
+    { kind = 'bush',  x = 160, y = 0,  w = 32, h = 32, wind = true,  stem = 3 },
+    { kind = 'bush',  x = 192, y = 0,  w = 32, h = 32, wind = true,  stem = 3 },
+    { kind = 'grass', x = 224, y = 0,  w = 16, h = 16, wind = true,  stem = 3 },
+    { kind = 'grass', x = 240, y = 0,  w = 16, h = 16, wind = true,  stem = 3 },
+    { kind = 'grass', x = 224, y = 16, w = 16, h = 16, wind = true,  stem = 3 },
+    { kind = 'grass', x = 240, y = 16, w = 16, h = 16, wind = true,  stem = 3 },
+    { kind = 'rock',  x = 256, y = 0,  w = 16, h = 16, wind = false, stem = 0 },
+    { kind = 'rock',  x = 272, y = 0,  w = 16, h = 16, wind = false, stem = 0 },
+    { kind = 'rock',  x = 256, y = 16, w = 16, h = 16, wind = false, stem = 0 },
+    { kind = 'rock',  x = 272, y = 16, w = 16, h = 16, wind = false, stem = 0 },
 }
 
-Assets.tileVariants = {}
-do
-    local data = love.image.newImageData('assets/spritesheet.png')
+local sheetData = love.image.newImageData('assets/spritesheet.png')
 
-    local function cellPainted(x, y)
-        if x + 32 > data:getWidth() or y + 32 > data:getHeight() then return false end
-        for py = y, y + 31 do
-            for px = x, x + 31 do
-                local _, _, _, a = data:getPixel(px, py)
-                if a > 0 then return true end
-            end
+-- any painted pixel in the cell = the artist filled this slot in
+local function cellPainted(x, y, w, h)
+    if x + w > sheetData:getWidth() or y + h > sheetData:getHeight() then return false end
+    for py = y, y + h - 1 do
+        for px = x, x + w - 1 do
+            local _, _, _, a = sheetData:getPixel(px, py)
+            if a > 0 then return true end
         end
-        return false
+    end
+    return false
+end
+
+local sceneryCache = {}
+
+-- Scenery set for a map row: { ground = {quads}|nil, torch = quad|nil,
+-- props = { {quad, w, h, wind, stem, kind}, ... } }
+function Assets.sceneryRow(rowY)
+    if sceneryCache[rowY] then return sceneryCache[rowY] end
+
+    local set = { props = {} }
+
+    local ground = {}
+    for i = 0, 3 do
+        if not cellPainted(i * 32, rowY, 32, 32) then ground = nil break end
+        ground[#ground + 1] = love.graphics.newQuad(
+            i * 32, rowY, 32, 32, Assets.spritesheet)
+    end
+    set.ground = ground
+
+    if cellPainted(128, rowY, 32, 32) then
+        set.torch = love.graphics.newQuad(128, rowY, 32, 32, Assets.spritesheet)
     end
 
-    for tileType, def in pairs(tileVariantDefs) do
-        local quads = {}
-        for i = 0, def.count - 1 do
-            if not cellPainted(def.x + i * 32, def.y) then quads = nil break end
-            quads[#quads + 1] = love.graphics.newQuad(
-                def.x + i * 32, def.y, 32, 32, Assets.spritesheet)
+    for _, p in ipairs(SCENERY_PROPS) do
+        if cellPainted(p.x, rowY + p.y, p.w, p.h) then
+            set.props[#set.props + 1] = {
+                kind = p.kind, wind = p.wind, stem = p.stem,
+                x = p.x, y = rowY + p.y, w = p.w, h = p.h,
+                quad = love.graphics.newQuad(
+                    p.x, rowY + p.y, p.w, p.h, Assets.spritesheet),
+            }
         end
-        Assets.tileVariants[tileType] = quads
     end
+
+    sceneryCache[rowY] = set
+    return set
 end
 
 -- Quads for the images
@@ -118,6 +162,9 @@ Assets.quads = {
 
     -- crate: flat 32x32 top-down sprite, hitbox = sprite box
     crate = loadQuads(32, 224, 32, 32, 1),
+
+    -- lock icon floated in front of closed doors
+    lock = loadQuads(240, 0, 16, 16, 1),
 
     aim = loadQuads(128, 0, 16, 16, 1),
     bullet = loadQuads(144, 0, 4, 2, 1),

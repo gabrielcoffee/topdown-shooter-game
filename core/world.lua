@@ -10,6 +10,7 @@ local Chest = require('entities.chest')
 local GunWall = require('entities.gun_wall')
 local PlayerSpawn = require('entities.player_spawn')
 local Lighting = require('core.lighting')
+local Decor = require('core.decor')
 local Vfx = require('core.vfx')
 local Waves = require('core.waves')
 local Crosshair = require('ui.crosshair')
@@ -51,6 +52,7 @@ function World:new(opts)
     obj.mapH = obj.map.pixelH
 
     obj.lighting = Lighting.new(obj.map) -- solid tiles + torches from the map
+    obj.decor = Decor.new(obj.map, obj.map.scenery) -- scattered props + torches
     obj.vfx = Vfx.new()
 
     table.insert(obj.entities, obj.player)
@@ -376,11 +378,15 @@ function World:rebuildCrates()
     return built
 end
 
--- Buying a door: remember its id (activates linked spawn points), then remove it
+-- Buying a door: remember its id (activates linked spawn points), then remove
+-- it — with an unlock clunk and a burst of dust/splinters where it stood
 function World:openDoor(door)
     if door.id then
         self.openedDoors[door.id] = true
     end
+    local cx, cy = door:getCenter()
+    Audio.playAt('door_unlock', cx, cy, 0.9, TUNE.audio.pitchJitter, self)
+    self.vfx:doorBurst(cx, cy, door.width / 2, door.height / 2)
     self:removeEntity(door)
     self.adjacentCache = nil -- a new room just became reachable
 end
@@ -541,6 +547,7 @@ function World:draw()
     -- scene drawn in world coords; lighting darkens + applies lights on top
     self.lighting:draw(function()
         self.map:draw(camX, camY)
+        self.decor:draw() -- grass, rocks, torches: above the dirt, under everyone
 
         self.vfx:drawUnder() -- ground dust stays below everyone
 

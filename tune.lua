@@ -346,6 +346,25 @@ return {
         dustOpacity = 0.2,   -- constant alpha, no fade
     },
 
+    -- Scenery scattered over the ground (core/decor). Placement is derived from
+    -- the tile coords, so the same numbers always grow the same field.
+    props = {
+        density = 0.22,     -- chance per ground tile, rolled 3x (3 = max per tile)
+        rockShare = 0.4,    -- of those, the fraction that are rocks (rest = grass)
+        bushChance = 0.05,  -- chance per ground tile for a big 32x32 bush instead
+        torchPulse = 0.25,  -- how much the torch sprite brightens with its flame
+
+        -- wind: constant low sway + gusts sweeping the map in +x
+        wind = {
+            amp = 1.6,        -- px the tip drifts in the constant sway
+            speed = 1.7,      -- sway rate
+            gustAmp = 3.4,    -- extra px at the peak of a gust
+            gustSpeed = 0.5,  -- gusts per second
+            gustWave = 0.004, -- how tight the gust wave is (lower = wider front)
+            stiffness = 1.5,  -- bend curve (higher = only the tip really moves)
+        },
+    },
+
     lighting = {
         -- world brightness with no lights (0 = pitch black). Player-facing:
         -- the options menu BRIGHTNESS slider picks within [min, max] in

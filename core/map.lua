@@ -28,6 +28,8 @@ function Map:new(levelDef)
         tileTypes = levelDef.tileTypes,
         groundFillId = levelDef.groundFillId,
         surfaces = levelDef.surfaces, -- tile type -> footstep material
+        -- ground/torch/prop art for this map (see core/assets sceneryRow)
+        scenery = Assets.sceneryRow(levelDef.tileRow),
     }
 
     obj.rows = #obj.grid
@@ -115,7 +117,9 @@ function Map:draw(camX, camY)
             local id = self.grid[row][col]
             local x, y = (col - 1) * ts, (row - 1) * ts
             local t = self.tileTypes[id] or 'ground'
-            local variants = Assets.tileVariants[t]
+            -- a torch tile is floor with a torch on the wall beside it, so it
+            -- takes the ground art too (core/decor draws the torch itself)
+            local variants = (t == 'ground' or t == 'torch') and self.scenery.ground
             if variants then
                 -- hand-drawn art with variants wins over tileset and colors
                 love.graphics.setColor(1, 1, 1)

@@ -109,9 +109,14 @@ function Ldtk.load(path)
         groundFillId = 0,
         tileset = 'assets/images/tileset.png', -- optional, colored squares until it exists
 
+        -- this map's row on the scenery atlas: ground variants, torch and props
+        -- all live on one 32px band of the spritesheet (see core/assets)
+        tileRow = 256,
+
         -- audio identity of the map (sets: cave / forest / desert)
         ambience = 'desert',
-        surfaces = { ground = 'sand', torch = 'stone' }, -- tile type -> footstep material
+        -- tile type -> footstep material (a torch tile is plain floor)
+        surfaces = { ground = 'sand', torch = 'sand' },
     }
 end
 

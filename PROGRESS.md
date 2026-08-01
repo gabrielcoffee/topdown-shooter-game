@@ -30,6 +30,7 @@ Ship date: **August 2, 2026**. A step is done only when built **and** playtested
 - [ ] Molotov + ground fire (slot 4 cycles with grenade) — **built 2026-07-27**, playtested: _no_
 - [ ] Pierce buff (pistol/shotgun 3, AK/M4 4) + economy rebalance — **built 2026-07-27**, playtested: _no_
 - [ ] Shared throwable pool (4), med kit stack (2) + heal hint, Q quick-knife, spawn/economy rebalance — **built 2026-07-29**, playtested: _no_
+- [ ] Scenery props: scattered grass/rocks/bushes with a wind shader + mirrored wall torches, one atlas row per map — **built 2026-08-01**, playtested: _no_
 
 ## Playtest notes log
 (append dated impressions here — these drive TUNE values)
