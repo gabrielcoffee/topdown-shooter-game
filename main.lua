@@ -140,3 +140,19 @@ function love.mousereleased(x, y, btn)
     local gx, gy = Screen.toGame(x, y)
     State.mousereleased(gx, gy, btn)
 end
+
+-- Closing the window mid-run saves it (Minecraft-style): the run resumes
+-- from the exact same spot via Continue. Menus and the death screen don't
+-- save (gameover already deleted the run file), and the scripted test modes
+-- must not overwrite a real save.
+function love.quit()
+    if _autotest or _fps then return end
+    if world and not world.gameOver and world.player and world.player.health > 0 then
+        for _, s in ipairs(State.stack) do
+            if s == require('states.playing') then
+                Save.saveRun(world:serialize())
+                break
+            end
+        end
+    end
+end

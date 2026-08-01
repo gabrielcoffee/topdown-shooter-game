@@ -199,6 +199,38 @@ function Chest:resolve(world)
     self:closeLid()
 end
 
+-- Run-save: a paid spin (or a gun waiting on the lid) survives save & quit —
+-- money already left the wallet, the reward must not vanish with it
+function Chest:serialize()
+    return {
+        x = self.x, y = self.y,
+        state = self.state,
+        timer = self.timer,
+        takeTimer = self.takeTimer,
+        result = self.result
+            and { kind = self.result.kind, gunId = self.result.gunId } or nil,
+    }
+end
+
+function Chest:restoreState(d)
+    self.state = d.state or 'idle'
+    self.timer = d.timer or 0
+    self.takeTimer = d.takeTimer or 0
+    self.result = d.result
+    if self.result and self.result.gunId then
+        self.result.name = Gun.names[self.result.gunId]
+        if not self.result.name then -- gun id gone from the roster: eat the roll
+            self.state, self.result = 'idle', nil
+        end
+    end
+    -- snap the lid: open for live states, closed for idle (no mid-tween saves)
+    if self.state == 'idle' then
+        self.lidFrame, self.lidDir = 1, 0
+    else
+        self.lidFrame, self.lidDir = self.lid.frames, 0
+    end
+end
+
 -- H overlay: solid 64x32 box + the interact zone where E works
 function Chest:drawHitbox()
     love.graphics.setLineWidth(1)

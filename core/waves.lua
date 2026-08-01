@@ -97,6 +97,34 @@ function Waves:slamBanner()
     flux.to(self, TUNE.fx.titleSlamTime, { bannerY = 190 }):ease('quartin')
 end
 
+-- Run-save snapshot: the whole FSM, so a save mid-wave resumes with the same
+-- zombies still owed and the same timers running
+function Waves:serialize()
+    return {
+        wave = self.wave,
+        state = self.state,
+        timer = self.timer,
+        remaining = self.remaining,
+        spawnTimer = self.spawnTimer,
+        carriersThisWave = self.carriersThisWave,
+        pendingWave = self.pendingWave,
+    }
+end
+
+function Waves:restore(d)
+    self.wave = d.wave or 1
+    self.state = d.state or 'wave_start'
+    self.timer = d.timer or 0
+    self.remaining = d.remaining or 0
+    self.spawnTimer = math.max(0, d.spawnTimer or 0)
+    self.carriersThisWave = d.carriersThisWave or 0
+    self.pendingWave = d.pendingWave
+    -- banner states come back with the title already slammed down
+    if self.state == 'wave_start' or self.state == 'wave_end' then
+        self.bannerY = 190
+    end
+end
+
 -- Spawns follow the player: mostly the CURRENT room, and with
 -- TUNE.waves.adjacentRoomChance a room right next door — but only one the
 -- player has already been inside AND that is reachable right now (a locked
@@ -181,6 +209,8 @@ function Waves:update(dt, world)
             self.state = 'wave_end'
             self.timer = TUNE.waves.endIntermission
             self:slamBanner()
+            -- checkpoint: a crash or force-quit resumes from the cleared wave
+            require('core.save').saveRun(world:serialize())
         end
 
     elseif self.state == 'wave_end' then

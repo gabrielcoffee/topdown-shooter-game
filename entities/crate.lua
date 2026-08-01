@@ -71,12 +71,14 @@ function Crate:update(dt, world)
     end
     self.pushedNow = false
 
-    -- pushed over a hole: falls in and plugs it (tile becomes ground)
+    -- pushed over a hole: falls in and plugs it (tile becomes ground);
+    -- the plug is a map edit, so it's recorded for the run save
     local cx, cy = self:getCenter()
     if world.map:typeAt(cx, cy) == 'hole' then
         local ts = world.map.tileSize
-        world.map:setTile(math.floor(cx / ts) + 1, math.floor(cy / ts) + 1,
-                          world.map.groundFillId)
+        local col, row = math.floor(cx / ts) + 1, math.floor(cy / ts) + 1
+        world.map:setTile(col, row, world.map.groundFillId)
+        table.insert(world.pluggedTiles, { col = col, row = row })
         world:removeEntity(self)
     end
 end

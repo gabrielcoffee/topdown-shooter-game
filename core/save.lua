@@ -11,7 +11,11 @@ local BEST_FILE = 'best.lua'
 -- Serialize a plain table of numbers/strings/booleans (nested ok, no cycles)
 local function serialize(v, indent)
     local t = type(v)
-    if t == 'number' or t == 'boolean' then
+    if t == 'number' then
+        -- %.17g round-trips doubles exactly; tostring truncates and would
+        -- drift positions a hair on every save/load cycle
+        return string.format('%.17g', v)
+    elseif t == 'boolean' then
         return tostring(v)
     elseif t == 'string' then
         return string.format('%q', v)

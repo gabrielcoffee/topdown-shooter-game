@@ -35,6 +35,7 @@ function World:new(opts)
         -- timed power-up buffs, secs left (0 = off)
         buffs = { instakill = 0, freeze = 0, doublepoints = 0, firesale = 0 },
         crateSpawns = {}, -- original crate spots, for the carpenter power-up
+        pluggedTiles = {}, -- holes plugged by crates (map edits, saved with the run)
         pickupToast = nil, -- { text, t } power-up pickup banner
         kills = 0,        -- zombies downed this run (death screen stat)
         gameOver = false
@@ -611,20 +612,65 @@ function World:draw()
     Crosshair.draw(self)
 end
 
--- Save data for the single run slot: wave + player state.
--- Zombies aren't saved — the wave respawns fresh on load.
+-- Save data for the single run slot: a full snapshot — wave FSM, player
+-- (position included), live zombies, crates as they stand, chest mid-spin,
+-- ground loot, burning fire and map edits. Loading puts the run back exactly
+-- where it was. In-flight projectiles (bullets, thrown grenades) are the one
+-- thing skipped: sub-second lifetimes, not worth the surface.
 function World:serialize()
+    local zombies, crates, chests = {}, {}, {}
+    local droppedGuns, powerups, firePatches = {}, {}, {}
+    for _, e in ipairs(self.entities) do
+        if e.toRemove then
+            -- dying this frame: not part of the snapshot
+        elseif e.type == 'enemy' and e.health > 0 then
+            table.insert(zombies, e:serialize())
+        elseif e.type == 'crate' then
+            table.insert(crates, {
+                x = e.x, y = e.y, health = e.health, originIndex = e.originIndex,
+            })
+        elseif e.type == 'chest' then
+            table.insert(chests, e:serialize())
+        elseif e.type == 'dropped_gun' then
+            table.insert(droppedGuns, {
+                x = e.x, y = e.y, life = e.life,
+                gun = { id = e.gun.id, curClip = e.gun.curClip,
+                        bulletsLeft = e.gun.bulletsLeft },
+            })
+        elseif e.type == 'powerup' then
+            local cx, cy = e:getCenter()
+            table.insert(powerups, { x = cx, y = cy, kind = e.kind, life = e.life })
+        elseif e.type == 'fire_patch' then
+            local cx, cy = e:getCenter()
+            table.insert(firePatches, { x = cx, y = cy, age = e.age,
+                tickTimer = e.tickTimer })
+        end
+    end
     return {
-        wave = self.waves.wave,
+        wave = self.waves.wave, -- kept so older builds can still read the file
+        waves = self.waves:serialize(),
         buffs = self.buffs,
         kills = self.kills,
         openedDoors = self.openedDoors,
         visitedRooms = self.visitedRooms,
+        pluggedTiles = self.pluggedTiles,
+        zombies = zombies,
+        crates = crates,
+        chests = chests,
+        droppedGuns = droppedGuns,
+        powerups = powerups,
+        firePatches = firePatches,
         player = self.player:serialize(),
     }
 end
 
 function World:restore(data)
+    local Enemy = require('entities.enemy')
+    local DroppedGun = require('entities.dropped_gun')
+    local Powerup = require('entities.powerup')
+    local FirePatch = require('entities.fire_patch')
+    local Gun = require('hand_items.gun')
+
     self.kills = data.kills or 0
     if data.buffs then
         for k in pairs(self.buffs) do
@@ -639,7 +685,78 @@ function World:restore(data)
             e.toRemove = true
         end
     end
-    self.waves:hold(TUNE.start.fadeTime, data.wave or 1)
+
+    -- holes plugged by crates are ground again
+    self.pluggedTiles = data.pluggedTiles or {}
+    for _, t in ipairs(self.pluggedTiles) do
+        self.map:setTile(t.col, t.row, self.map.groundFillId)
+    end
+
+    -- full-snapshot saves replace the map's default crates with the saved
+    -- set: pushed crates keep their spot, chewed ones their health, smashed
+    -- ones stay gone (old saves without the list keep the fresh layout)
+    if data.crates then
+        for _, e in ipairs(self.entities) do
+            if e.type == 'crate' then e.toRemove = true end
+        end
+        for _, c in ipairs(data.crates) do
+            local crate = Crate:new(c.x, c.y)
+            crate.health = math.min(c.health or crate.health, crate.health)
+            crate.originIndex = c.originIndex
+            self:addEntity(crate)
+            self.lighting:trackOccluder(crate)
+        end
+    end
+
+    -- live zombies come back exactly where they stood
+    local waveNum = (data.waves and data.waves.wave) or data.wave or 1
+    for _, z in ipairs(data.zombies or {}) do
+        self:addEntity(Enemy.fromSave(z, waveNum))
+    end
+
+    -- chest mid-spin / gun-on-the-lid state (matched by map position)
+    for _, cd in ipairs(data.chests or {}) do
+        for _, e in ipairs(self.entities) do
+            if e.type == 'chest' and e.x == cd.x and e.y == cd.y then
+                e:restoreState(cd)
+            end
+        end
+    end
+
+    -- ground loot: dropped guns and power-up drops, lifetimes still ticking
+    for _, d in ipairs(data.droppedGuns or {}) do
+        local gun = d.gun and Gun.newById(d.gun.id)
+        if gun then
+            -- same clamp as the player's guns: never restore past current tune
+            gun.curClip = math.max(0, math.min(d.gun.curClip or gun.curClip, gun.maxClip))
+            gun.bulletsLeft = math.max(0, d.gun.bulletsLeft or gun.bulletsLeft)
+            local dg = DroppedGun:new(d.x, d.y, gun)
+            dg.life = math.min(d.life or dg.life, TUNE.droppedGun.lifetime)
+            self:addEntity(dg)
+        end
+    end
+    for _, p in ipairs(data.powerups or {}) do
+        local pu = Powerup:new(p.x, p.y, p.kind)
+        pu.life = math.min(p.life or pu.life, TUNE.powerups.lifetime)
+        self:addEntity(pu)
+    end
+
+    -- molotov fire still burning (light + flames rebuild on first update)
+    for _, f in ipairs(data.firePatches or {}) do
+        local fp = FirePatch:new(f.x, f.y)
+        fp.age = f.age or 0
+        if f.tickTimer then fp.tickTimer = f.tickTimer end
+        self:addEntity(fp)
+    end
+
+    -- wave FSM resumes mid-wave (state, timers, zombies still owed); old
+    -- saves without the block restart their wave from the top
+    if data.waves then
+        self.waves:restore(data.waves)
+    else
+        self.waves:hold(TUNE.start.fadeTime, data.wave or 1)
+    end
+
     self.player:restore(data.player or {})
     -- saved runs can end in any room
     self.currentRoom = self:roomAt(self.player:getCenter())

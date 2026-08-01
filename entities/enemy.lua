@@ -113,6 +113,29 @@ function Enemy:newFast(x, y, wave)
         TUNE.zombies.fast.animTime, false)
 end
 
+-- Run-save snapshot: just enough to rebuild this zombie mid-wave
+function Enemy:serialize()
+    return {
+        kind = self.kind,
+        x = self.x, y = self.y,
+        health = self.health,
+        carrier = self.carrier,
+    }
+end
+
+-- Rebuild a saved zombie. Built fresh for the saved wave, then the saved
+-- health clamps on top — a save written before a tune nerf can't restore
+-- more life than the wave would spawn with today.
+function Enemy.fromSave(d, wave)
+    local e
+    if d.kind == 'normal' then e = Enemy:newNormal(d.x, d.y, wave)
+    elseif d.kind == 'fast' then e = Enemy:newFast(d.x, d.y, wave)
+    else e = Enemy:newSlow(d.x, d.y, wave) end
+    if d.health then e.health = math.min(d.health, e.health) end
+    e.carrier = d.carrier
+    return e
+end
+
 -- Every player-weapon hit funnels through here: applies the damage, pays
 -- money per hit (+ a bonus on the kill), honors the instakill power-up.
 -- econ = the weapon's payout numbers { hitReward, killBonus }; nil

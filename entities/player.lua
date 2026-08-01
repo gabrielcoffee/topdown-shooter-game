@@ -759,6 +759,8 @@ function Player:serialize()
         end
     end
     return {
+        x = self.x,
+        y = self.y,
         health = self.health,
         money = self.money,
         earnedTotal = self.earnedTotal,
@@ -773,6 +775,11 @@ function Player:serialize()
 end
 
 function Player:restore(data)
+    -- exact spot the run was saved at (old saves: keep the spawn position)
+    if data.x and data.y then
+        self.x, self.y = data.x, data.y
+        self.lastGroundX, self.lastGroundY = data.x, data.y
+    end
     self.health = data.health or self.health
     self.money = math.max(0, math.min(data.money or self.money, TUNE.player.maxMoney))
     self.earnedTotal = data.earnedTotal or self.money -- old saves: money is the best guess
