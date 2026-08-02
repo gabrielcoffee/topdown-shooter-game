@@ -40,6 +40,7 @@ function World:new(opts)
         pluggedTiles = {}, -- holes plugged by crates (map edits, saved with the run)
         pickupToast = nil, -- { text, t } power-up pickup banner
         kills = 0,        -- zombies downed this run (death screen stat)
+        cheated = false,  -- a chat cheat ran this run: kills/wave records don't save
         gameOver = false
     }
 
@@ -677,6 +678,7 @@ function World:serialize()
         waves = self.waves:serialize(),
         buffs = self.buffs,
         kills = self.kills,
+        cheated = self.cheated,
         openedDoors = self.openedDoors,
         visitedRooms = self.visitedRooms,
         pluggedTiles = self.pluggedTiles,
@@ -698,6 +700,7 @@ function World:restore(data)
     local Gun = require('hand_items.gun')
 
     self.kills = data.kills or 0
+    self.cheated = data.cheated or false
     if data.buffs then
         for k in pairs(self.buffs) do
             self.buffs[k] = data.buffs[k] or 0

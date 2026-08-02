@@ -20,13 +20,15 @@ function gameover:enter()
     Audio.stopAmbience() -- the wind must not keep blowing over the death screen
     Save.deleteRun()
 
-    -- run stats vs the all-time round record (world is still frozen underneath)
+    -- run stats vs the all-time round record (world is still frozen underneath).
+    -- A cheated run (chat commands used) never touches the saved records.
     self.kills = world.kills or 0
     self.wave = world.waves.wave or 1
+    self.cheated = world.cheated
     local best = Save.loadBest()
-    self.newRecord = self.wave > best.wave
-    self.bestWave = math.max(best.wave, self.wave)
-    if self.newRecord or self.kills > best.kills then
+    self.newRecord = self.wave > best.wave and not self.cheated
+    self.bestWave = self.cheated and best.wave or math.max(best.wave, self.wave)
+    if not self.cheated and (self.newRecord or self.kills > best.kills) then
         Save.saveBest({ wave = self.bestWave, kills = math.max(best.kills, self.kills) })
     end
 
@@ -74,7 +76,11 @@ function gameover:draw()
             462, 1, 0.85, 0.3)
     else
         centered(T('gameover.round', self.wave), 462, 1, 1, 1)
-        centered(T('gameover.record', self.bestWave), 500, 1, 0.85, 0.3)
+        if self.cheated then
+            centered(T('gameover.cheated'), 500, 0.65, 0.65, 0.65)
+        else
+            centered(T('gameover.record', self.bestWave), 500, 1, 0.85, 0.3)
+        end
     end
     love.graphics.setFont(font)
     love.graphics.setColor(1, 1, 1)

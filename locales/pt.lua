@@ -42,6 +42,7 @@ return {
     ['gameover.record']      = 'RECORDE: %d',
     ['gameover.newrecord']   = '(NOVO RECORDE!)',
     ['gameover.kills']       = 'ABATES: %d',
+    ['gameover.cheated']     = 'COMANDOS USADOS - RECORDE NÃO SALVO',
 
     ['hud.hp']           = 'HP: %d',
     ['hud.money']        = '$ %d',

@@ -41,9 +41,11 @@ Chat.inputRect = nil
 Chat.drag = nil       -- what the held mouse button is selecting in
 Chat.lastClick = { t = -1, target = nil }
 
--- Post a line to the chat log (public: game events can use this too)
-function Chat.post(text, isErr)
-    table.insert(Chat.log, { text = text, err = isErr, age = 0 })
+-- Post a line to the chat log (public: game events can use this too).
+-- kind: true/'err' = red, 'warn' = yellow, nil = white
+function Chat.post(text, kind)
+    table.insert(Chat.log, { text = text, err = kind == true or kind == 'err',
+                             warn = kind == 'warn', age = 0 })
     if #Chat.log > TUNE.chat.maxLog then table.remove(Chat.log, 1) end
 end
 
@@ -64,14 +66,14 @@ local commandNames = { 'money', 'give', 'god', 'heal', 'ammo',
 
 -- run(arg) -> log text, isError
 local commands = {
-    money = { run = function(arg)
+    money = { cheat = true, run = function(arg)
         local n = tonumber(arg or '') or 1000
         local p = world.player
         local before = p.money
         p:addMoney(n)
         return ('%+d -> $%d'):format(p.money - before, p.money)
     end },
-    give = { argKind = 'giveable', run = function(arg)
+    give = { cheat = true, argKind = 'giveable', run = function(arg)
         local p = world.player
         if arg == 'grenade' then
             p:addThrowable('he')
@@ -96,7 +98,7 @@ local commands = {
         p:giveGun(gun)
         return 'gave ' .. gun.name
     end },
-    god = { argKind = 'god', run = function(arg)
+    god = { cheat = true, argKind = 'god', run = function(arg)
         if arg == 'off' then
             world.player.godMode = false
             return 'god mode OFF'
@@ -106,18 +108,18 @@ local commands = {
         end
         return 'usage: /god [on|off]', true
     end },
-    heal = { run = function()
+    heal = { cheat = true, run = function()
         world.player.health = world.player.maxHealth
         return 'healed to ' .. world.player.maxHealth
     end },
-    ammo = { run = function()
+    ammo = { cheat = true, run = function()
         for i = 1, 2 do
             local gun = world.player.items[i]
             if gun then gun:refill() end
         end
         return 'ammo refilled'
     end },
-    wave = { argKind = 'wave', run = function(arg)
+    wave = { cheat = true, argKind = 'wave', run = function(arg)
         local n
         if arg == 'skip' then n = world.waves.wave + 1
         else n = tonumber(arg or '') end
@@ -128,7 +130,7 @@ local commands = {
         world.waves:startWave(n)
         return 'wave ' .. n .. (n == 0 and ' (sandbox, no zombies)' or '')
     end },
-    spawn = { argKind = 'zombie', run = function(arg, arg2)
+    spawn = { cheat = true, argKind = 'zombie', run = function(arg, arg2)
         local factory = arg and zombieFactories[arg]
         local count = arg2 and tonumber(arg2) or 1
         if not factory or count % 1 ~= 0 or count < 1 then
@@ -149,7 +151,7 @@ local commands = {
         end
         return 'spawned ' .. count .. 'x ' .. arg
     end },
-    powerup = { argKind = 'powerup', run = function(arg)
+    powerup = { cheat = true, argKind = 'powerup', run = function(arg)
         if not (arg and TUNE.powerups.weights[arg]) then
             return 'usage: /powerup <nuke|maxammo|instakill|freeze|doublepoints|'
                 .. 'firesale|carpenter>', true
@@ -344,7 +346,13 @@ local function runLine(line)
     if not cmd then return end
     local c = commands[cmd]
     if c then
-        Chat.post(c.run(a1 ~= '' and a1 or nil, a2 ~= '' and a2 or nil))
+        local out, isErr = c.run(a1 ~= '' and a1 or nil, a2 ~= '' and a2 or nil)
+        Chat.post(out, isErr)
+        -- first cheat that actually ran: flag the run, records won't save
+        if c.cheat and not isErr and not world.cheated then
+            world.cheated = true
+            Chat.post('cheats used: kills & wave record not saved this run', 'warn')
+        end
     else
         Chat.post('unknown command: ' .. cmd .. ' (try /help)', true)
     end
@@ -580,6 +588,7 @@ function Chat.draw()
         end
 
         if e.err then love.graphics.setColor(1, 0.45, 0.45, alpha)
+        elseif e.warn then love.graphics.setColor(1, 0.85, 0.3, alpha)
         else love.graphics.setColor(1, 1, 1, alpha) end
         love.graphics.print(e.text, x, y)
 
