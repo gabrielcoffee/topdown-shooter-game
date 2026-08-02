@@ -60,8 +60,7 @@ local zombieFactories = {
 }
 
 local commandNames = { 'money', 'give', 'god', 'heal', 'ammo',
-                       'wave', 'spawn', 'wallbuy', 'powerup',
-                       'help', 'clear' }
+                       'wave', 'spawn', 'powerup', 'help', 'clear' }
 
 -- run(arg) -> log text, isError
 local commands = {
@@ -150,23 +149,6 @@ local commands = {
         end
         return 'spawned ' .. count .. 'x ' .. arg
     end },
-    wallbuy = { argKind = 'gun', run = function(arg)
-        if not (arg and TUNE.wallbuy.prices[arg]) then
-            return 'usage: /wallbuy <usp|ak47|m4a1|shotgun>', true
-        end
-        local GunWall = require('entities.gun_wall')
-        local p = world.player
-        local cx, cy = p:getCenter()
-        local ts = TUNE.tiles.size
-        local off = TUNE.droppedGun.dropOffset * (p.facingLeft and -1 or 1)
-        -- snap to the tile grid in front of the player
-        local x = math.floor((cx + off) / ts) * ts
-        local y = math.floor(cy / ts) * ts
-        local wall = GunWall:new(x, y, arg)
-        world:addEntity(wall)
-        world.lighting:trackOccluder(wall)
-        return 'wall buy: ' .. arg .. ' ($' .. wall.price .. ')'
-    end },
     powerup = { argKind = 'powerup', run = function(arg)
         if not (arg and TUNE.powerups.weights[arg]) then
             return 'usage: /powerup <nuke|maxammo|instakill|freeze|doublepoints|'
@@ -192,7 +174,6 @@ local commands = {
 }
 
 local argOptions = {
-    gun = Gun.ids,
     giveable = { 'usp', 'ak47', 'm4a1', 'shotgun', 'grenade', 'molotov', 'medkit' },
     zombie = { 'slow_zombie', 'normal_zombie', 'fast_zombie' },
     wave = { 'skip' },
