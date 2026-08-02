@@ -77,15 +77,15 @@ return {
         --   drawTime      = secs after select/pickup before the gun can fire
         --                   (CS deploys ~1s flat; CoD raises 0.25-0.6s — arcade
         --                   pace, so we sit near CoD: pistol fast, shotgun slow)
-        usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 2,   reloadAnimTime = 0.9, bulletLife = 0.5,
+        usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 1.4, reloadAnimTime = 0.9, bulletLife = 0.5,
                    drawTime = 0.3,
                    hitReward = 6, killBonus = 10, maxHits = 3,
                    baseSpread = 0.008, moveSpread = 0.120, recoilPerShot = 0.030, recoilMax = 0.15, recoilDelay = 0.30, recoilRecover = 0.40 },
-        ak47   = { damage = 40, clip = 30, bulletDelay = 0.1,  reloadTime = 2.5, reloadAnimTime = 1.6, bulletLife = 0.7,
+        ak47   = { damage = 40, clip = 30, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7,
                    drawTime = 0.5,
                    hitReward = 4, killBonus = 10, maxHits = 4,
                    baseSpread = 0.012, moveSpread = 0.220, recoilPerShot = 0.035, recoilMax = 0.30, recoilDelay = 0.25, recoilRecover = 0.45 },
-        m4a1   = { damage = 35, clip = 25, bulletDelay = 0.1,  reloadTime = 2.5, reloadAnimTime = 1.5, bulletLife = 0.7,
+        m4a1   = { damage = 35, clip = 25, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7,
                    drawTime = 0.45,
                    hitReward = 5, killBonus = 10, maxHits = 4,
                    baseSpread = 0.010, moveSpread = 0.200, recoilPerShot = 0.030, recoilMax = 0.26, recoilDelay = 0.25, recoilRecover = 0.45 },

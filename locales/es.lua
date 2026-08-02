@@ -62,6 +62,11 @@ return {
     ['hud.chest_molotov'] = '+1 MOLOTOV',
     ['hud.chest_health']  = '+BOTIQUÍN',
 
+    -- item names for the chest take-prompt (guns use their own names)
+    ['item.grenade']    = 'Granada',
+    ['item.molotov']    = 'Molotov',
+    ['item.healthpack'] = 'Botiquín',
+
     ['hud.wallbuy_buy']   = 'Pulsa E para comprar %s - $%d',
     ['hud.wallbuy_ammo']  = 'Pulsa E: munición de %s - $%d',
     ['hud.wallbuy_poor']  = '%s - Necesitas $%d',

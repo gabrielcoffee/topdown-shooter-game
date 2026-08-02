@@ -286,19 +286,14 @@ function Gun:update(dt, px, py, mx, my)
             self.curClip = self.curClip + moved
             self.bulletsLeft = self.bulletsLeft - moved
             self.reloading = false
-            -- gun comes back up: pick sound follows, but only once the reload
-            -- sound itself has played out (they never talk over each other)
-            if self.pickSfx then
-                self.pickPending = true
-                self.pickWaitSrc = self.reloadSrc
-            end
             self.reloadSrc = nil -- done: cancelReload must not stop a later reuse
             self.reloadTimer = 0
             self.reloadSettle = TUNE.gunKick.reloadSettleTime
         end
     end
 
-    -- post-reload pick: waits for the reload sound to finish, dies with a swap
+    -- pick clack rides the reload SOUND: fires the moment it stops playing
+    -- (not the gameplay reload timer). Dies with a swap or a re-reload.
     if self.pickPending then
         local src = self.pickWaitSrc
         if not src or not src:isPlaying() then
@@ -326,6 +321,11 @@ function Gun:reload()
     end
     if self.reloadSfx then
         self.reloadSrc = Audio.playAt(self.reloadSfx, self.x, self.y)
+        -- queue the pick now, chained to the sound itself
+        if self.pickSfx and self.reloadSrc then
+            self.pickPending = true
+            self.pickWaitSrc = self.reloadSrc
+        end
     end
 end
 
@@ -367,6 +367,10 @@ function Gun:cancelReload()
     self.reloading = false
     self.reloadOpening = false
     self.reloadTimer = 0
+    -- the queued pick belongs to the reload sound; both die together
+    -- (a pick already clacking is left alone — that's the hand's, not the reload's)
+    self.pickPending = false
+    self.pickWaitSrc = nil
     -- the reload SFX stops with the reload (it used to play out, and a
     -- re-reload layered a second copy on top)
     if self.reloadSrc then

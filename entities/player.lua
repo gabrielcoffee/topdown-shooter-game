@@ -677,7 +677,10 @@ function Player:drawHud()
                 red = true
             end
         elseif c.state == 'offering' then
-            prompt = T('hud.chest_take', c.result.name, math.ceil(c.takeTimer))
+            -- gun/refill rolls carry a name; item rolls resolve theirs from the
+            -- locale by kind, so no roll can ever print as nil
+            local name = c.result.name or T('item.' .. c.result.kind)
+            prompt = T('hud.chest_take', name, math.ceil(c.takeTimer))
         end
     elseif self.touchingDroppedGun then
         prompt = T('hud.gun_pickup', self.touchingDroppedGun.gun.name)
