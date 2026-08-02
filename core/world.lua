@@ -560,10 +560,23 @@ function World:draw()
         -- y-sorted draw: entities lower on screen (bigger sortY) render in
         -- front. Each entity's sortY is its depth anchor (see Entity:sortY).
         -- sortSerial breaks ties so equal-depth sprites don't flicker.
+        -- Only entities near the camera make the list: off-screen rooms
+        -- neither sort nor draw.
+        local m = TUNE.render.cullMargin
+        local x0, y0 = camX - m, camY - m
+        local x1 = camX + SCREENWIDTH / SCALE + m
+        local y1 = camY + SCREENHEIGHT / SCALE + m
         local drawList = self.drawList or {}
         self.drawList = drawList
-        local n = #self.entities
-        for i = 1, n do drawList[i] = self.entities[i] end
+        local n = 0
+        for i = 1, #self.entities do
+            local e = self.entities[i]
+            if e.x + e.width >= x0 and e.x <= x1
+                and e.y + e.height >= y0 and e.y <= y1 then
+                n = n + 1
+                drawList[n] = e
+            end
+        end
         for i = #drawList, n + 1, -1 do drawList[i] = nil end
         table.sort(drawList, function(a, b)
             local ay, by = a:sortY(), b:sortY()

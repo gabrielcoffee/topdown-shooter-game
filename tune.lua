@@ -380,6 +380,11 @@ return {
         dustOpacity = 0.2,   -- constant alpha, no fade
     },
 
+    render = {
+        cullMargin = 128, -- px beyond the camera edge still drawn (covers sprite
+                          -- overhang: tall zombies, chest roulette icon, torches)
+    },
+
     -- Scenery scattered over the ground (core/decor). Placement is derived from
     -- the tile coords, so the same numbers always grow the same field.
     props = {

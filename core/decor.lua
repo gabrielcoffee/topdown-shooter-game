@@ -306,19 +306,29 @@ function Decor:draw(world)
     if anim then anim:update(love.timer.getDelta()) end
     if anim or torch then
         local ft = t * TUNE.lighting.torchFlickerSpeed
+        -- only torches near the camera draw; the rest of the map skips the
+        -- noise + quad work entirely
+        local m = TUNE.render.cullMargin
+        local x0, y0 = world.camX - m, world.camY - m
+        local x1 = world.camX + SCREENWIDTH / SCALE + m
+        local y1 = world.camY + SCREENHEIGHT / SCALE + m
         for _, e in ipairs(self.torches) do
-            local b = 1 + (love.math.noise(ft + e.phase) - 0.5) * TUNE.props.torchPulse
-            love.graphics.setColor(b, b, b)
-            local img, quad = Assets.spritesheet, torch
-            if anim then
-                img = anim.image
-                local off = math.floor(e.phase) % anim.totalFrames
-                quad = anim.quads[(anim.index - 1 + off) % anim.totalFrames + 1]
-            end
-            if e.flip then
-                love.graphics.draw(img, quad, e.x + 32, e.y, 0, -1, 1)
-            else
-                love.graphics.draw(img, quad, e.x, e.y)
+            if e.x + 32 >= x0 and e.x - 32 <= x1
+                and e.y + 32 >= y0 and e.y <= y1 then
+                local b = 1 + (love.math.noise(ft + e.phase) - 0.5)
+                    * TUNE.props.torchPulse
+                love.graphics.setColor(b, b, b)
+                local img, quad = Assets.spritesheet, torch
+                if anim then
+                    img = anim.image
+                    local off = math.floor(e.phase) % anim.totalFrames
+                    quad = anim.quads[(anim.index - 1 + off) % anim.totalFrames + 1]
+                end
+                if e.flip then
+                    love.graphics.draw(img, quad, e.x + 32, e.y, 0, -1, 1)
+                else
+                    love.graphics.draw(img, quad, e.x, e.y)
+                end
             end
         end
         love.graphics.setColor(1, 1, 1)
