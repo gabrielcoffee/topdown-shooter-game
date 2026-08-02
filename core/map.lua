@@ -125,6 +125,9 @@ function Map:draw(camX, camY)
                 love.graphics.setColor(1, 1, 1)
                 love.graphics.draw(Assets.spritesheet,
                     variants[variantIndex(col, row, #variants)], x, y)
+            elseif t == 'solid' and self.scenery.solid then
+                love.graphics.setColor(1, 1, 1)
+                love.graphics.draw(Assets.spritesheet, self.scenery.solid, x, y)
             elseif self.tileset and self.quads[id] then
                 love.graphics.setColor(1, 1, 1)
                 love.graphics.draw(self.tileset, self.quads[id], x, y)

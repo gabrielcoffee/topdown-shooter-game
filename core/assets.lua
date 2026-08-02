@@ -53,28 +53,29 @@ Assets.wallArt = {
 -- One map/biome = one 32px-tall row of the spritesheet, same columns every
 -- time, so a new map is just a new row (level1 = y 256, next one = y 288, ...):
 --
---   x   0..127  ground, 4 variants        32x32  (needs all 4 to activate)
---   x 128       torch                     32x32  (flame against the LEFT edge,
+--   x   0       solid (wall)              32x32
+--   x  32..159  ground, 4 variants        32x32  (needs all 4 to activate)
+--   x 160       torch                     32x32  (flame against the LEFT edge,
 --                                                 mirrored in game by neighbor)
---   x 160       big prop A                32x32  (sways)
---   x 192       big prop B                32x32  (sways)
---   x 224..255  grass, 4 variants         16x16  packed 2x2 (sways)
---   x 256..287  rock, 4 variants          16x16  packed 2x2 (static)
+--   x 192       big prop A                32x32  (sways)
+--   x 224       big prop B                32x32  (sways)
+--   x 256..287  grass, 4 variants         16x16  packed 2x2 (sways)
+--   x 288..319  rock, 4 variants          16x16  packed 2x2 (static)
 --
 -- Every entry activates on its own the moment its cells are painted, so art
 -- can land one sprite at a time — unpainted cells simply stay out of the game.
 -- `wind` and `stem` are per-prop: stem = px at the bottom that stay planted.
 local SCENERY_PROPS = {
-    { kind = 'bush',  x = 160, y = 0,  w = 32, h = 32, wind = true,  stem = 3 },
     { kind = 'bush',  x = 192, y = 0,  w = 32, h = 32, wind = true,  stem = 3 },
-    { kind = 'grass', x = 224, y = 0,  w = 16, h = 16, wind = true,  stem = 3 },
-    { kind = 'grass', x = 240, y = 0,  w = 16, h = 16, wind = true,  stem = 3 },
-    { kind = 'grass', x = 224, y = 16, w = 16, h = 16, wind = true,  stem = 3 },
-    { kind = 'grass', x = 240, y = 16, w = 16, h = 16, wind = true,  stem = 3 },
-    { kind = 'rock',  x = 256, y = 0,  w = 16, h = 16, wind = false, stem = 0 },
-    { kind = 'rock',  x = 272, y = 0,  w = 16, h = 16, wind = false, stem = 0 },
-    { kind = 'rock',  x = 256, y = 16, w = 16, h = 16, wind = false, stem = 0 },
-    { kind = 'rock',  x = 272, y = 16, w = 16, h = 16, wind = false, stem = 0 },
+    { kind = 'bush',  x = 224, y = 0,  w = 32, h = 32, wind = true,  stem = 3 },
+    { kind = 'grass', x = 256, y = 0,  w = 16, h = 16, wind = true,  stem = 3 },
+    { kind = 'grass', x = 272, y = 0,  w = 16, h = 16, wind = true,  stem = 3 },
+    { kind = 'grass', x = 256, y = 16, w = 16, h = 16, wind = true,  stem = 3 },
+    { kind = 'grass', x = 272, y = 16, w = 16, h = 16, wind = true,  stem = 3 },
+    { kind = 'rock',  x = 288, y = 0,  w = 16, h = 16, wind = false, stem = 0 },
+    { kind = 'rock',  x = 304, y = 0,  w = 16, h = 16, wind = false, stem = 0 },
+    { kind = 'rock',  x = 288, y = 16, w = 16, h = 16, wind = false, stem = 0 },
+    { kind = 'rock',  x = 304, y = 16, w = 16, h = 16, wind = false, stem = 0 },
 }
 
 local sheetData = love.image.newImageData('assets/spritesheet.png')
@@ -100,16 +101,20 @@ function Assets.sceneryRow(rowY)
 
     local set = { props = {} }
 
+    if cellPainted(0, rowY, 32, 32) then
+        set.solid = love.graphics.newQuad(0, rowY, 32, 32, Assets.spritesheet)
+    end
+
     local ground = {}
     for i = 0, 3 do
-        if not cellPainted(i * 32, rowY, 32, 32) then ground = nil break end
+        if not cellPainted(32 + i * 32, rowY, 32, 32) then ground = nil break end
         ground[#ground + 1] = love.graphics.newQuad(
-            i * 32, rowY, 32, 32, Assets.spritesheet)
+            32 + i * 32, rowY, 32, 32, Assets.spritesheet)
     end
     set.ground = ground
 
-    if cellPainted(128, rowY, 32, 32) then
-        set.torch = love.graphics.newQuad(128, rowY, 32, 32, Assets.spritesheet)
+    if cellPainted(160, rowY, 32, 32) then
+        set.torch = love.graphics.newQuad(160, rowY, 32, 32, Assets.spritesheet)
     end
 
     for _, p in ipairs(SCENERY_PROPS) do
