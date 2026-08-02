@@ -135,9 +135,13 @@ function Decor.new(map, scenery)
         end
     end
 
-    -- scatter pass: collect first so props can be depth-sorted before baking
+    -- scatter pass: collect first so props can be depth-sorted before baking.
+    -- Placement is properly random per run (the tile-hash version repeated
+    -- visibly); the field is cosmetic, so a save reloading into a fresh
+    -- arrangement is fine.
     local props = {}
     if #scenery.props > 0 then
+        local rng = love.math.newRandomGenerator(love.math.random(2 ^ 30))
         local bushes, grass, rocks = {}, {}, {}
         for _, p in ipairs(scenery.props) do
             local bucket = (p.kind == 'bush' and bushes)
@@ -151,28 +155,28 @@ function Decor.new(map, scenery)
                 if t == 'ground' or t == 'torch' then
                     local tx, ty = (col - 1) * ts, (row - 1) * ts
 
-                    if #bushes > 0 and hash(col, row, 1) < cfg.bushChance then
-                        local p = pick(bushes, hash(col, row, 2))
+                    if #bushes > 0 and rng:random() < cfg.bushChance then
+                        local p = pick(bushes, rng:random())
                         props[#props + 1] = {
                             def = p,
-                            x = tx + (hash(col, row, 3) - 0.5) * (ts - p.w + 12),
-                            y = ty + (hash(col, row, 4) - 0.5) * (ts - p.h + 12),
-                            phase = hash(col, row, 5) * 6.28,
+                            x = tx + (rng:random() - 0.5) * (ts - p.w + 12),
+                            y = ty + (rng:random() - 0.5) * (ts - p.h + 12),
+                            phase = rng:random() * 6.28,
                         }
-                    elseif hash(col, row, 11) < cfg.smallChance then
+                    elseif rng:random() < cfg.smallChance then
                         -- one small prop: rock or grass by rockShare
-                        local bucket = (hash(col, row, 21) < cfg.rockShare)
+                        local bucket = (rng:random() < cfg.rockShare)
                             and rocks or grass
                         if #bucket == 0 then
                             bucket = (#grass > 0) and grass or rocks
                         end
                         if #bucket > 0 then
-                            local p = pick(bucket, hash(col, row, 31))
+                            local p = pick(bucket, rng:random())
                             props[#props + 1] = {
                                 def = p,
-                                x = tx + hash(col, row, 41) * (ts - p.w),
-                                y = ty + hash(col, row, 51) * (ts - p.h),
-                                phase = hash(col, row, 61) * 6.28,
+                                x = tx + rng:random() * (ts - p.w),
+                                y = ty + rng:random() * (ts - p.h),
+                                phase = rng:random() * 6.28,
                             }
                         end
                     end

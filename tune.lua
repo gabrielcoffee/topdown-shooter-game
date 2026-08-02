@@ -398,7 +398,7 @@ return {
     -- the tile coords, so the same numbers always grow the same field.
     props = {
         bushChance = 0.025, -- chance per ground tile for a big 32x32 bush
-        smallChance = 0.05, -- chance per ground tile for a 16x16 prop (no bush there)
+        smallChance = 0.1,  -- chance per ground tile for a 16x16 prop (no bush there)
         rockShare = 0.4,    -- fraction of small props that are rocks (rest = grass)
         torchPulse = 0.25,  -- how much the torch sprite brightens with its flame
         walkPush = 6,       -- px the tips are shoved aside by whoever walks through
