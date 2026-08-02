@@ -89,7 +89,7 @@ return {
                    drawTime = 0.45,
                    hitReward = 5, killBonus = 10, maxHits = 4,
                    baseSpread = 0.010, moveSpread = 0.200, recoilPerShot = 0.030, recoilMax = 0.26, recoilDelay = 0.25, recoilRecover = 0.45 },
-        -- reloadTime = secs PER SHELL; reloadOpenTime = break-open sound before first shell
+        -- reloadTime = secs PER SHELL; reloadOpenTime = silent break-open beat before first shell
         -- spread here is the fixed pellet cone; aim spread shifts the whole cone
         -- pump-action: bulletDelay is the rack gate between shots; pumpDelay =
         -- beat into that window where the rack SFX+shell-eject+pose fires,

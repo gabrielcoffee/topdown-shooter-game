@@ -36,7 +36,8 @@ local files = {
     usp_reload     = 'assets/sounds/weapons/usp_reload.wav',
     ak47_reload    = 'assets/sounds/weapons/ak47_reload.wav',
     m4a1_reload    = 'assets/sounds/weapons/m4a1_reload.wav',
-    shotgun_reload = 'assets/sounds/weapons/shotgun_reload.wav',
+    -- the one shotgun pump: per-shot rack, pickup/select, post-reload chamber
+    -- (reload start itself is silent — you only hear shells going in)
     shotgun_pump   = 'assets/sounds/weapons/shotgun_pump.wav',
     shell1         = 'assets/sounds/weapons/shell1.wav',
     shell2         = 'assets/sounds/weapons/shell2.wav',

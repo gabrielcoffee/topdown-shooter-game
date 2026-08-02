@@ -176,7 +176,9 @@ function Gun:newShotgun()
     obj.icon = Assets.quads.shotgun[1]
     obj.type = GUNTYPE.shotgun
     obj.shotSfx = 'shotgun_shot'
-    obj.reloadSfx = 'shotgun_reload' -- break-open + tick, plays before shells go in
+    -- no reloadSfx: the reload is just shells going in; the pump is the
+    -- shotgun's pick sound (select) and also racks per shot + post-reload
+    obj.pickSfx = 'shotgun_pump'
     -- looping shell-insert gif: one cycle per shell (re-synced as each lands)
     obj.reloadAnim = Animation:fromGif('assets/shotgun_reload.gif', true)
     obj.shellSfx = { 'shell1', 'shell2', 'shell3' }
