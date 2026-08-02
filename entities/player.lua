@@ -155,17 +155,33 @@ function Player:selectSlot(i, fast)
     local outgoing = self.items[self.itemIndex]
     if outgoing and outgoing.isGun then
         outgoing:cancelReload()
+        outgoing:cutPick() -- swap cuts the pick clack mid-play
     end
     self.lastSlot = self.itemIndex
     self.itemIndex = i
-    -- deploy: can't act instantly
-    self.switchTimer = fast and TUNE.player.knifeSwapDelay or TUNE.player.switchDelay
+    -- deploy: can't act instantly. Guns bring their own draw time (pistol
+    -- fast, shotgun slow); quick-knife stays the fastest swap in the kit.
+    local newItem = self.items[i]
+    if fast then
+        self.switchTimer = TUNE.player.knifeSwapDelay
+    elseif newItem.isGun and newItem.drawTime then
+        self.switchTimer = newItem.drawTime
+    else
+        self.switchTimer = TUNE.player.switchDelay
+    end
     if i == 1 or i == 2 then self.lastGunSlot = i end
 
-    -- CS-style deploy sound for whatever lands in hand
-    local newItem = self.items[i]
+    -- CS-style deploy sound for whatever lands in hand. An empty gun skips
+    -- straight into its reload sound (below) — its pick plays when that ends.
     if newItem.isGun then
-        Audio.play('gun_draw', 0.7)
+        local willReload = newItem.curClip <= 0 and newItem.bulletsLeft > 0
+        if willReload then
+            -- reload sound carries the deploy
+        elseif newItem.pickSfx then
+            newItem:playPick()
+        else
+            Audio.play('gun_draw', 0.7) -- shotgun keeps the generic clack
+        end
     elseif newItem.isKnife then
         Audio.play('knife_swing', 0.5)
     elseif newItem.isThrowable then
@@ -754,11 +770,19 @@ function Player:giveGun(gun)
     else target = self.lastGunSlot end
 
     local old = self.items[target]
+    if old and old.isGun then
+        old:cancelReload()
+        old:cutPick() -- the gun leaving the hand takes its sounds with it
+    end
     self.items[target] = gun
     self.itemIndex = target
     self.lastGunSlot = target
+    -- pickup = a fresh draw: same lockout + pick sound as a swap
+    self.switchTimer = gun.drawTime or TUNE.player.switchDelay
     if gun.id == 'shotgun' then
         gun:pump(false) -- shotgun racks on pickup (SFX + pose, no shell)
+    elseif gun.pickSfx then
+        gun:playPick()
     else
         Audio.play('gun_draw', 0.7) -- picked up = racked and in hand
     end

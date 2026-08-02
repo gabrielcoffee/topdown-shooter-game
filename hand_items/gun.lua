@@ -94,6 +94,7 @@ local function applyTune(obj, t)
     obj.recoilMax = t.recoilMax or 0
     obj.recoilRecover = t.recoilRecover or 0
     obj.recoilDelay = t.recoilDelay or 0
+    obj.drawTime = t.drawTime
 end
 
 function Gun:newUSP()
@@ -107,6 +108,7 @@ function Gun:newUSP()
     obj.type = GUNTYPE.semi
     obj.shotSfx = 'usp_shot'
     obj.reloadSfx = 'usp_reload'
+    obj.pickSfx = 'usp_pick'
     obj.reloadAnim = Animation:fromGif('assets/usp_reload.gif', false)
     obj.shellQuad = Assets.quads.shell_pistol[1]
     obj.shellDrop = { 'pistol_shell' } -- casing-hit-ground SFX
@@ -129,6 +131,7 @@ function Gun:newAk47()
     obj.type = GUNTYPE.auto
     obj.shotSfx = 'ak47_shot'
     obj.reloadSfx = 'ak47_reload'
+    obj.pickSfx = 'ak47_pick'
     obj.shellQuad = Assets.quads.shell_rifle[1]
     obj.shellDrop = { 'rifle_shell' }
     obj.reloadAnim = Animation:fromGif('assets/ak_reload.gif', false)
@@ -151,6 +154,7 @@ function Gun:newM4A1()
     obj.type = GUNTYPE.auto
     obj.shotSfx = 'm4a1_shot'
     obj.reloadSfx = 'm4a1_reload'
+    obj.pickSfx = 'm4a1_pick'
     obj.shellQuad = Assets.quads.shell_rifle[1]
     obj.shellDrop = { 'rifle_shell' }
     obj.reloadAnim = Animation:fromGif('assets/m4_reload.gif', false)
@@ -282,9 +286,25 @@ function Gun:update(dt, px, py, mx, my)
             self.curClip = self.curClip + moved
             self.bulletsLeft = self.bulletsLeft - moved
             self.reloading = false
+            -- gun comes back up: pick sound follows, but only once the reload
+            -- sound itself has played out (they never talk over each other)
+            if self.pickSfx then
+                self.pickPending = true
+                self.pickWaitSrc = self.reloadSrc
+            end
             self.reloadSrc = nil -- done: cancelReload must not stop a later reuse
             self.reloadTimer = 0
             self.reloadSettle = TUNE.gunKick.reloadSettleTime
+        end
+    end
+
+    -- post-reload pick: waits for the reload sound to finish, dies with a swap
+    if self.pickPending then
+        local src = self.pickWaitSrc
+        if not src or not src:isPlaying() then
+            self.pickPending = false
+            self.pickWaitSrc = nil
+            self:playPick()
         end
     end
 end
@@ -293,6 +313,7 @@ function Gun:reload()
     if self.reloading or self.curClip >= self.maxClip or self.bulletsLeft <= 0 then
         return
     end
+    self:cutPick() -- gun goes down: no pick clack (playing or queued) survives
     self.reloading = true
     self.reloadTimer = 0
     self.reloadOpening = self.shellSfx ~= nil
@@ -320,6 +341,25 @@ end
 function Gun:ammoFull()
     local full = TUNE.guns[self.id].reserve or self.maxClip * 3
     return self.curClip >= self.maxClip and self.bulletsLeft >= full
+end
+
+-- Pick/raise handling sound: gun select, pickup, and after a reload ends.
+-- Flat (own-body cue), not positional. Only one pick per gun plays at a time.
+function Gun:playPick()
+    if not self.pickSfx then return end
+    self:cutPick()
+    self.pickSrc = Audio.play(self.pickSfx, TUNE.audio.gunPickGain)
+end
+
+-- Swapping away kills the pick mid-clack and any pick still waiting on a
+-- reload sound to finish
+function Gun:cutPick()
+    self.pickPending = false
+    self.pickWaitSrc = nil
+    if self.pickSrc then
+        pcall(self.pickSrc.stop, self.pickSrc)
+        self.pickSrc = nil
+    end
 end
 
 function Gun:cancelReload()

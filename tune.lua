@@ -74,13 +74,19 @@ return {
         --   reloadAnimTime = secs the reload gif takes (matched to the reload
         --                    sound; gif then holds its last frame until
         --                    reloadTime ends). Omit = gif stretched to reloadTime.
-        usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 2,   reloadAnimTime = 1.6, bulletLife = 0.5,
+        --   drawTime      = secs after select/pickup before the gun can fire
+        --                   (CS deploys ~1s flat; CoD raises 0.25-0.6s — arcade
+        --                   pace, so we sit near CoD: pistol fast, shotgun slow)
+        usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 2,   reloadAnimTime = 0.9, bulletLife = 0.5,
+                   drawTime = 0.3,
                    hitReward = 6, killBonus = 10, maxHits = 3,
                    baseSpread = 0.008, moveSpread = 0.120, recoilPerShot = 0.030, recoilMax = 0.15, recoilDelay = 0.30, recoilRecover = 0.40 },
-        ak47   = { damage = 40, clip = 30, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7,
+        ak47   = { damage = 40, clip = 30, bulletDelay = 0.1,  reloadTime = 2.5, reloadAnimTime = 1.6, bulletLife = 0.7,
+                   drawTime = 0.5,
                    hitReward = 4, killBonus = 10, maxHits = 4,
                    baseSpread = 0.012, moveSpread = 0.220, recoilPerShot = 0.035, recoilMax = 0.30, recoilDelay = 0.25, recoilRecover = 0.45 },
-        m4a1   = { damage = 35, clip = 25, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7,
+        m4a1   = { damage = 35, clip = 25, bulletDelay = 0.1,  reloadTime = 2.5, reloadAnimTime = 1.5, bulletLife = 0.7,
+                   drawTime = 0.45,
                    hitReward = 5, killBonus = 10, maxHits = 4,
                    baseSpread = 0.010, moveSpread = 0.200, recoilPerShot = 0.030, recoilMax = 0.26, recoilDelay = 0.25, recoilRecover = 0.45 },
         -- reloadTime = secs PER SHELL; reloadOpenTime = break-open sound before first shell
@@ -89,6 +95,7 @@ return {
         -- beat into that window where the rack SFX+shell-eject+pose fires,
         -- pumpAnimTime = how long the pump pose is shown
         shotgun = { damage = 10, clip = 7, bulletDelay = 0.5, reloadTime = 0.5, bulletLife = 0.7,
+                     drawTime = 0.6,
                      reloadOpenTime = 0.4, reserve = 32,
                      pumpDelay = 0.12, pumpAnimTime = 0.22,
                      pellets = 14, spread = 0.20, maxHits = 3, -- damage is per pellet
@@ -309,6 +316,8 @@ return {
         reverbGainMin = 0.04,      -- reverb loudness open...
         reverbGainMax = 0.4,       -- ...vs surrounded by walls
         occlusionHighgain = 0.3,   -- muffle strength when a wall blocks the sound
+
+        gunPickGain = 0.8, -- pick/raise handling volume (select, pickup, post-reload)
 
         -- footsteps
         stepInterval = 0.32,  -- secs between steps at full run (scales with speed)

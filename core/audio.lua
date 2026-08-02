@@ -25,6 +25,10 @@ local files = {
     shotgun_shot   = 'assets/sounds/weapons/shotgun_shot.wav',
     -- draw/pickup clicks (CS-style deploy)
     gun_draw       = 'assets/sounds/weapons/gun_draw.wav',
+    -- per-gun pick/raise handling: on select, on pickup, after a reload ends
+    usp_pick       = 'assets/sounds/weapons/usp_pick.wav',
+    ak47_pick      = 'assets/sounds/weapons/ak47_pick.wav',
+    m4a1_pick      = 'assets/sounds/weapons/m4a1_pick.wav',
     grenade_draw   = 'assets/sounds/weapons/grenade_draw.wav',
     grenade_pull   = 'assets/sounds/weapons/grenade_pull.wav',  -- CS-style pin pull on deploy
     grenade_throw  = 'assets/sounds/weapons/grenade_throw.wav', -- arm whoosh on release
