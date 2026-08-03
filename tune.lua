@@ -522,6 +522,8 @@ return {
             quotaMult = 2,   -- on top of the normal quota (wave 5: 29 -> 57)
             speedMult = 1.5, -- all zombie speeds x this
             weights = { slow = 10, normal = 40, fast = 50 },
+            nearPlayerChance = 0.10, -- surprise-spawn roll during nightmares
+            bonusMoney = 500,        -- cash for clearing one (shown on the end banner)
         },
     },
 }

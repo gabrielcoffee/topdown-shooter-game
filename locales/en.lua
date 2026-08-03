@@ -86,4 +86,5 @@ return {
     ['hud.wave']          = 'WAVE %d',
     ['hud.wave_nightmare'] = 'NIGHTMARE WAVE %d',
     ['hud.wave_complete'] = 'WAVE COMPLETE',
+    ['hud.nightmare_bonus'] = 'NIGHTMARE CLEARED  +$%d',
 }

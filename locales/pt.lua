@@ -86,4 +86,5 @@ return {
     ['hud.wave']          = 'ONDA %d',
     ['hud.wave_nightmare'] = 'ONDA PESADELO %d',
     ['hud.wave_complete'] = 'ONDA CONCLUÍDA',
+    ['hud.nightmare_bonus'] = 'PESADELO SUPERADO  +$%d',
 }

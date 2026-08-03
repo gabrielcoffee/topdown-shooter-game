@@ -91,6 +91,7 @@ end
 -- Re-entrant: restore() calls this with the saved wave number
 function Waves:startWave(n)
     self.wave = n
+    self.clearedNightmare = false
     self.state = 'wave_start'
     self.timer = TUNE.waves.startIntermission
     self.remaining = (n == 0) and 0 or quotaFor(n) -- wave 0: sandbox, no zombies
@@ -125,6 +126,7 @@ function Waves:serialize()
         spawnTimer = self.spawnTimer,
         carriersThisWave = self.carriersThisWave,
         pendingWave = self.pendingWave,
+        clearedNightmare = self.clearedNightmare,
     }
 end
 
@@ -136,6 +138,7 @@ function Waves:restore(d)
     self.spawnTimer = math.max(0, d.spawnTimer or 0)
     self.carriersThisWave = d.carriersThisWave or 0
     self.pendingWave = d.pendingWave
+    self.clearedNightmare = d.clearedNightmare or false
     self.pending = {}
     -- banner states come back with the title already slammed down
     if self.state == 'wave_start' or self.state == 'wave_end' then
@@ -211,7 +214,11 @@ end
 -- telegraphTime (the classic "something is coming" beat)
 function Waves:queueSpawn(world)
     local sp
-    if love.math.random() < (TUNE.waves.nearPlayerChance or 0) then
+    local nearChance = TUNE.waves.nearPlayerChance or 0
+    if Waves.isNightmare(self.wave) then
+        nearChance = TUNE.waves.nightmare.nearPlayerChance or nearChance
+    end
+    if love.math.random() < nearChance then
         sp = self:nearPlayerPoint(world)
     end
     if not sp then
@@ -300,6 +307,11 @@ function Waves:update(dt, world)
             and liveEnemies(world) == 0 then
             self.state = 'wave_end'
             self.timer = TUNE.waves.endIntermission
+            -- surviving a nightmare pays: cash now, bonus line on the banner
+            self.clearedNightmare = Waves.isNightmare(self.wave)
+            if self.clearedNightmare then
+                world.player:addMoney(TUNE.waves.nightmare.bonusMoney or 0)
+            end
             self:slamBanner()
             -- checkpoint: a crash or force-quit resumes from the cleared wave
             require('core.save').saveRun(world:serialize())
@@ -327,6 +339,10 @@ function Waves:drawBanner()
         end
     elseif self.state == 'wave_end' then
         Theme.drawTitle(T('hud.wave_complete'), self.bannerY)
+        if self.clearedNightmare then
+            Theme.drawHint(T('hud.nightmare_bonus', TUNE.waves.nightmare.bonusMoney or 0),
+                self.bannerY + 70, Theme.colors.nightmare)
+        end
     end
 end
 

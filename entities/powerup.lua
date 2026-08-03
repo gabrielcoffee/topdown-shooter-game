@@ -63,11 +63,12 @@ function Powerup:apply(world)
             local gun = player.items[i]
             if gun then gun:refill() end
         end
-        -- slot 4 is one pool: top the CURRENT type up until the pool is full,
-        -- leaving whatever is stowed of the other type untouched
-        while player:throwableSpace() > 0 do
-            player:addThrowable(player.throwableType)
-        end
+        -- slot 4 is one pool: top the CURRENT type up as far as it goes,
+        -- leaving whatever is stowed of the other type untouched. Loop on
+        -- the add's own result — pool space can be open while the per-kind
+        -- cap still refuses (3 grenades, 0 molotovs), which used to spin
+        -- this loop forever and freeze the game.
+        while player:addThrowable(player.throwableType) do end
     elseif self.kind == 'instakill' then
         world.buffs.instakill = P.instakillTime
     elseif self.kind == 'freeze' then
