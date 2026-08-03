@@ -256,10 +256,11 @@ function Waves:materialize(world, sp, t)
 end
 
 function Waves:update(dt, world)
-    -- menu embers behind the WAVE N banner: fade in on the slam, fade out
-    -- over the last beat of the intermission (and after any state change)
+    -- menu embers behind the banner, NIGHTMARE waves only: fade in on the
+    -- slam, fade out over the last beat of the intermission
     local fadeT = TUNE.fx.bannerEmberFade or 0.6
-    local target = (self.state == 'wave_start' and self.timer > fadeT) and 1 or 0
+    local target = (self.state == 'wave_start' and Waves.isNightmare(self.wave)
+        and self.timer > fadeT) and 1 or 0
     local step = dt / fadeT
     if self.emberAlpha < target then
         self.emberAlpha = math.min(target, self.emberAlpha + step)
@@ -283,10 +284,19 @@ function Waves:update(dt, world)
 
     elseif self.state == 'active' then
         self.spawnTimer = self.spawnTimer - dt
-        while self.remaining > 0 and self.spawnTimer <= 0 do
+        -- alive cap: telegraphed spawns count too (they WILL be zombies)
+        local cap = TUNE.waves.maxAlive or math.huge
+        local alive = liveEnemies(world) + #self.pending
+        while self.remaining > 0 and self.spawnTimer <= 0 and alive < cap do
             self:queueSpawn(world)
+            alive = alive + 1
             self.remaining = self.remaining - 1
             self.spawnTimer = self.spawnTimer + delayFor(self.wave)
+        end
+        -- cap reached: hold the timer at zero so freed slots refill at the
+        -- normal pace instead of bursting out the whole accumulated debt
+        if self.remaining > 0 and alive >= cap and self.spawnTimer < 0 then
+            self.spawnTimer = 0
         end
 
         -- telegraphed spawns: haze every frame, zombie when the timer runs out

@@ -504,6 +504,9 @@ return {
         spawnDelayStart = 1.6,  -- secs between spawns on wave 1
         spawnDelayDecay = 0.9,  -- delay multiplied by this each wave
         spawnDelayFloor = 0.24, -- delay never drops below this
+        maxAlive = 30,          -- most zombies alive at once (CoD caps ~24-32);
+                                -- the rest of the quota waits for free slots,
+                                -- keeps huge waves from tanking the framerate
 
         startIntermission = 5,  -- secs of "WAVE N" banner before spawning starts
         endIntermission = 5,    -- secs of "WAVE COMPLETE" before the next wave
