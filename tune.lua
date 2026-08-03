@@ -487,6 +487,13 @@ return {
         -- now count (a locked door between them = not next door).
         adjacentRoomChance = 0.25,
 
+        -- surprise spawns: this fraction of spawns pops in a ring right
+        -- around the player (random walkable tile, same room) instead of a
+        -- spawn marker — the telegraph haze still gives the 1s warning
+        nearPlayerChance = 0.05,
+        nearMinDist = 96,   -- ring inner radius, world px (3 tiles)
+        nearMaxDist = 192,  -- ring outer radius, world px (6 tiles)
+
         telegraphTime = 1, -- secs of colored spawn haze before the zombie appears
 
         lifeBase = 20,          -- wave-1 zombie life, before the type multiplier

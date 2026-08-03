@@ -173,14 +173,54 @@ function Waves:activePoints(world)
     return self.spawnPoints
 end
 
+-- Surprise spawn spot: a random walkable tile in a ring around the player,
+-- inside the current room, clear of crates/doors. nil = no clear spot found
+-- (caller falls back to the normal markers).
+function Waves:nearPlayerPoint(world)
+    local t = TUNE.waves
+    local ts = TUNE.tiles.size
+    local px, py = world.player:getCenter()
+    local room = world.currentRoom
+    for _ = 1, 12 do
+        local ang = love.math.random() * math.pi * 2
+        local dist = t.nearMinDist + love.math.random() * (t.nearMaxDist - t.nearMinDist)
+        local x = math.floor((px + math.cos(ang) * dist) / ts) * ts
+        local y = math.floor((py + math.sin(ang) * dist) / ts) * ts
+        local cx, cy = x + ts / 2, y + ts / 2
+        local tile = world.map:typeAt(cx, cy)
+        local inRoom = not room or (cx >= room.x and cx < room.x + room.w
+                                and cy >= room.y and cy < room.y + room.h)
+        if inRoom and tile ~= 'solid' and tile ~= 'void' then
+            local blocked = false
+            for _, e in ipairs(world.entities) do
+                if (e.type == 'crate' or e.type == 'door') and not e.toRemove
+                    and cx >= e.x and cx < e.x + e.width
+                    and cy >= e.y and cy < e.y + e.height then
+                    blocked = true
+                    break
+                end
+            end
+            if not blocked then return { x = x, y = y } end
+        end
+    end
+    return nil
+end
+
 -- Telegraph first: pick the point and type now, puff a haze cloud in the
 -- zombie's colors over its spawn spot, and only materialize it after
 -- telegraphTime (the classic "something is coming" beat)
 function Waves:queueSpawn(world)
-    local points = self:activePoints(world)
-    if #points == 0 then return end -- map without spawn markers: never crash
+    local sp
+    if love.math.random() < (TUNE.waves.nearPlayerChance or 0) then
+        sp = self:nearPlayerPoint(world)
+    end
+    if not sp then
+        local points = self:activePoints(world)
+        if #points == 0 then return end -- map without spawn markers: never crash
+        sp = points[love.math.random(#points)]
+    end
     table.insert(self.pending, {
-        sp = points[love.math.random(#points)],
+        sp = sp,
         t = pickType(self.wave),
         timer = TUNE.waves.telegraphTime,
     })
