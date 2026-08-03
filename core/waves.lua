@@ -5,14 +5,25 @@
 
 local Enemy = require('entities.enemy')
 local Theme = require('ui.theme')
+local Particles = require('ui.particles')
 local flux = require('lib.flux')
 
 local Waves = {}
 Waves.__index = Waves
 
--- zombies in wave w: quotaBase + w*(w+1)/2 -> 4, 6, 9, 13, 18, 24...
+-- every TUNE.waves.nightmare.every-th wave is a nightmare wave
+-- (also read by entities/enemy.lua for the speed boost)
+function Waves.isNightmare(w)
+    local n = TUNE.waves.nightmare
+    return n ~= nil and w > 0 and (n.every or 0) > 0 and w % n.every == 0
+end
+
+-- zombies in wave w: (quotaBase + w*(w+1)/2) * quotaMult, doubled on nightmares
 local function quotaFor(w)
-    return TUNE.waves.quotaBase + w * (w + 1) / 2
+    local t = TUNE.waves
+    local q = (t.quotaBase + w * (w + 1) / 2) * (t.quotaMult or 1)
+    if Waves.isNightmare(w) then q = q * (t.nightmare.quotaMult or 1) end
+    return math.floor(q + 0.5)
 end
 
 -- secs between spawns, shrinking each wave down to the floor
@@ -21,8 +32,9 @@ local function delayFor(w)
     return math.max(t.spawnDelayFloor, t.spawnDelayStart * t.spawnDelayDecay ^ (w - 1))
 end
 
--- last weights bracket whose fromWave <= w
+-- last weights bracket whose fromWave <= w; nightmares use their own mix
 local function weightsFor(w)
+    if Waves.isNightmare(w) then return TUNE.waves.nightmare.weights end
     local picked
     for _, bracket in ipairs(TUNE.waves.weights) do
         if bracket.fromWave <= w then picked = bracket end
@@ -68,6 +80,7 @@ function Waves:new(spawnPoints)
         spawnTimer = 0,
         spawnPoints = spawnPoints,
         bannerY = -160,
+        emberAlpha = 0,  -- menu embers behind the wave banner (fade in/out)
         carriersThisWave = 0, -- power-up carriers spawned this wave (capped)
         pending = {},    -- telegraphed spawns: ground haze now, zombie in 1s
     }
@@ -196,6 +209,18 @@ function Waves:materialize(world, sp, t)
 end
 
 function Waves:update(dt, world)
+    -- menu embers behind the WAVE N banner: fade in on the slam, fade out
+    -- over the last beat of the intermission (and after any state change)
+    local fadeT = TUNE.fx.bannerEmberFade or 0.6
+    local target = (self.state == 'wave_start' and self.timer > fadeT) and 1 or 0
+    local step = dt / fadeT
+    if self.emberAlpha < target then
+        self.emberAlpha = math.min(target, self.emberAlpha + step)
+    else
+        self.emberAlpha = math.max(target, self.emberAlpha - step)
+    end
+    if self.emberAlpha > 0 then Particles.update(dt) end
+
     if self.state == 'pregame' then
         self.timer = self.timer - dt
         if self.timer <= 0 then
@@ -250,8 +275,16 @@ end
 
 -- Native resolution, drawn with the HUD
 function Waves:drawBanner()
+    if (self.emberAlpha or 0) > 0.01 then
+        Particles.drawEmbers(self.emberAlpha)
+    end
     if self.state == 'wave_start' then
-        Theme.drawTitle(T('hud.wave', self.wave), self.bannerY)
+        if Waves.isNightmare(self.wave) then
+            Theme.drawTitle(T('hud.wave_nightmare', self.wave), self.bannerY,
+                Theme.colors.nightmare)
+        else
+            Theme.drawTitle(T('hud.wave', self.wave), self.bannerY)
+        end
     elseif self.state == 'wave_end' then
         Theme.drawTitle(T('hud.wave_complete'), self.bannerY)
     end

@@ -84,5 +84,6 @@ return {
     ['hud.buff_timer']       = '%s %ds',
 
     ['hud.wave']          = 'ONDA %d',
+    ['hud.wave_nightmare'] = 'ONDA PESADELO %d',
     ['hud.wave_complete'] = 'ONDA CONCLUÍDA',
 }

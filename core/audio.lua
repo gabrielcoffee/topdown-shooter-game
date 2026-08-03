@@ -39,6 +39,8 @@ local files = {
     -- the one shotgun pump: per-shot rack, pickup/select, post-reload chamber
     -- (reload start itself is silent — you only hear shells going in)
     shotgun_pump   = 'assets/sounds/weapons/shotgun_pump.wav',
+    -- empty-clip trigger pull: revolver-style hammer click, shared by every gun
+    dry_fire       = 'assets/sounds/weapons/dry_fire.wav',
     shell1         = 'assets/sounds/weapons/shell1.wav',
     shell2         = 'assets/sounds/weapons/shell2.wav',
     shell3         = 'assets/sounds/weapons/shell3.wav',

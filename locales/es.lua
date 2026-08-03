@@ -83,5 +83,6 @@ return {
     ['hud.buff_timer']       = '%s %ds',
 
     ['hud.wave']          = 'OLEADA %d',
+    ['hud.wave_nightmare'] = 'OLEADA PESADILLA %d',
     ['hud.wave_complete'] = 'OLEADA COMPLETADA',
 }

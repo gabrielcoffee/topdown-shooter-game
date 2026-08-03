@@ -84,5 +84,6 @@ return {
     ['hud.buff_timer']       = '%s %ds',
 
     ['hud.wave']          = 'WAVE %d',
+    ['hud.wave_nightmare'] = 'NIGHTMARE WAVE %d',
     ['hud.wave_complete'] = 'WAVE COMPLETE',
 }

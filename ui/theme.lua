@@ -14,6 +14,7 @@ Theme.fonts = {
 
 Theme.colors = {
     blood    = {0.78, 0.08, 0.10},
+    nightmare = {0.62, 0.14, 0.80}, -- purple wave banner on nightmare waves
     bloodDim = {0.45, 0.06, 0.08},
     text     = {0.85, 0.82, 0.78},
     textDim  = {0.45, 0.43, 0.40},

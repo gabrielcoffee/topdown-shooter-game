@@ -318,6 +318,7 @@ return {
         occlusionHighgain = 0.3,   -- muffle strength when a wall blocks the sound
 
         gunPickGain = 0.8, -- pick/raise handling volume (select, pickup, post-reload)
+        dryFireGain = 0.7, -- empty-clip hammer click volume
 
         -- footsteps
         stepInterval = 0.32,  -- secs between steps at full run (scales with speed)
@@ -368,13 +369,14 @@ return {
         -- menu background
         emberRate = 22,  -- embers per second
         fogAlpha = 0.5,  -- overall fog layer opacity
+        bannerEmberFade = 0.6, -- secs the menu embers fade in/out around the WAVE N banner
 
         -- gameplay
         bloodParticles = 18,    -- forward droplets per hit (bullet AND knife)
         bloodMistParticles = 8, -- lingering red haze around the wound, per hit
 
         -- permanent blood splats on the floor (core/decals)
-        decalHitChance = 0.25,  -- chance per damaging hit (bullet/knife/nade/fire)
+        decalHitChance = 0.75,  -- chance per damaging hit (bullet/knife/nade/fire)
         decalDeathChance = 0.8, -- chance on the kill
         decalMax = 1500,        -- splats kept; oldest overwritten past this
 
@@ -460,7 +462,7 @@ return {
         -- slow uses assets/slow_zombie.gif (54x60, 4 frames): the normal
         -- sprite scaled 1.5x and recolored red, centered on the 48px circle
         -- cloudColor = spawn-telegraph haze tint, sampled from each type's sprite
-        slow   = { speed = 30, lifeMult = 1,    size = 48, damage = 25, losShortcut = true,
+        slow   = { speed = 30, lifeMult = 1,    size = 48, damage = 25, losShortcut = true, breaksCrates = true,
                    cloudColor = { 0.61, 0.34, 0.28 },
                    animTime = 1.4 }, -- secs per walk loop (half the normal's pace)
         -- normal uses assets/normal_zombie.gif (36x40, 4 frames): sprite is
@@ -477,7 +479,8 @@ return {
     },
 
     waves = {
-        quotaBase = 4,          -- zombies in wave w = this + w*(w+1)/2 -> 5, 7, 10, 14, 19, 25...
+        quotaBase = 4,          -- zombies in wave w = (this + w*(w+1)/2) * quotaMult
+        quotaMult = 1.5,        -- horde size scale -> 8, 11, 15, 21, 29, 38...
 
         -- chance a spawn comes from a room right next door instead of the
         -- player's own room. Only rooms already visited AND reachable right
@@ -491,9 +494,9 @@ return {
         lifeLinearUntil = 7,    -- linear growth up to this wave (= 140)...
         lifeGrowth = 1.1,       -- ...then x this per wave afterwards
 
-        spawnDelayStart = 2,    -- secs between spawns on wave 1
+        spawnDelayStart = 1.6,  -- secs between spawns on wave 1
         spawnDelayDecay = 0.9,  -- delay multiplied by this each wave
-        spawnDelayFloor = 0.3,  -- delay never drops below this
+        spawnDelayFloor = 0.24, -- delay never drops below this
 
         startIntermission = 5,  -- secs of "WAVE N" banner before spawning starts
         endIntermission = 5,    -- secs of "WAVE COMPLETE" before the next wave
@@ -503,6 +506,15 @@ return {
             { fromWave = 1, slow = 70, normal = 30, fast = 0 },
             { fromWave = 3, slow = 40, normal = 45, fast = 15 },
             { fromWave = 6, slow = 20, normal = 45, fast = 35 },
+        },
+
+        -- every Nth wave is a NIGHTMARE wave: quota doubled, mix flipped to
+        -- runners, every zombie faster. Banner goes purple.
+        nightmare = {
+            every = 5,       -- waves 5, 10, 15...
+            quotaMult = 2,   -- on top of the normal quota (wave 5: 29 -> 57)
+            speedMult = 1.5, -- all zombie speeds x this
+            weights = { slow = 10, normal = 40, fast = 50 },
         },
     },
 }

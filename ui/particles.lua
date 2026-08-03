@@ -92,9 +92,11 @@ function Particles.drawFog()
     love.graphics.setColor(1, 1, 1)
 end
 
--- In front of everything (embers float past the text)
-function Particles.drawEmbers()
+-- In front of everything (embers float past the text). alpha (optional)
+-- scales the whole layer — the in-game wave banner fades them in/out.
+function Particles.drawEmbers(alpha)
     love.graphics.setBlendMode('add')
+    love.graphics.setColor(1, 1, 1, alpha or 1)
     love.graphics.draw(embers)
     love.graphics.setBlendMode('alpha')
     love.graphics.setColor(1, 1, 1)

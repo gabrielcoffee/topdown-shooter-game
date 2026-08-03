@@ -512,6 +512,12 @@ function Gun:fire(leftReleased)
     end
 
     if self.curClip <= 0 then
+        -- hammer clicks on the empty chamber, at the gun's own trigger
+        -- cadence (semi: per click, auto: repeats while held, CS-style)
+        if self.canShoot and (self.type == GUNTYPE.auto or leftReleased) then
+            self.canShoot = false
+            Audio.play('dry_fire', TUNE.audio.dryFireGain)
+        end
         self:reload()
         return
     end
