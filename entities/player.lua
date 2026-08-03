@@ -56,7 +56,6 @@ function Player:new(x, y, width, height)
     obj.qReleased = true
 
     obj.running = false   -- SPRINT state: shift held + moving, no aim/shoot
-    obj.runLocked = false -- firing locks sprint until shift is re-pressed
     obj.flying = false    -- god mode + shift: noclip fly instead of sprint
 
     obj.falling = false
@@ -333,12 +332,11 @@ function Player:update(dt, world)
         moveX, moveY = moveX * inv, moveY * inv
     end
 
-    -- SHIFT = SPRINT: faster move + faster run anim, but no aiming/shooting.
-    -- Firing breaks the sprint; shift must be released and re-pressed to run
-    -- again (runLocked). Standing still isn't running.
+    -- SHIFT = SPRINT: shift held + moving, always — no lockout after firing.
+    -- While sprinting every item action (shoot/knife/throw/heal/reload) is
+    -- blocked; only moving and switching what's in hand work.
     local shiftHeld = keyDown('lshift') or keyDown('rshift')
-    if not shiftHeld then self.runLocked = false end
-    self.running = shiftHeld and not self.runLocked and (moveX ~= 0 or moveY ~= 0)
+    self.running = shiftHeld and (moveX ~= 0 or moveY ~= 0)
     -- god mode turns the sprint into a fly: through walls, over tiles, no dust
     self.flying = (self.godMode and self.running) or false
     self.maxSpeed = self.speed * (self.flying and TUNE.dev.flySpeedMult
@@ -426,22 +424,22 @@ function Player:update(dt, world)
         and not self.lockedInputs.mouse1
     local heldItem = self.items[self.itemIndex]
 
-    -- clicking while sprinting cancels the sprint (locked until shift is
-    -- re-pressed) and snaps the item to the cursor so that first shot aims
-    if leftPressed and self.running then
-        self.running = false
-        self.runLocked = true
+    -- deploy lockout: right after a swap the new item can't act yet, so
+    -- alternating two guns can't beat either gun's own fire rate. Sprinting
+    -- blocks every item action — release shift (or stop) to act.
+    local canAct = self.switchTimer <= 0 and not self.running
+
+    -- fresh out of a sprint the item can still hold the run-direction angle
+    -- (aim updates later in the frame): snap to the cursor so the first shot
+    -- goes where the player is pointing
+    if leftPressed and not self.running and heldItem.isGun then
         local pcx, pcy = self:getCenter()
         heldItem.angle = math.atan2(worldMy - pcy, worldMx - pcx)
     end
 
-    -- deploy lockout: right after a swap the new item can't act yet, so
-    -- alternating two guns can't beat either gun's own fire rate
-    local deploying = self.switchTimer > 0
-
-    if leftPressed and not deploying and heldItem.isGun then
+    if leftPressed and canAct and heldItem.isGun then
         heldItem:fire(self.leftReleased)
-    elseif leftPressed and not deploying and self.leftReleased and heldItem.isKnife then
+    elseif leftPressed and canAct and self.leftReleased and heldItem.isKnife then
         -- swing at the mouse; small lunge makes it aggressive (and risky)
         local pcx, pcy = self:getCenter()
         local aim = math.atan2(worldMy - pcy, worldMx - pcx)
@@ -449,7 +447,7 @@ function Player:update(dt, world)
             self.vx = self.vx + math.cos(aim) * TUNE.knife.lungeSpeed
             self.vy = self.vy + math.sin(aim) * TUNE.knife.lungeSpeed
         end
-    elseif leftPressed and not deploying and self.leftReleased
+    elseif leftPressed and canAct and self.leftReleased
         and heldItem.isThrowable and self:throwableCount() > 0
         and self.throwTimer <= 0 then
         local cx, cy = self:getCenter()
@@ -466,7 +464,7 @@ function Player:update(dt, world)
         self.throwTimer = TUNE.throwables.useDelay -- a full pool can't be dumped at once
         self:syncThrowable() -- last of this type: flip to the other if loaded
         if not self:slotValid(4) then self:selectSlot(3) end
-    elseif leftPressed and not deploying and self.leftReleased and heldItem.isHealthPack
+    elseif leftPressed and canAct and self.leftReleased and heldItem.isHealthPack
         and self.health < self.maxHealth and self.medkits > 0
         and self.healTimer <= 0 then
         local cx, cy = self:getCenter()
@@ -482,7 +480,7 @@ function Player:update(dt, world)
 
     -- Reload
     local rPressed = not typing and love.keyboard.isDown('r')
-    if rPressed and self.rReleased and heldItem.isGun then
+    if rPressed and self.rReleased and heldItem.isGun and not self.running then
         heldItem:reload()
     end
     self.rReleased = not rPressed
