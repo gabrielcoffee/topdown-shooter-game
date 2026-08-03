@@ -518,12 +518,12 @@ return {
             { fromWave = 6, slow = 20, normal = 45, fast = 35 },
         },
 
-        -- every Nth wave is a NIGHTMARE wave: quota doubled, mix flipped to
-        -- runners, every zombie faster. Banner goes purple.
+        -- every Nth wave is a NIGHTMARE wave: mix flipped to runners, every
+        -- zombie faster. Banner goes purple.
         nightmare = {
             every = 5,       -- waves 5, 10, 15...
-            quotaMult = 2,   -- on top of the normal quota (wave 5: 29 -> 57)
-            speedMult = 1.5, -- all zombie speeds x this
+            quotaMult = 1,   -- same zombie count as a normal wave
+            speedMult = 1.1, -- all zombie speeds x this
             weights = { slow = 10, normal = 40, fast = 50 },
             nearPlayerChance = 0.10, -- surprise-spawn roll during nightmares
             bonusMoney = 500,        -- cash for clearing one (shown on the end banner)
