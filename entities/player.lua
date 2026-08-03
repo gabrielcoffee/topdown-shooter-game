@@ -424,6 +424,18 @@ function Player:update(dt, world)
         and not self.lockedInputs.mouse1
     local heldItem = self.items[self.itemIndex]
 
+    -- sprinting cuts a reload dead. An EMPTY gun re-reloads by itself the
+    -- moment the sprint ends (nothing to shoot otherwise); a manual top-up
+    -- reload just dies and the player re-presses R.
+    if self.running and heldItem.isGun and heldItem.reloading then
+        heldItem:cancelReload()
+    end
+    if not self.running and self.wasRunning and heldItem.isGun
+        and heldItem.curClip <= 0 then
+        heldItem:reload() -- self-checks reserve ammo
+    end
+    self.wasRunning = self.running
+
     -- deploy lockout: right after a swap the new item can't act yet, so
     -- alternating two guns can't beat either gun's own fire rate. Sprinting
     -- blocks every item action — release shift (or stop) to act.
