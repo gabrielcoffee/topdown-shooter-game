@@ -243,7 +243,9 @@ function Player:update(dt, world)
     -- Cooldown so per-frame damage (spikes) can't machine-gun the cue.
     self.hurtCue = math.max(0, (self.hurtCue or 0) - dt)
     if self.lastHealth and self.health < self.lastHealth then
-        if self.hurtCue <= 0 then
+        -- the killing drop always cues — death must never go silent just
+        -- because a hit half a second earlier used up the cooldown
+        if self.hurtCue <= 0 or self.health <= 0 then
             require('ui.fx').damageVignette()
             Audio.play('hurt', 0.9)
             self.hurtCue = TUNE.player.hurtCueCooldown
