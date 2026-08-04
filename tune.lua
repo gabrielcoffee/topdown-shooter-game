@@ -218,9 +218,13 @@ return {
     },
 
     start = { -- run start (Play / New Game / retry)
-        sound = 'shotgun_pump', -- cue on the menu click (any name core/audio knows)
+        sound = 'shotgun_pump', -- cue when the controls splash is dismissed (any name core/audio knows)
         soundGain = 1,
         fadeTime = 2,           -- secs the image + audio fade in; wave banner waits for it
+    },
+
+    controlsScreen = { -- controls splash between the menu and the run
+        minShowTime = 0.35, -- secs before any-key skip arms (so the menu click can't blow past it)
     },
 
     chest = {

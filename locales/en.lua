@@ -6,6 +6,15 @@ return {
     ['menu.quit']        = 'QUIT',
     ['menu.hint']        = 'ARROWS/WASD MOVE   ENTER SELECT',
 
+    ['controls.title']   = 'CONTROLS',
+    ['controls.move']    = 'MOVE',
+    ['controls.sprint']  = 'SPRINT',
+    ['controls.shoot']   = 'SHOOT',
+    ['controls.weapon']  = 'SWITCH WEAPON',
+    ['controls.knife']   = 'KNIFE / GUN',
+    ['controls.chat']    = 'CHAT',
+    ['controls.start']   = 'PRESS ANY KEY TO START',
+
     ['pause.title']      = 'PAUSED',
     ['pause.resume']     = 'RESUME',
     ['pause.options']    = 'OPTIONS',

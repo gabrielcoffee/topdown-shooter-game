@@ -6,6 +6,15 @@ return {
     ['menu.quit']        = 'SALIR',
     ['menu.hint']        = 'FLECHAS/WASD MOVER   ENTER SELECCIONAR',
 
+    ['controls.title']   = 'CONTROLES',
+    ['controls.move']    = 'MOVERSE',
+    ['controls.sprint']  = 'CORRER',
+    ['controls.shoot']   = 'DISPARAR',
+    ['controls.weapon']  = 'CAMBIAR ARMA',
+    ['controls.knife']   = 'CUCHILLO / ARMA',
+    ['controls.chat']    = 'CHAT',
+    ['controls.start']   = 'PULSA CUALQUIER TECLA',
+
     ['pause.title']      = 'PAUSA',
     ['pause.resume']     = 'CONTINUAR',
     ['pause.options']    = 'OPCIONES',

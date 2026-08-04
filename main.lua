@@ -41,6 +41,10 @@ function love.load()
             State.switch('playing')
             _G.showHitboxes = true
             _G._autotest = { frames = 0 }
+        elseif a == 'autotest_controls' then
+            -- same screenshot/quit rhythm but on the controls splash
+            State.switch('controls')
+            _G._autotest = { frames = 0 }
         elseif a == 'shotgun' then
             _G._autotest_shotgun = true
             function love.errorhandler(msg)
