@@ -28,7 +28,7 @@ end
 
 -- Build an animation straight from a .gif file: frames, image and per-frame
 -- delays all come from the gif, so no spritesheet sequencing is needed.
--- Example: Animation:fromGif('assets/images/ak_held.gif')
+-- Example: Animation:fromGif('assets/images/guns/ak_reload.gif')
 function Animation:fromGif(path, loop)
     local g = Gif.load(path)
     local anim = Animation:new(g.quads, 1, g.frames, g.delays[1], loop, g.image)

@@ -34,7 +34,7 @@ function FirePatch:spawnFlames(world)
     local M = TUNE.molotov
     local F = M.flame
     local cx, cy = self:getCenter()
-    self.gif = Gif.load('assets/fire.gif')
+    self.gif = Gif.load('assets/images/world/fire.gif')
     self.flames = {}
 
     for i = 1, F.count do

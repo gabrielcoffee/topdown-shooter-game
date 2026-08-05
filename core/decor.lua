@@ -20,7 +20,7 @@ local Decor = {}
 Decor.__index = Decor
 
 -- Animated torch flame: preferred over the sheet cell when the gif exists
-local TORCH_GIF = 'assets/torch.gif'
+local TORCH_GIF = 'assets/images/world/torch.gif'
 
 local SEGMENTS_BIG = 8   -- horizontal slices for a 32px prop
 local SEGMENTS_SMALL = 4 -- ... for a 16px prop

@@ -261,7 +261,7 @@ local function decode(data)
     }
 end
 
--- Load (and cache) a gif from the game folder, e.g. Gif.load('assets/images/ak_held.gif')
+-- Load (and cache) a gif from the game folder, e.g. Gif.load('assets/images/guns/ak_reload.gif')
 function Gif.load(path)
     if not cache[path] then
         local data, err = love.filesystem.read(path)

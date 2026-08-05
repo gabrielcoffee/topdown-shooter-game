@@ -120,8 +120,8 @@ function Gun:newUSP()
     obj.shotSfx = 'usp_shot'
     obj.reloadSfx = 'usp_reload'
     obj.pickSfx = 'usp_pick'
-    obj.reloadAnim = Animation:fromGif('assets/usp_reload.gif', false)
-    obj.pickupAnim = pickupAnim('assets/usp_reload.gif', 7, obj.drawTime)
+    obj.reloadAnim = Animation:fromGif('assets/images/guns/usp_reload.gif', false)
+    obj.pickupAnim = pickupAnim('assets/images/guns/usp_reload.gif', 7, obj.drawTime)
     obj.shellQuad = Assets.quads.shell_pistol[1]
     obj.shellDrop = { 'pistol_shell' } -- casing-hit-ground SFX
     obj.ox = 4
@@ -146,8 +146,8 @@ function Gun:newAk47()
     obj.pickSfx = 'ak47_pick'
     obj.shellQuad = Assets.quads.shell_rifle[1]
     obj.shellDrop = { 'rifle_shell' }
-    obj.reloadAnim = Animation:fromGif('assets/ak_reload.gif', false)
-    obj.pickupAnim = pickupAnim('assets/ak_reload.gif', 13, obj.drawTime)
+    obj.reloadAnim = Animation:fromGif('assets/images/guns/ak_reload.gif', false)
+    obj.pickupAnim = pickupAnim('assets/images/guns/ak_reload.gif', 13, obj.drawTime)
     obj.ox = 12 -- reload gif shares the held sprite's coordinate space, same pivot
     obj.oy = 16
     obj.tipLen = 36
@@ -170,8 +170,8 @@ function Gun:newM4A1()
     obj.pickSfx = 'm4a1_pick'
     obj.shellQuad = Assets.quads.shell_rifle[1]
     obj.shellDrop = { 'rifle_shell' }
-    obj.reloadAnim = Animation:fromGif('assets/m4_reload.gif', false)
-    obj.pickupAnim = pickupAnim('assets/m4_reload.gif', 13, obj.drawTime)
+    obj.reloadAnim = Animation:fromGif('assets/images/guns/m4_reload.gif', false)
+    obj.pickupAnim = pickupAnim('assets/images/guns/m4_reload.gif', 13, obj.drawTime)
     obj.ox = 12 -- reload gif shares the held sprite's coordinate space, same pivot
     obj.oy = 16
     obj.tipLen = 44
@@ -194,7 +194,7 @@ function Gun:newShotgun()
     -- shotgun's pick sound (select) and also racks per shot + post-reload
     obj.pickSfx = 'shotgun_pump'
     -- looping shell-insert gif: one cycle per shell (re-synced as each lands)
-    obj.reloadAnim = Animation:fromGif('assets/shotgun_reload.gif', true)
+    obj.reloadAnim = Animation:fromGif('assets/images/guns/shotgun_reload.gif', true)
     obj.shellSfx = { 'shell1', 'shell2', 'shell3' }
     obj.shellQuad = Assets.quads.shell_shotgun[1]
     obj.shellDrop = { 'shell1', 'shell2', 'shell3' } -- brass hull bounce

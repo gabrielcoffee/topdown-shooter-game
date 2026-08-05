@@ -164,14 +164,15 @@ return {
     -- and burns for burnTime, ticking tickDamage per second per zombie inside
     -- (line of sight checked — fire never burns through solid walls)
     molotov = { tickDamage = 60, tickInterval = 1, burnTime = 5, -- 60/s x 5 = 300 total
-                playerTickDamage = 20, -- friendly fire: player standing in it takes this per tick
+                playerTickDamage = 10,   -- friendly fire: player standing in it takes this per player tick
+                playerTickInterval = 0.5, -- player burn ticks on its own faster clock
                 blastRadius = 80,  -- same area as the grenade
                 maxRange = 160, throwSpeed = 240, -- shorter throw than the grenade (240)
                 spreadTime = 0.6,  -- secs the fire takes to grow from the impact to full radius
                 hitReward = 4, killBonus = 10, -- hitReward per burn tick
                 breakGain = 0.9,   -- bottle shatter + ignite volume on impact
                 fireGain = 0.85,   -- looping burn sound volume at the patch
-                -- ground-fire sprites (assets/fire.gif): flames scattered over the
+                -- ground-fire sprites (assets/images/world/fire.gif): flames scattered over the
                 -- burn area, each popping in as the fire spreads out to it
                 flame = { count = 60,        -- flame sprites over the whole radius
                           fps = 18,          -- gif playback speed per flame
@@ -473,19 +474,19 @@ return {
         -- losShortcut: clear straight line to the player = walk it directly
         -- (no A*, no grid corners); blocked line falls back to normal A*
         -- damage = contact hit on the player (slow hits hardest, fast lightest)
-        -- slow uses assets/slow_zombie.gif (54x60, 4 frames): the normal
+        -- slow uses assets/images/zombies/slow_zombie.gif (54x60, 4 frames): the normal
         -- sprite scaled 1.5x and recolored red, centered on the 48px circle
         -- cloudColor = spawn-telegraph haze tint, sampled from each type's sprite
         slow   = { speed = 30, lifeMult = 1,    size = 48, damage = 25, losShortcut = true, breaksCrates = true,
                    cloudColor = { 0.61, 0.34, 0.28 },
                    animTime = 1.4 }, -- secs per walk loop (half the normal's pace)
-        -- normal uses assets/normal_zombie.gif (36x40, 4 frames): sprite is
+        -- normal uses assets/images/zombies/normal_zombie.gif (36x40, 4 frames): sprite is
         -- centered on the 32px collision circle on both axes. Plain repeating
         -- loop (1-2-3-4-1...).
         normal = { speed = 60, lifeMult = 0.5,  size = 32, damage = 20, breaksCrates = true,
                    cloudColor = { 0.36, 0.61, 0.47 },
                    animTime = 0.7 }, -- secs for one full walk-cycle loop
-        -- fast uses assets/fast_zombie.gif (16x24): size = the body circle,
+        -- fast uses assets/images/zombies/fast_zombie.gif (16x24): size = the body circle,
         -- which is the BOTTOM 16px of the sprite; the top 8px overhang above it
         fast   = { speed = 90, lifeMult = 0.25, size = 16, damage = 20, breaksCrates = true,
                    cloudColor = { 0.68, 0.72, 0.2 },

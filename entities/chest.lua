@@ -36,7 +36,7 @@ function Chest:new(x, y)
 
     -- lid animation, driven straight from the gif: frame 1 = closed, last =
     -- fully open. lidDir +1 opens, -1 closes, 0 = settled.
-    obj.lid = Gif.load('assets/shopbox_open.gif')
+    obj.lid = Gif.load('assets/images/world/shopbox_open.gif')
     obj.lidFrame = 1
     obj.lidTimer = 0
     obj.lidDir = 0

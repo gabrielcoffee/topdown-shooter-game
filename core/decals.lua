@@ -45,7 +45,7 @@ function Decals.new(map)
     self.map = map
 
     -- sheet cells painted? use them; otherwise the procedural stand-in
-    local data = love.image.newImageData('assets/spritesheet.png')
+    local data = love.image.newImageData('assets/images/spritesheet.png')
     local painted = true
     for _, c in ipairs(CELLS) do
         local any = false

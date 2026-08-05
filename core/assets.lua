@@ -38,15 +38,15 @@ end
 love.graphics.setDefaultFilter('nearest', 'nearest')
 
 -- Load the images
-Assets.spritesheet = love.graphics.newImage('assets/spritesheet.png')
+Assets.spritesheet = love.graphics.newImage('assets/images/spritesheet.png')
 Assets.bg_dust = love.graphics.newImage('assets/images/bg_dust.png')
 Assets.bg_dust:setWrap("repeat", "repeat")
 
 -- neon shop signs for the wall buys (64x32, drawn as-is over the wall)
 Assets.wallArt = {
-    ak47 = love.graphics.newImage('assets/ak_wall.png'),
-    m4a1 = love.graphics.newImage('assets/m4_wall.png'),
-    shotgun = love.graphics.newImage('assets/shotgun_wall.png'),
+    ak47 = love.graphics.newImage('assets/images/guns/ak_wall.png'),
+    m4a1 = love.graphics.newImage('assets/images/guns/m4_wall.png'),
+    shotgun = love.graphics.newImage('assets/images/guns/shotgun_wall.png'),
 }
 
 -- SCENERY ATLAS ------------------------------------------------------------
@@ -78,7 +78,7 @@ local SCENERY_PROPS = {
     { kind = 'rock',  x = 304, y = 16, w = 16, h = 16, wind = false, stem = 0 },
 }
 
-local sheetData = love.image.newImageData('assets/spritesheet.png')
+local sheetData = love.image.newImageData('assets/images/spritesheet.png')
 
 -- any painted pixel in the cell = the artist filled this slot in
 local function cellPainted(x, y, w, h)

@@ -95,7 +95,7 @@ function Enemy:newSlow(x, y, wave)
     local obj = newTyped(x, y, wave, 'slow', Color.red)
     -- 54x60 gif, 4 frames (normal sprite 1.5x, red palette): centered on the
     -- 48px collision circle on both axes
-    attachSprite(obj, 'assets/slow_zombie.gif',
+    attachSprite(obj, 'assets/images/zombies/slow_zombie.gif',
         TUNE.zombies.slow.animTime, false)
     obj.spriteCenterY = true
     return obj
@@ -105,7 +105,7 @@ function Enemy:newNormal(x, y, wave)
     local obj = newTyped(x, y, wave, 'normal', Color.magenta)
     -- 36x40 gif, 4 frames: sprite centered on the 32px collision circle on
     -- both axes (4px overhang above and below, 2px each side)
-    attachSprite(obj, 'assets/normal_zombie.gif',
+    attachSprite(obj, 'assets/images/zombies/normal_zombie.gif',
         TUNE.zombies.normal.animTime, false)
     obj.spriteCenterY = true
     return obj
@@ -115,7 +115,7 @@ function Enemy:newFast(x, y, wave)
     local obj = newTyped(x, y, wave, 'fast', Color.yellow)
     -- 16x24 gif: bottom 16px = the body (the collision circle), top 8px is
     -- head/shoulder overhang drawn above the hitbox
-    return attachSprite(obj, 'assets/fast_zombie.gif',
+    return attachSprite(obj, 'assets/images/zombies/fast_zombie.gif',
         TUNE.zombies.fast.animTime, false)
 end
 
