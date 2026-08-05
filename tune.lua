@@ -342,7 +342,7 @@ return {
         -- critical health (player.lowHealthThreshold): everything ducks,
         -- the heartbeat loop plays at full volume
         lowHealthDuck = 0.3,
-        heartbeatGain = 1.5,
+        heartbeatGain = 2.2,
 
         -- ambience: looping bed + sparse positional one-shots
         bedGain = 0.7,
@@ -443,6 +443,8 @@ return {
         brightnessStep = 0.02, -- slider snap grid
         playerRange = 230,    -- player light radius, world px
         playerBright = 0.40,  -- player light intensity (1 = blinding white)
+        shadowBlur = 2,       -- shadow edge softness, blur px (0 = hard pixel edges)
+        occluderCornerCut = 8, -- px chamfered off wall shadow corners (matches the soft wall sprites)
         muzzleRange = 210,    -- muzzle flash light radius
         muzzleBright = 0.65,  -- muzzle flash intensity
         muzzleTime = 0.06,    -- muzzle flash duration, secs

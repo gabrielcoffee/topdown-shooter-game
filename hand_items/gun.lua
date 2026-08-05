@@ -147,7 +147,7 @@ function Gun:newAk47()
     obj.shellQuad = Assets.quads.shell_rifle[1]
     obj.shellDrop = { 'rifle_shell' }
     obj.reloadAnim = Animation:fromGif('assets/ak_reload.gif', false)
-    obj.pickupAnim = pickupAnim('assets/ak_reload.gif', 10, obj.drawTime)
+    obj.pickupAnim = pickupAnim('assets/ak_reload.gif', 13, obj.drawTime)
     obj.ox = 12 -- reload gif shares the held sprite's coordinate space, same pivot
     obj.oy = 16
     obj.tipLen = 36
@@ -171,7 +171,7 @@ function Gun:newM4A1()
     obj.shellQuad = Assets.quads.shell_rifle[1]
     obj.shellDrop = { 'rifle_shell' }
     obj.reloadAnim = Animation:fromGif('assets/m4_reload.gif', false)
-    obj.pickupAnim = pickupAnim('assets/m4_reload.gif', 10, obj.drawTime)
+    obj.pickupAnim = pickupAnim('assets/m4_reload.gif', 13, obj.drawTime)
     obj.ox = 12 -- reload gif shares the held sprite's coordinate space, same pivot
     obj.oy = 16
     obj.tipLen = 44

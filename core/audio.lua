@@ -325,6 +325,13 @@ end
 function Audio.stopAmbience()
     Audio.setLowHealth(false) -- leaving a run must kill the heartbeat + duck
     Audio.stopAllLoops()      -- ...and any fire still burning in the dead run
+    -- ...and any long world one-shot still ringing (mystery box spin wheel).
+    -- Listener-pinned sounds (menu clicks, the start cue) keep playing.
+    for _, pool in pairs(pools) do
+        for _, s in ipairs(pool) do
+            if srcWorld[s] and s:isPlaying() then s:stop() end
+        end
+    end
     if ambience.bed then ambience.bed:stop() end
     ambience.bed, ambience.set = nil, nil
 end

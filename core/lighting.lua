@@ -57,7 +57,7 @@ function Lighting.new(map)
     -- it re-renders every light pass at native resolution — the fullscreen lag.
     -- Pin them to the fixed logical canvas so cost is constant regardless of res.
     self.lw:refreshScreenSize(SCREENWIDTH, SCREENHEIGHT)
-    self.lw:setShadowBlur(0)      -- hard shadows fit the pixel art + cheap
+    self.lw:setShadowBlur(TUNE.lighting.shadowBlur) -- soft shadow edges (0 = hard)
     self.lw.disableGlow = true    -- plain occluders: glow/material passes are
     self.lw.disableMaterial = true -- fullscreen canvas work for nothing
 
@@ -73,13 +73,21 @@ function Lighting.new(map)
     if map then
         local ts = map.tileSize
 
-        -- solid tiles cast shadows
+        -- solid tiles cast shadows. Corners are chamfered so the shadow
+        -- silhouette matches the wall sprites' soft edges instead of throwing
+        -- pointy spikes past them (edges stay full-length: no seam leaks
+        -- between merged rects).
+        local cut = TUNE.lighting.occluderCornerCut
         for _, r in ipairs(solidRects(map)) do
             local w = (r.c1 - r.c0 + 1) * ts
             local h = r.rows * ts
-            local cx = (r.c0 - 1) * ts + w / 2
-            local cy = (r.row - 1) * ts + h / 2
-            self.lw:newRectangle(cx, cy, w, h)
+            local x0 = (r.c0 - 1) * ts
+            local y0 = (r.row - 1) * ts
+            local x1, y1 = x0 + w, y0 + h
+            local c = math.min(cut, w / 2, h / 2)
+            self.lw:newPolygon(
+                x0 + c, y0,   x1 - c, y0,   x1, y0 + c,   x1, y1 - c,
+                x1 - c, y1,   x0 + c, y1,   x0, y1 - c,   x0, y0 + c)
         end
 
         -- torch tiles light up around themselves
