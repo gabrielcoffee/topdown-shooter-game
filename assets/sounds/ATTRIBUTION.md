@@ -51,3 +51,6 @@ go in the repo. These are CS-*style* sounds built from scratch / from CC0 source
   and a cloth-grip transient.
 - **medkit_heal** (heal confirm): `paper00` (repo CC0 rustle) resampled twice into a
   bandage wrap, plus a soft detuned D5 -> G5 confirm chime and a quiet breath swell.
+
+- `effects/typewriter_key.mp3` — "Typewriter - single key - type 1" by yottasounds,
+  freesound.org #380138, CC0 (public domain). Used for the intro title typing.

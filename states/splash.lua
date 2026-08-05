@@ -14,27 +14,14 @@ local Audio = require('core.audio')
 local splash = {}
 splash.fxMode = 'menu'
 
--- Synthesized typewriter "tack": noise transient + damped metallic body +
--- low thunk. Built once; each letter plays a pitch-jittered copy.
-local clickData
-local function makeTypeClick()
-    local rate, dur = 44100, 0.07
-    local n = math.floor(rate * dur)
-    local data = love.sound.newSoundData(n, rate, 16, 1)
-    for i = 0, n - 1 do
-        local t = i / rate
-        local s = (love.math.random() * 2 - 1) * math.exp(-t * 900) * 0.9
-            + math.sin(2 * math.pi * 1250 * t) * math.exp(-t * 260) * 0.5
-            + math.sin(2 * math.pi * 170 * t) * math.exp(-t * 90) * 0.35
-        data:setSample(i, math.max(-1, math.min(1, s)))
-    end
-    return data
-end
-
+-- Real typewriter key (CC0, freesound #380138 by yottasounds); each letter
+-- plays a pitch-jittered clone.
+local clickBase
 local function playClick(self)
-    clickData = clickData or makeTypeClick()
-    local src = love.audio.newSource(clickData)
-    src:setPitch(0.92 + love.math.random() * 0.16)
+    clickBase = clickBase
+        or love.audio.newSource('assets/sounds/effects/typewriter_key.mp3', 'static')
+    local src = clickBase:clone()
+    src:setPitch(0.94 + love.math.random() * 0.12)
     src:setVolume(Audio.master * Audio.sfx * TUNE.splash.typeGain)
     src:play()
     table.insert(self.clicks, src) -- held so GC can't cut a click short
@@ -71,6 +58,7 @@ function splash:update(dt)
         end
         if self.typed >= #title and self.t >= #title * S.typeInterval + S.typeHold then
             self.phase = 'done'
+            -- direct switch, no black fade: title + haze carry straight over
             State.switch('menu', { fromIntro = true })
         end
     end
@@ -103,18 +91,15 @@ function splash:draw()
         if self.phase == 'in' then a = Theme.stepAlpha(self.t / S.fadeIn) end
         if self.phase == 'out' then a = Theme.stepAlpha(1 - self.t / S.fadeOut) end
 
-        -- all three lines: normal menu text size, white
+        -- two tight centered lines, white; presents: right after them
         local f = Theme.fonts.item
         love.graphics.setFont(f)
         love.graphics.setColor(1, 1, 1, a)
         local main = 'COFFEEBREAK'
-        love.graphics.print(main, cx - f:getWidth(main) / 2, SCREENHEIGHT / 2 - 84)
+        love.graphics.print(main, cx - f:getWidth(main) / 2, SCREENHEIGHT / 2 - 46)
+        local sub = 'GAMES'
+        love.graphics.print(sub, cx - f:getWidth(sub) / 2, SCREENHEIGHT / 2 - 14)
 
-        local sub = 'G A M E S'
-        love.graphics.setColor(1, 1, 1, a * 0.85)
-        love.graphics.print(sub, cx - f:getWidth(sub) / 2, SCREENHEIGHT / 2 - 40)
-
-        -- presents: joins after the name has sat for a moment
         if self.phase == 'presents' or self.phase == 'out' then
             local pa = a
             if self.phase == 'presents' then
@@ -122,9 +107,10 @@ function splash:draw()
             end
             local msg = 'presents:'
             love.graphics.setColor(1, 1, 1, pa * 0.9)
-            love.graphics.print(msg, cx - f:getWidth(msg) / 2, SCREENHEIGHT / 2 + 44)
+            love.graphics.print(msg, cx - f:getWidth(msg) / 2, SCREENHEIGHT / 2 + 34)
         end
     elseif self.phase == 'type' or self.phase == 'done' then
+        -- typing happens on pure black; the haze fades in with the menu items
         local f = Theme.fonts.title
         love.graphics.setFont(f)
         local title = Theme.gameTitle

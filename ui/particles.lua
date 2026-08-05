@@ -83,10 +83,12 @@ function Particles.emberCount()
     return embers and embers:getCount() or 0
 end
 
--- Behind the title/menu text
-function Particles.drawFog()
+-- Behind the title/menu text. alpha (optional) scales the whole layer —
+-- the intro fades the haze in behind the typed title.
+function Particles.drawFog(alpha)
+    alpha = alpha or 1
     for _, f in ipairs(fogs) do
-        love.graphics.setColor(f.shade, f.shade, f.shade + 0.02, TUNE.fx.fogAlpha * f.alpha)
+        love.graphics.setColor(f.shade, f.shade, f.shade + 0.02, TUNE.fx.fogAlpha * f.alpha * alpha)
         love.graphics.draw(fogTex, f.x, f.y, 0, f.sx, f.sy, 128, 128)
     end
     love.graphics.setColor(1, 1, 1)

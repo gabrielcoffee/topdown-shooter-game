@@ -127,15 +127,16 @@ end
 
 function menu:draw()
     Theme.drawBackground()
-    Particles.drawFog() -- background haze (embers stay gone)
+
+    -- items, hint, record and the haze all fade in on the same stepped curve
+    local ha = Theme.stepAlpha(math.max(0, math.min(1, self.list.animT / TUNE.menu.fadeInTime)))
+    Particles.drawFog(ha) -- background haze (embers stay gone)
 
     -- slight neon flicker on the title
     local flicker = 0.86 + 0.14 * love.math.noise(self.time * 7)
     drawGlitchTitle(self, self.titleY, flicker)
 
     self.list:draw()
-    -- hint + record fade with the items (same stepped alpha)
-    local ha = Theme.stepAlpha(math.max(0, math.min(1, self.list.animT / TUNE.menu.fadeInTime)))
     local hc = Theme.colors.textDim
     local fh = Theme.fonts.hint
     love.graphics.setFont(fh)
