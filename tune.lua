@@ -79,16 +79,18 @@ return {
         --   drawTime      = secs after select/pickup before the gun can fire
         --                   (CS deploys ~1s flat; CoD raises 0.25-0.6s — arcade
         --                   pace, so we sit near CoD: pistol fast, shotgun slow)
-        usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 1.4, reloadAnimTime = 0.9, bulletLife = 0.5,
-                   drawTime = 0.3,
+        --   lowAmmoClicks = the last N shots of the clip also play the hammer
+        --                   click under the shot (omit = off)
+        usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 1.4, reloadAnimTime = 1.25, bulletLife = 0.5,
+                   drawTime = 0.3, lowAmmoClicks = 2,
                    hitReward = 6, killBonus = 10, maxHits = 3,
                    baseSpread = 0.008, moveSpread = 0.120, recoilPerShot = 0.030, recoilMax = 0.15, recoilDelay = 0.30, recoilRecover = 0.40 },
         ak47   = { damage = 40, clip = 30, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7,
-                   drawTime = 0.5,
+                   drawTime = 0.5, lowAmmoClicks = 4,
                    hitReward = 4, killBonus = 10, maxHits = 4,
                    baseSpread = 0.012, moveSpread = 0.220, recoilPerShot = 0.035, recoilMax = 0.30, recoilDelay = 0.25, recoilRecover = 0.45 },
         m4a1   = { damage = 35, clip = 25, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7,
-                   drawTime = 0.45,
+                   drawTime = 0.45, lowAmmoClicks = 4,
                    hitReward = 5, killBonus = 10, maxHits = 4,
                    baseSpread = 0.010, moveSpread = 0.200, recoilPerShot = 0.030, recoilMax = 0.26, recoilDelay = 0.25, recoilRecover = 0.45 },
         -- reloadTime = secs PER SHELL; reloadOpenTime = silent break-open beat before first shell
@@ -328,6 +330,7 @@ return {
 
         gunPickGain = 0.8, -- pick/raise handling volume (select, pickup, post-reload)
         dryFireGain = 0.7, -- empty-clip hammer click volume
+        lowAmmoClickGain = 0.55, -- same click layered under the last shots of a clip
 
         -- footsteps
         stepInterval = 0.32,  -- secs between steps at full run (scales with speed)

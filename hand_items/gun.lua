@@ -589,6 +589,12 @@ function Gun:fire(leftReleased)
         self.canShoot = false
         Audio.playAt(self.shotSfx, self.x, self.y) -- once per trigger pull, not per pellet
 
+        -- low-ammo warning: the hammer click rides the last few shots
+        local warn = TUNE.guns[self.id] and TUNE.guns[self.id].lowAmmoClicks
+        if warn and self.curClip <= warn then
+            Audio.play('dry_fire', TUNE.audio.lowAmmoClickGain)
+        end
+
         -- muzzle juice: flash light + sparks
         local mx = self.x + cosA * gw
         local my = self.y + sinA * gw
