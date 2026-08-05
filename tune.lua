@@ -361,6 +361,19 @@ return {
         itemSpacing = 52, -- px between menu rows
         chevronGap = 18,  -- px between the > < selectors and the item text
         colOffset = 310,  -- px each options column center sits from screen center
+
+        -- eerie title glitch: now and then one letter tears for a moment
+        glitchGapMin = 2.5,  -- secs between bursts (random in [min, max])
+        glitchGapMax = 7,
+        glitchTime = 0.16,   -- secs one burst lasts
+        glitchAmp = 5,       -- px of letter jitter during a burst
+        glitchSwapChance = 0.35, -- chance the letter shows a wrong glyph
+    },
+
+    splash = { -- studio card at launch (any key / click skips to the fade-out)
+        fadeIn = 1.5,  -- secs black -> full white text
+        hold = 3.5,    -- secs the card stays
+        fadeOut = 1,   -- secs back to black, then the menu fades in
     },
 
     fx = {

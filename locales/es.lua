@@ -3,7 +3,7 @@ return {
     ['menu.new_game']    = 'NUEVO JUEGO',
     ['menu.options']     = 'OPCIONES',
     ['menu.quit']        = 'SALIR',
-    ['menu.hint']        = 'FLECHAS/WASD MOVER   ENTER SELECCIONAR',
+    ['menu.hint']        = 'NO BIRDS - FRED FRITH',
 
     ['controls.title']   = 'CONTROLES',
     ['controls.move']    = 'MOVERSE',

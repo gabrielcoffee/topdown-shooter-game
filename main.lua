@@ -33,7 +33,7 @@ function love.load()
     i18n.setLanguage(SETTINGS.language)
     Screen.apply(SETTINGS) -- sets logical globals, window mode, letterbox
 
-    State.switch('menu')
+    State.switch('splash') -- studio card first; it fades into the menu
 
     for _, a in ipairs(arg) do
         if a == 'autotest' then
@@ -47,10 +47,14 @@ function love.load()
             State.switch('controls')
             _G._autotest = { frames = 0 }
         elseif a == 'autotest_menu' then
-            -- screenshot the main menu (already the default state)
+            State.switch('menu')
             _G._autotest = { frames = 0 }
         elseif a == 'autotest_options' then
+            State.switch('menu')
             State.push('options')
+            _G._autotest = { frames = 0 }
+        elseif a == 'autotest_splash' then
+            -- splash is the boot state; just screenshot it mid-fade-in
             _G._autotest = { frames = 0 }
         elseif a == 'shotgun' then
             _G._autotest_shotgun = true
