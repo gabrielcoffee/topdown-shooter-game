@@ -124,6 +124,13 @@ local function throwableItem(kind)
     return HandItem:newGrenade(kind == 'molotov' and 'molotov' or nil)
 end
 
+-- Deploy sound for slot 4: each throwable gets its own handling sound —
+-- grenade_pull reads as the molotov (bottle) one, the HE uses grenade_draw
+function Player:playThrowableDeploy()
+    Audio.play(self.throwableType == 'molotov'
+        and 'grenade_pull' or 'grenade_draw', 0.7)
+end
+
 -- Pressing 4 while slot 4 is already out flips grenade <-> molotov
 -- (only onto a type with ammo left)
 function Player:cycleThrowable()
@@ -132,7 +139,7 @@ function Player:cycleThrowable()
     if count <= 0 then return end
     self.throwableType = other
     self.items[4] = throwableItem(other)
-    Audio.play('grenade_pull', 0.7) -- CS-style pin pull when the grenade comes out
+    self:playThrowableDeploy()
 end
 
 -- Keep slot 4 pointing at a loaded throwable: if the current type ran dry
@@ -187,7 +194,7 @@ function Player:selectSlot(i, fast)
     elseif newItem.isKnife then
         Audio.play('knife_swing', 0.5)
     elseif newItem.isThrowable then
-        Audio.play('grenade_pull', 0.7) -- CS-style pin pull when the grenade comes out
+        self:playThrowableDeploy()
     end
 
     -- switching to an empty gun starts its reload right away
@@ -303,10 +310,10 @@ function Player:update(dt, world)
     -- per-item use cooldowns: stacked throwables / med kits can't be spammed
     if self.throwTimer > 0 then
         self.throwTimer = self.throwTimer - dt
-        -- cooldown over with another one in the bag: pin pull, CS-style, so
-        -- the ear knows the next grenade is live
+        -- cooldown over with another one in the bag: deploy sound again so
+        -- the ear knows the next throwable is live
         if self.throwTimer <= 0 and self.itemIndex == 4 and self:throwableCount() > 0 then
-            Audio.play('grenade_pull', 0.7)
+            self:playThrowableDeploy()
         end
     end
     if self.healTimer > 0 then self.healTimer = self.healTimer - dt end

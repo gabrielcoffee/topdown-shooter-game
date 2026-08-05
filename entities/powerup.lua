@@ -57,18 +57,12 @@ function Powerup:apply(world)
         Audio.play('grenade_blast')
         player:addMoney(P.nukeMoney)
     elseif self.kind == 'maxammo' then
-        -- both gun slots to full (instant reload included), grenades to max;
-        -- molotovs only top up if the player already carries the type
+        -- both gun slots to full (instant reload included); bullets only —
+        -- throwables never top up (grenades stay a chest/wallet purchase)
         for i = 1, 2 do
             local gun = player.items[i]
             if gun then gun:refill() end
         end
-        -- slot 4 is one pool: top the CURRENT type up as far as it goes,
-        -- leaving whatever is stowed of the other type untouched. Loop on
-        -- the add's own result — pool space can be open while the per-kind
-        -- cap still refuses (3 grenades, 0 molotovs), which used to spin
-        -- this loop forever and freeze the game.
-        while player:addThrowable(player.throwableType) do end
     elseif self.kind == 'instakill' then
         world.buffs.instakill = P.instakillTime
     elseif self.kind == 'freeze' then

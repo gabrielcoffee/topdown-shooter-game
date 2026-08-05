@@ -184,9 +184,11 @@ return {
                           popTime = 0.15,    -- secs a flame takes to grow in
                           fadeTime = 1.2,    -- secs of shrink/fade at the end of burnTime
                           bobAmp = 1.5, bobSpeed = 7, -- idle up/down sway (px, rad/s)
-                          scorchAlpha = 0.3, -- darkened burnt ground under the fire
-                          glowAlpha = 0.3,   -- additive orange glow over the burn area
-                          emberFactor = 0.4 } }, -- particle embers kept on top of the sprites
+                          -- sprites-only look: scorch/glow circles and ember
+                          -- particles all off (raise any of them to bring it back)
+                          scorchAlpha = 0,   -- darkened burnt ground under the fire
+                          glowAlpha = 0,     -- additive orange glow over the burn area
+                          emberFactor = 0 } }, -- particle embers on top of the sprites
 
     -- slot 4 is ONE pool: grenades + molotovs together can't pass maxCarry,
     -- and one kind alone can't pass perKindMax (4 total, never 4 of one)
