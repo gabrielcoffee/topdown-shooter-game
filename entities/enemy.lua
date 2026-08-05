@@ -61,6 +61,11 @@ local function newTyped(x, y, wave, kind, color)
     obj.breaksCrates = t.breaksCrates or false
     obj.losShortcut = t.losShortcut or false
 
+    -- combat circle padded past the sprite (hitPad): point-blank shots and
+    -- knife swings land easier. Separation uses the same circle, so zombies
+    -- also hold that much more distance — contact reach nets out unchanged.
+    obj.radius = obj.radius + (t.hitPad or 0)
+
     -- wall-collision box capped so big sprites (slow, 48px) still fit 1-tile
     -- gaps and can reach wall-adjacent waypoints; combat circle stays size/2
     local box = math.min(t.size - TUNE.movement.collisionInset * 2,

@@ -285,7 +285,13 @@ return {
                    bounceRestitution = 0.45, -- fraction of speed kept per rebound
                    bounceMinSpeed = 40 },    -- rebounds slower than this settle flat
 
-    bullet = { speed = 540 },
+    bullet = { speed = 540,
+               -- first frame only: the hit check also probes this many px
+               -- BEHIND the spawn point (zombies only, never walls), so a
+               -- zombie inside the barrel length still catches a point-blank
+               -- shot. Covers the gap for usp/shotgun/ak tips; the m4's 44px
+               -- tip can still whiff on a point-blank fast zombie.
+               tailLen = 18 },
 
     -- spent shell casings: faked-3D hop (ground x/y + height z), spin, settle
     -- near the player, then blink out. Purely decorative.
@@ -505,21 +511,23 @@ return {
         -- losShortcut: clear straight line to the player = walk it directly
         -- (no A*, no grid corners); blocked line falls back to normal A*
         -- damage = contact hit on the player (slow hits hardest, fast lightest)
+        -- hitPad = extra px on the combat circle radius (bullets/knife land
+        -- easier point-blank); wall-collision box and sprite untouched
         -- slow uses assets/images/zombies/slow_zombie.gif (54x60, 4 frames): the normal
         -- sprite scaled 1.5x and recolored red, centered on the 48px circle
         -- cloudColor = spawn-telegraph haze tint, sampled from each type's sprite
-        slow   = { speed = 30, lifeMult = 1,    size = 48, damage = 25, losShortcut = true, breaksCrates = true,
+        slow   = { speed = 30, lifeMult = 1,    size = 48, damage = 25, hitPad = 5, losShortcut = true, breaksCrates = true,
                    cloudColor = { 0.61, 0.34, 0.28 },
                    animTime = 1.4 }, -- secs per walk loop (half the normal's pace)
         -- normal uses assets/images/zombies/normal_zombie.gif (36x40, 4 frames): sprite is
         -- centered on the 32px collision circle on both axes. Plain repeating
         -- loop (1-2-3-4-1...).
-        normal = { speed = 60, lifeMult = 0.5,  size = 32, damage = 20, breaksCrates = true,
+        normal = { speed = 60, lifeMult = 0.5,  size = 32, damage = 20, hitPad = 3, breaksCrates = true,
                    cloudColor = { 0.36, 0.61, 0.47 },
                    animTime = 0.7 }, -- secs for one full walk-cycle loop
         -- fast uses assets/images/zombies/fast_zombie.gif (16x24): size = the body circle,
         -- which is the BOTTOM 16px of the sprite; the top 8px overhang above it
-        fast   = { speed = 90, lifeMult = 0.25, size = 16, damage = 20, breaksCrates = true,
+        fast   = { speed = 90, lifeMult = 0.25, size = 16, damage = 20, hitPad = 2, breaksCrates = true,
                    cloudColor = { 0.68, 0.72, 0.2 },
                    animTime = 0.45 }, -- secs for one full run-cycle loop
     },

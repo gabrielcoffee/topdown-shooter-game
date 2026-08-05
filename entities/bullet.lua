@@ -40,11 +40,22 @@ function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime, econ, maxHits, 
 end
 
 function Bullet:update(dt, world)
-    -- The first update samples only the spawn point (muzzle-touch kills keep
-    -- working). After that the flight is swept in <=8px substeps, so no wall,
-    -- crate or small zombie can fit between two samples — at 540px/s a single
+    -- The first update samples the spawn point (muzzle-touch kills keep
+    -- working), plus a short tail BEHIND it (bullet.tailLen): the muzzle sits
+    -- tipLen px out from the player, so a zombie pressed inside that gap was
+    -- unhittable. The tail probes zombies only — never walls/crates, so a
+    -- wall-hugging shooter can't have the shot eaten by the wall behind them.
+    -- After that the flight is swept in <=8px substeps, so no wall, crate or
+    -- small zombie can fit between two samples — at 540px/s a single
     -- point-check per frame skipped 21px fast zombies below ~26fps.
     local dist = (self.timer == 0) and 0 or self.speed * dt
+    if self.timer == 0 then
+        local d = TUNE.bullet.tailLen or 0
+        while d > 0 and not self.toRemove do
+            self:checkZombieHits(world, self.x - self.dx * d, self.y - self.dy * d)
+            d = d - 8
+        end
+    end
     self.timer = self.timer + dt
     if self.animMuzzle then self.animMuzzle:update(dt) end
 
@@ -90,21 +101,33 @@ function Bullet:checkHits(world)
         end
     end
 
-    -- pierce: every overlapping zombie is damaged once per bullet; the bullet
-    -- only dies after maxHits total. health > 0 guard: an already-dead enemy
-    -- can't pay twice (shotgun pellets), and corpses don't eat a pierce.
+    self:checkZombieHits(world, self.x, self.y)
+end
+
+-- Zombie pass at an arbitrary sample point: the flight sweep samples the
+-- bullet's own position, the first-frame tail probes behind it.
+-- Pierce: every overlapping zombie is damaged once per bullet; the bullet
+-- only dies after maxHits total. health > 0 guard: an already-dead enemy
+-- can't pay twice (shotgun pellets), and corpses don't eat a pierce.
+function Bullet:checkZombieHits(world, px, py)
+    local bx, by = px + self.width / 2, py + self.height / 2
     for _, e in ipairs(world.entities) do
         if e.type == 'enemy' and not e.toRemove and e.health > 0
-            and not self.hitEnemies[e] and self:collidesWith(e) then
-            self.hitEnemies[e] = true
-            e:takeDamage(self.damage, world, self.econ)
-            world.vfx:bloodSplatter(self.x, self.y, self.angle)
-            Audio.playAt('flesh_hit', self.x, self.y, 1, TUNE.audio.pitchJitter, world)
+            and not self.hitEnemies[e] then
+            local ex, ey = e:getCenter()
+            local dx, dy = bx - ex, by - ey
+            local r = self.radius + e.radius
+            if dx*dx + dy*dy < r*r then
+                self.hitEnemies[e] = true
+                e:takeDamage(self.damage, world, self.econ)
+                world.vfx:bloodSplatter(bx, by, self.angle)
+                Audio.playAt('flesh_hit', bx, by, 1, TUNE.audio.pitchJitter, world)
 
-            self.hitsLeft = self.hitsLeft - 1
-            if self.hitsLeft <= 0 then
-                world:removeEntity(self)
-                return
+                self.hitsLeft = self.hitsLeft - 1
+                if self.hitsLeft <= 0 then
+                    world:removeEntity(self)
+                    return
+                end
             end
         end
     end
