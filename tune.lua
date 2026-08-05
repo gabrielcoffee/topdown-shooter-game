@@ -196,8 +196,9 @@ return {
                    perKindMax = 3,
                    useDelay = 1 }, -- secs between throws (a full pool can't be dumped at once)
 
-    healthpack = { healAmount = 50, maxCarry = 2, -- slot 5 stacks maxCarry kits
-                   useDelay = 1 }, -- secs between heals
+    healthpack = { healAmount = 50, maxCarry = 3, -- slot 5 stacks maxCarry kits
+                   useTime = 2.5 }, -- secs the patch-up takes (bar over the hotbar;
+                                    -- swapping the kit away cancels, running is fine)
 
     -- CoD-style wall buys (GunWall entities placed in LDtk; gun + optional price)
     wallbuy = { interactPad = 4,
@@ -252,10 +253,20 @@ return {
         takeWindow = 8.0,     -- secs to press E and take a rolled gun
         openTime = 0.25,      -- secs for the lid open (and close) animation
         interactPad = 32,     -- px around the 64x32 box where E buys/takes
-        -- loot odds; invalid categories (grenades full, medkit held) are
-        -- dropped and the rest renormalized. Rolling an owned gun = ammo refill.
-        -- guns rare (shotgun rarest) since they hang on walls now
-        weights = { ak47 = 10, m4a1 = 10, shotgun = 5, grenade = 25, molotov = 20, healthpack = 30 },
+        -- loot odds — two-stage roll, resolved at pay time:
+        --   1) GUN GATE: gunChance base odds of a gun, +gunChancePerItem for
+        --      every grenade/molotov/med kit held when paying (full pockets =
+        --      box leans guns). If nothing else can drop (all pools full) the
+        --      roll is a gun for sure. Rolling an owned gun = ammo refill.
+        --   2) CONSUMABLES: the rest draws from a shuffled card bag (bagCards
+        --      = card counts). Cards that can't help right now (pool full)
+        --      are skipped, not spent. After bagResetAfter draws the bag is
+        --      rebuilt + reshuffled — smooths streaks, can't be card-counted.
+        gunChance = 0.15,         -- base gun odds (15%)
+        gunChancePerItem = 0.025, -- +2.5% per grenade/molotov/med kit held
+        gunWeights = { ak47 = 2, m4a1 = 2, shotgun = 1 }, -- split inside the gun odds (6/6/3% at base)
+        bagCards = { grenade = 5, molotov = 4, healthpack = 6 }, -- 15 cards
+        bagResetAfter = 5,        -- draws before the bag resets
     },
 
     hotbar = { slotSize = 56, gap = 8, bottomMargin = 16 },
@@ -265,8 +276,10 @@ return {
     -- popup left of the HP readout shares popupTime/popupRise, but stacks
     -- (per-frame spike/fire damage adds into the live popup).
     -- reloadBar* : the bar that fills right of the ammo count while reloading
+    -- medkitBar* : the patch-up progress bar centered above the hotbar
     hud = { popupTime = 1.0, popupRise = 18,
-            reloadBarW = 70, reloadBarH = 8, reloadBarGap = 14 },
+            reloadBarW = 70, reloadBarH = 8, reloadBarGap = 14,
+            medkitBarW = 90, medkitBarH = 10, medkitBarGap = 14 },
 
     dev = { enabled = true,     -- master switch for the chat console (T)
             flySpeedMult = 2 }, -- god-mode fly (shift held): speed vs base walk

@@ -697,6 +697,7 @@ function World:serialize()
         droppedGuns = droppedGuns,
         powerups = powerups,
         firePatches = firePatches,
+        chestBag = self.chestBag,
         player = self.player:serialize(),
     }
 end
@@ -750,6 +751,18 @@ function World:restore(data)
     local waveNum = (data.waves and data.waves.wave) or data.wave or 1
     for _, z in ipairs(data.zombies or {}) do
         self:addEntity(Enemy.fromSave(z, waveNum))
+    end
+
+    -- mystery-box card bag comes back as saved (no save-scum reshuffles);
+    -- cards whose kind left the tune since are dropped, an emptied bag = fresh
+    if data.chestBag and data.chestBag.cards then
+        local cards = {}
+        for _, kind in ipairs(data.chestBag.cards) do
+            if TUNE.chest.bagCards[kind] then table.insert(cards, kind) end
+        end
+        if #cards > 0 then
+            self.chestBag = { cards = cards, draws = data.chestBag.draws or 0 }
+        end
     end
 
     -- chest mid-spin / gun-on-the-lid state (matched by map position)

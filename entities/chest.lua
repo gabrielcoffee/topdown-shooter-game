@@ -82,35 +82,75 @@ local function resultIndex(r)
     return want
 end
 
--- Weighted pick over categories that can currently help the player.
--- Owned-gun rolls become an ammo refill for that gun.
-function Chest:roll(player)
-    local weights = {}
-    for key, w in pairs(TUNE.chest.weights) do
-        local valid = true
-        if key == 'grenade' or key == 'molotov' then
-            -- shared pool + per-kind cap (canAddThrowable checks both)
-            valid = player:canAddThrowable(key)
-        elseif key == 'healthpack' and player.medkits >= TUNE.healthpack.maxCarry then
-            valid = false
+-- Can this consumable still help the player right now?
+local function fitsPlayer(player, kind)
+    if kind == 'healthpack' then
+        return player.medkits < TUNE.healthpack.maxCarry
+    end
+    -- shared pool + per-kind cap (canAddThrowable checks both)
+    return player:canAddThrowable(kind)
+end
+
+-- Fresh consumable bag: one card per bagCards count, Fisher-Yates shuffled
+local function buildBag()
+    local cards = {}
+    for kind, n in pairs(TUNE.chest.bagCards) do
+        for _ = 1, n do table.insert(cards, kind) end
+    end
+    for i = #cards, 2, -1 do
+        local j = love.math.random(i)
+        cards[i], cards[j] = cards[j], cards[i]
+    end
+    return { cards = cards, draws = 0 }
+end
+
+-- Top valid card leaves the bag; cards that can't help right now are skipped
+-- and stay for later. After bagResetAfter draws (or an emptied bag) the next
+-- draw starts from a fresh shuffle. The bag lives on the world — every box
+-- shares it and it rides along in the run save.
+local function drawFromBag(world, player)
+    for _ = 1, 2 do
+        local bag = world.chestBag or buildBag()
+        world.chestBag = bag
+        for idx, kind in ipairs(bag.cards) do
+            if fitsPlayer(player, kind) then
+                table.remove(bag.cards, idx)
+                bag.draws = bag.draws + 1
+                if bag.draws >= TUNE.chest.bagResetAfter or #bag.cards == 0 then
+                    world.chestBag = nil
+                end
+                return kind
+            end
         end
-        if valid then weights[key] = w end
+        world.chestBag = nil -- nothing usable left: reshuffle and rescan
+    end
+end
+
+-- Two-stage roll: gun gate first (base odds + bonus per throwable/med kit
+-- held; guaranteed gun when nothing else can drop), then the consumable bag.
+-- Owned-gun rolls become an ammo refill for that gun.
+function Chest:roll(player, world)
+    local C = TUNE.chest
+    local anyConsumable = false
+    for kind in pairs(C.bagCards) do
+        if fitsPlayer(player, kind) then anyConsumable = true break end
     end
 
+    local held = player.grenades + player.molotovs + player.medkits
+    local gunOdds = C.gunChance + C.gunChancePerItem * held
+    if anyConsumable and love.math.random() >= gunOdds then
+        return { kind = drawFromBag(world, player) }
+    end
+
+    -- gun roll: weighted split, dupe becomes a refill
     local total = 0
-    for _, w in pairs(weights) do total = total + w end
+    for _, w in pairs(C.gunWeights) do total = total + w end
     local pick = love.math.random() * total
     local chosen
-    for key, w in pairs(weights) do
+    for id, w in pairs(C.gunWeights) do
         pick = pick - w
-        if pick <= 0 then chosen = key break end
+        if pick <= 0 then chosen = id break end
     end
-
-    if chosen == 'grenade' or chosen == 'molotov' or chosen == 'healthpack' then
-        return { kind = chosen }
-    end
-
-    -- gun roll: dupe becomes a refill
     for i = 1, 2 do
         local owned = player.items[i]
         if owned and owned.id == chosen then
@@ -127,7 +167,7 @@ end
 function Chest:interact(player, world)
     if self.state == 'idle' then
         if player:trySpend(self:currentCost()) then
-            self.result = self:roll(player)
+            self.result = self:roll(player, world)
             self.state = 'spinning'
             self.timer = TUNE.chest.spinTime
             self:openLid()

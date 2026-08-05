@@ -68,7 +68,7 @@ function Player:new(x, y, width, height)
     obj.slotHeld = {}     -- per-slot key state, so holding a number can't re-select
     obj.switchTimer = 0   -- deploy lockout after a weapon swap (blocks quick-switch)
     obj.throwTimer = 0    -- secs until the next throw is allowed (stacked grenades)
-    obj.healTimer = 0     -- secs until the next med kit use is allowed
+    obj.healing = nil     -- secs left on the med kit patch-up (nil = not healing)
 
     obj.animState = 'idle'
     obj.animRun = Animation:new(Assets.quads.player, 2, 4, 0.1)
@@ -316,7 +316,27 @@ function Player:update(dt, world)
             self:playThrowableDeploy()
         end
     end
-    if self.healTimer > 0 then self.healTimer = self.healTimer - dt end
+    -- med kit patch-up channel: runs while the kit stays in hand (sprinting
+    -- is fine); swapping it away cancels with nothing spent. The heal and
+    -- the kit itself only land when the bar completes.
+    if self.healing then
+        if self.itemIndex ~= 5 then
+            self.healing = nil
+        else
+            self.healing = self.healing - dt
+            if self.healing <= 0 then
+                self.healing = nil
+                local cx, cy = self:getCenter()
+                self.health = math.min(self.maxHealth,
+                    self.health + TUNE.healthpack.healAmount)
+                self.medkits = self.medkits - 1
+                world.vfx:healBurst(cx, cy)
+                Audio.playAt('medkit_heal', cx, cy, 0.9, TUNE.audio.pitchJitter, world)
+                -- one still in the bag: keep it out, otherwise back to the knife
+                if not self:slotValid(5) then self:selectSlot(3) end
+            end
+        end
+    end
 
     -- locked buttons free up once released (no and/or here: false isDown(1)
     -- would fall through into keyboard.isDown('mouse1') and crash)
@@ -349,8 +369,8 @@ function Player:update(dt, world)
     end
 
     -- SHIFT = SPRINT: shift held + moving, always — no lockout after firing.
-    -- While sprinting every item action (shoot/knife/throw/heal/reload) is
-    -- blocked; only moving and switching what's in hand work.
+    -- While sprinting shoot/knife/throw are blocked (no aiming at full tilt);
+    -- switching, reloading and the med kit patch-up all keep working.
     local shiftHeld = keyDown('lshift') or keyDown('rshift')
     self.running = shiftHeld and (moveX ~= 0 or moveY ~= 0)
     -- god mode turns the sprint into a fly: through walls, over tiles, no dust
@@ -440,21 +460,9 @@ function Player:update(dt, world)
         and not self.lockedInputs.mouse1
     local heldItem = self.items[self.itemIndex]
 
-    -- sprinting cuts a reload dead. An EMPTY gun re-reloads by itself the
-    -- moment the sprint ends (nothing to shoot otherwise); a manual top-up
-    -- reload just dies and the player re-presses R.
-    if self.running and heldItem.isGun and heldItem.reloading then
-        heldItem:cancelReload()
-    end
-    if not self.running and self.wasRunning and heldItem.isGun
-        and heldItem.curClip <= 0 then
-        heldItem:reload() -- self-checks reserve ammo
-    end
-    self.wasRunning = self.running
-
     -- deploy lockout: right after a swap the new item can't act yet, so
     -- alternating two guns can't beat either gun's own fire rate. Sprinting
-    -- blocks every item action — release shift (or stop) to act.
+    -- blocks shooting/knifing/throwing — reload and the med kit still work.
     local canAct = self.switchTimer <= 0 and not self.running
 
     -- fresh out of a sprint the item can still hold the run-direction angle
@@ -492,7 +500,8 @@ function Player:update(dt, world)
         self.throwTimer = TUNE.throwables.useDelay -- a full pool can't be dumped at once
         self:syncThrowable() -- last of this type: flip to the other if loaded
         if not self:slotValid(4) then self:selectSlot(3) end
-    elseif leftPressed and canAct and self.leftReleased and heldItem.isHealthPack then
+    elseif leftPressed and self.switchTimer <= 0 and self.leftReleased
+        and heldItem.isHealthPack then
         self:useMedkit(world)
     end
 
@@ -500,7 +509,7 @@ function Player:update(dt, world)
 
     -- Reload
     local rPressed = not typing and love.keyboard.isDown('r')
-    if rPressed and self.rReleased and heldItem.isGun and not self.running then
+    if rPressed and self.rReleased and heldItem.isGun then
         heldItem:reload()
     end
     self.rReleased = not rPressed
@@ -531,7 +540,7 @@ function Player:update(dt, world)
         elseif self.touchingDoor and self:trySpend(self.touchingDoor.price) then
             world:openDoor(self.touchingDoor)
             self.touchingDoor = nil
-        elseif heldItem.isHealthPack and canAct then
+        elseif heldItem.isHealthPack and self.switchTimer <= 0 then
             self:useMedkit(world) -- E heals too when nothing else is in reach
         end
     end
@@ -742,19 +751,13 @@ function Player:drawHud()
     end
 end
 
--- One med kit down the hatch (left click or E with it in hand): heal, use
--- cooldown, pink puffs rising off the body, heal cue.
+-- Left click or E with the kit in hand starts the patch-up channel; the
+-- heal (pink puffs, cue, kit spent) lands when the bar over the hotbar
+-- completes — see the channel block in update.
 function Player:useMedkit(world)
     if self.health >= self.maxHealth or self.medkits <= 0
-        or self.healTimer > 0 then return end
-    local cx, cy = self:getCenter()
-    self.health = math.min(self.maxHealth, self.health + TUNE.healthpack.healAmount)
-    self.medkits = self.medkits - 1
-    self.healTimer = TUNE.healthpack.useDelay
-    world.vfx:healBurst(cx, cy)
-    Audio.playAt('medkit_heal', cx, cy, 0.9, TUNE.audio.pitchJitter, world)
-    -- one still in the bag: keep it out, otherwise fall back to the knife
-    if not self:slotValid(5) then self:selectSlot(3) end
+        or self.healing then return end
+    self.healing = TUNE.healthpack.useTime
 end
 
 -- Cash in, cash out. Every gain funnels through here so the cap holds

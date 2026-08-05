@@ -44,17 +44,17 @@ function Hotbar.draw(player)
         love.graphics.rectangle('line', x, y0, size, size, 3, 3)
         love.graphics.setLineWidth(1)
 
-        -- use cooldown (throwables / med kits): 0..1 left, drives a dim + bar
+        -- throwable use cooldown: 0..1 left, drives a dim + sweep bar; the
+        -- med kit dims while its patch-up channel runs (bar above the hotbar)
         local cd = 0
         if i == 4 and player.throwTimer > 0 then
             cd = player.throwTimer / TUNE.throwables.useDelay
-        elseif i == 5 and player.healTimer > 0 then
-            cd = player.healTimer / TUNE.healthpack.useDelay
         end
+        local dimmed = cd > 0 or (i == 5 and player.healing ~= nil)
 
         if item then
             -- greyed out when unusable (no grenades left) or still cooling down
-            local a = valid and (cd > 0 and 0.45 or 1) or 0.25
+            local a = valid and (dimmed and 0.45 or 1) or 0.25
             local tint = item.iconTint
             if tint then -- molotov placeholder: grenade art tinted orange
                 love.graphics.setColor(tint[1], tint[2], tint[3], a)
@@ -112,6 +112,20 @@ function Hotbar.draw(player)
         -- slot number
         love.graphics.setColor(1, 1, 1, 0.4)
         love.graphics.print(tostring(i), x + 4, y0 + 3)
+    end
+
+    -- med kit patch-up: progress bar centered above the hotbar, filling
+    -- toward the heal (same look as the chest take-window bar, one size up)
+    if player.healing then
+        local H = TUNE.hud
+        local frac = 1 - player.healing / TUNE.healthpack.useTime
+        local bx = math.floor((SCREENWIDTH - H.medkitBarW) / 2)
+        local by = y0 - H.medkitBarGap - H.medkitBarH
+        love.graphics.setColor(0, 0, 0, 0.6)
+        love.graphics.rectangle('fill', bx, by, H.medkitBarW, H.medkitBarH, 2, 2)
+        love.graphics.setColor(0.55, 0.95, 0.55)
+        love.graphics.rectangle('fill', bx + 1, by + 1,
+            (H.medkitBarW - 2) * math.max(0, math.min(frac, 1)), H.medkitBarH - 2, 2, 2)
     end
 
     love.graphics.setColor(1, 1, 1)
