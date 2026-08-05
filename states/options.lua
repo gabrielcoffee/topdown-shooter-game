@@ -114,7 +114,6 @@ function options:draw()
     Particles.drawFog()
     Theme.drawTitle(T('options.title'), 240)
     self.list:draw()
-    Particles.drawEmbers()
 end
 
 function options:keypressed(key)

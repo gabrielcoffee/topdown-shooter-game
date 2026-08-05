@@ -1,11 +1,12 @@
--- Main menu: just the texts over black, through the CRT chain. Coming from
--- the intro the typed title glides up into place; the items NES-fade in at
--- the bottom either way (same speed as the intro card).
+-- Main menu: texts over the fog haze, through the CRT chain (embers gone,
+-- haze stays). Coming from the intro the typed title glides up into place;
+-- the items NES-fade in at the bottom either way (same speed as the card).
 
 local State = require('core.state')
 local Theme = require('ui.theme')
 local MenuList = require('ui.menu_list')
 local Save = require('core.save')
+local Particles = require('ui.particles')
 local flux = require('lib.flux')
 local Audio = require('core.audio')
 
@@ -118,11 +119,13 @@ end
 function menu:update(dt)
     self.time = self.time + dt
     self.list:update(dt)
+    Particles.update(dt)
     updateGlitch(self, dt)
 end
 
 function menu:draw()
     Theme.drawBackground()
+    Particles.drawFog() -- background haze (embers stay gone)
 
     -- slight neon flicker on the title
     local flicker = 0.86 + 0.14 * love.math.noise(self.time * 7)

@@ -382,7 +382,7 @@ return {
         fadeOut = 1,        -- secs the card fades back to black
         typeInterval = 0.12, -- secs per typed CHAMBER 9 letter
         typeHold = 0.7,     -- beat after typing before the menu arrives
-        typeGain = 0.4,     -- volume of the per-letter click
+        typeGain = 0.6,     -- volume of the per-letter typewriter click
         titleGlide = 0.9,   -- secs the typed title glides up into place
     },
 

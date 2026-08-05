@@ -91,7 +91,6 @@ function graphics:draw()
     if dirty(self) then
         Theme.drawHint(T('gfx.unapplied'), SCREENHEIGHT - 80)
     end
-    Particles.drawEmbers()
 end
 
 function graphics:keypressed(key)
