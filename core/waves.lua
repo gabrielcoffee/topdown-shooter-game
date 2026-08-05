@@ -22,14 +22,17 @@ end
 local function quotaFor(w)
     local t = TUNE.waves
     local q = (t.quotaBase + w * (w + 1) / 2) * (t.quotaMult or 1)
-    if Waves.isNightmare(w) then q = q * (t.nightmare.quotaMult or 1) end
     return math.floor(q + 0.5)
 end
 
--- secs between spawns, shrinking each wave down to the floor
+-- secs between spawns, shrinking each wave down to the floor.
+-- Nightmares don't add zombies or speed — they only spawn FASTER (and mix
+-- the types differently, see weights).
 local function delayFor(w)
     local t = TUNE.waves
-    return math.max(t.spawnDelayFloor, t.spawnDelayStart * t.spawnDelayDecay ^ (w - 1))
+    local d = math.max(t.spawnDelayFloor, t.spawnDelayStart * t.spawnDelayDecay ^ (w - 1))
+    if Waves.isNightmare(w) then d = d * (t.nightmare.spawnDelayMult or 1) end
+    return d
 end
 
 -- last weights bracket whose fromWave <= w; nightmares use their own mix

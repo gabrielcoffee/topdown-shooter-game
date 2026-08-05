@@ -54,12 +54,7 @@ local function newTyped(x, y, wave, kind, color)
     local obj = Enemy:new(x, y, t.size, t.size)
     obj.kind = kind -- 'slow'|'normal'|'fast', needed to rebuild from a save
     obj.speed = t.speed
-    -- nightmare waves (every Nth): everything moves faster. Checked here so
-    -- the boost applies on spawn AND on save restore (fromSave passes wave).
-    local nm = TUNE.waves.nightmare
-    if nm and (wave or 0) > 0 and (nm.every or 0) > 0 and wave % nm.every == 0 then
-        obj.speed = obj.speed * (nm.speedMult or 1)
-    end
+    -- nightmare waves change spawn pacing + type mix only — no speed boost
     obj.health = waveLife(wave or 1) * t.lifeMult
     obj.color = color
     obj.damage = t.damage or TUNE.zombies.contactDamage

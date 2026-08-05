@@ -57,7 +57,7 @@ return {
     ['hud.money_gain']   = '+$%d',
     ['hud.health_loss']  = '-%d',
     ['hud.ammo']         = '%s  Balas: %d/%d',
-    ['hud.medkit']       = 'KIT MÉDICO  x%d',
+    ['hud.medkit']       = 'KIT MÉDICO  %d',
     ['hud.medkit_hint']  = '+%dHP',
     ['hud.gun_pickup']   = 'Aperte E para pegar %s',
     ['hud.door_open']    = 'Aperte E para abrir - $%d',

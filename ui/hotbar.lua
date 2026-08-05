@@ -71,7 +71,7 @@ function Hotbar.draw(player)
                 love.graphics.print(txt,
                     x + size - font:getWidth(txt) - 4, cntY)
             elseif item.isThrowable then
-                local txt = 'x' .. player:throwableCount()
+                local txt = tostring(player:throwableCount())
                 love.graphics.print(txt,
                     x + size - font:getWidth(txt) - 4, cntY)
                 -- the stowed throwable's count sits bottom-left, dimmed
@@ -79,10 +79,10 @@ function Hotbar.draw(player)
                     and player.grenades or player.molotovs
                 if other > 0 then
                     love.graphics.setColor(1, 1, 1, 0.35)
-                    love.graphics.print('x' .. other, x + 4, cntY)
+                    love.graphics.print(other, x + 4, cntY)
                 end
             elseif item.isHealthPack then
-                local txt = 'x' .. player.medkits
+                local txt = tostring(player.medkits)
                 love.graphics.print(txt,
                     x + size - font:getWidth(txt) - 4, cntY)
             end

@@ -568,10 +568,11 @@ return {
         -- zombie faster. Banner goes purple.
         nightmare = {
             every = 5,       -- waves 5, 10, 15...
-            quotaMult = 1,   -- same zombie count as a normal wave
-            speedMult = 1.1, -- all zombie speeds x this
+            -- same zombie count and speed as a normal wave: nightmares only
+            -- spawn faster and shift the type mix
+            spawnDelayMult = 0.55, -- spawn delay x this (~2x spawn rate)
             weights = { slow = 10, normal = 40, fast = 50 },
-            nearPlayerChance = 0.10, -- surprise-spawn roll during nightmares
+            nearPlayerChance = 0.15, -- surprise-spawn roll during nightmares
             bonusMoney = 500,        -- cash for clearing one (shown on the end banner)
         },
     },
