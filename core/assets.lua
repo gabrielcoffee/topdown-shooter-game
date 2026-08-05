@@ -132,6 +132,37 @@ function Assets.sceneryRow(rowY)
     return set
 end
 
+-- WALL AUTOTILE --------------------------------------------------------------
+-- 7x3 block of 32px tiles at (0, 288). Walls pick their sprite from the 8
+-- neighbors around them (core/map wallQuad):
+--
+--   cols 0-2            3x3 blob: outer corners, edges, full center
+--   cols 3-5, row 0     1-tile-thick horizontal run: left cap, middle, right cap
+--   col 6               1-tile-thick vertical run: top cap, middle, bottom cap
+--   cols 3-4, rows 1-2  inner corners: notch on the one open diagonal, each
+--                       notch pointing at the center of this 2x2 group
+--
+-- Activates only once the block is painted; until then core/map falls back to
+-- the flat scenery solid tile.
+local WALL_X, WALL_Y = 0, 288
+
+if cellPainted(WALL_X, WALL_Y, 32, 32) then
+    local function wq(col, row)
+        return love.graphics.newQuad(
+            WALL_X + col * 32, WALL_Y + row * 32, 32, 32, Assets.spritesheet)
+    end
+    Assets.walls = {
+        tl = wq(0, 0), top    = wq(1, 0), tr = wq(2, 0),
+        l  = wq(0, 1), c      = wq(1, 1), r  = wq(2, 1),
+        bl = wq(0, 2), bottom = wq(1, 2), br = wq(2, 2),
+        capL = wq(3, 0), h = wq(4, 0), capR = wq(5, 0),
+        capT = wq(6, 0), v = wq(6, 1), capB = wq(6, 2),
+        -- named by the open diagonal the notch faces
+        innSE = wq(3, 1), innSW = wq(4, 1),
+        innNE = wq(3, 2), innNW = wq(4, 2),
+    }
+end
+
 -- Quads for the images
 Assets.quads = {
     player = loadQuads(0, 0, 32, 32, 4),

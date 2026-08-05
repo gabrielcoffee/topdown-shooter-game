@@ -30,6 +30,7 @@ function Map:new(levelDef)
         surfaces = levelDef.surfaces, -- tile type -> footstep material
         -- ground/torch/prop art for this map (see core/assets sceneryRow)
         scenery = Assets.sceneryRow(levelDef.tileRow),
+        walls = Assets.walls, -- autotile set (see core/assets WALL AUTOTILE)
     }
 
     obj.rows = #obj.grid
@@ -99,6 +100,65 @@ function Map:surfaceAt(px, py)
     return (self.surfaces and self.surfaces[t]) or 'sand'
 end
 
+-- Autotile neighbor test. Outside the map and void both count as wall, so
+-- border walls merge into the black instead of growing edges nobody sees.
+local function isWall(self, row, col)
+    if row < 1 or row > self.rows or col < 1 or col > self.cols then
+        return true
+    end
+    local t = self.tileTypes[self.grid[row][col]]
+    return t == 'solid' or t == 'void'
+end
+
+-- Wall sprite from the 8 neighbors: edges face open floor, 1-tile-thick runs
+-- take caps, a fully surrounded tile with exactly one open diagonal takes the
+-- matching inner-corner notch. Shapes the set doesn't cover (isolated pillar,
+-- two+ open diagonals) fall back to the full center block. Recomputed per
+-- frame so setTile changes (crates breaking) restitch neighbors for free.
+function Map:wallQuad(row, col)
+    local W = self.walls
+    local n = isWall(self, row - 1, col)
+    local s = isWall(self, row + 1, col)
+    local w = isWall(self, row, col - 1)
+    local e = isWall(self, row, col + 1)
+
+    if n and s and w and e then
+        local ne = isWall(self, row - 1, col + 1)
+        local nw = isWall(self, row - 1, col - 1)
+        local se = isWall(self, row + 1, col + 1)
+        local sw = isWall(self, row + 1, col - 1)
+        local open = (ne and 0 or 1) + (nw and 0 or 1)
+                   + (se and 0 or 1) + (sw and 0 or 1)
+        if open == 1 then
+            if not se then return W.innSE end
+            if not sw then return W.innSW end
+            if not ne then return W.innNE end
+            return W.innNW
+        end
+        return W.c
+    end
+
+    if n and s then
+        if e then return W.l end
+        if w then return W.r end
+        return W.v
+    end
+    if e and w then
+        if n then return W.bottom end
+        if s then return W.top end
+        return W.h
+    end
+    if s and e then return W.tl end
+    if s and w then return W.tr end
+    if n and e then return W.bl end
+    if n and w then return W.br end
+    if n then return W.capB end
+    if s then return W.capT end
+    if e then return W.capL end
+    if w then return W.capR end
+    return W.c
+end
+
 function Map:setTile(col, row, id)
     if self.grid[row] and self.grid[row][col] then
         self.grid[row][col] = id
@@ -125,6 +185,16 @@ function Map:draw(camX, camY)
                 love.graphics.setColor(1, 1, 1)
                 love.graphics.draw(Assets.spritesheet,
                     variants[variantIndex(col, row, #variants)], x, y)
+            elseif t == 'solid' and self.walls then
+                love.graphics.setColor(1, 1, 1)
+                -- ground first: floor shows through the rounded corners
+                if self.scenery.ground then
+                    local g = self.scenery.ground
+                    love.graphics.draw(Assets.spritesheet,
+                        g[variantIndex(col, row, #g)], x, y)
+                end
+                love.graphics.draw(Assets.spritesheet,
+                    self:wallQuad(row, col), x, y)
             elseif t == 'solid' and self.scenery.solid then
                 love.graphics.setColor(1, 1, 1)
                 love.graphics.draw(Assets.spritesheet, self.scenery.solid, x, y)
