@@ -373,10 +373,17 @@ return {
         glitchSwapChance = 0.35, -- chance the letter shows a wrong glyph
     },
 
-    splash = { -- studio card at launch (any key / click skips to the fade-out)
-        fadeIn = 1.5,  -- secs black -> full white text
-        hold = 3.5,    -- secs the card stays
-        fadeOut = 1,   -- secs back to black, then the menu fades in
+    splash = { -- intro sequence (skippable: card -> typing -> menu)
+        fadeSteps = 4,      -- NES palette tiers every intro fade snaps through
+        fadeIn = 1.5,       -- secs the COFFEEBREAK card fades in
+        holdName = 2,       -- secs before presents: appears
+        presentsIn = 0.5,   -- secs presents: takes to fade in
+        holdPresents = 1.5, -- secs the full card stays after that
+        fadeOut = 1,        -- secs the card fades back to black
+        typeInterval = 0.12, -- secs per typed CHAMBER 9 letter
+        typeHold = 0.7,     -- beat after typing before the menu arrives
+        typeGain = 0.4,     -- volume of the per-letter click
+        titleGlide = 0.9,   -- secs the typed title glides up into place
     },
 
     fx = {

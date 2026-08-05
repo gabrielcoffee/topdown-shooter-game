@@ -56,6 +56,9 @@ function love.load()
         elseif a == 'autotest_splash' then
             -- splash is the boot state; just screenshot it mid-fade-in
             _G._autotest = { frames = 0 }
+        elseif a:match('^shot%d+$') and _G._autotest then
+            -- autotest addon: screenshot at this frame instead of 90
+            _G._autotest.shotFrame = tonumber(a:match('%d+'))
         elseif a == 'shotgun' then
             _G._autotest_shotgun = true
             function love.errorhandler(msg)
@@ -98,9 +101,10 @@ function love.update(dt)
                 end
             end
         end
-        if _autotest.frames == 90 then
+        local shotFrame = _autotest.shotFrame or 90
+        if _autotest.frames == shotFrame then
             love.graphics.captureScreenshot('autotest.png')
-        elseif _autotest.frames > 93 then
+        elseif _autotest.frames > shotFrame + 3 then
             love.event.quit()
         end
     end

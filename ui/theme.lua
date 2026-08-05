@@ -25,6 +25,13 @@ Theme.colors = {
     barBack  = {0.16, 0.15, 0.16},
 }
 
+-- NES-style fade: alpha snaps through a few discrete palette tiers instead
+-- of sliding smoothly. p = 0..1 progress, returns the stepped alpha.
+function Theme.stepAlpha(p)
+    local steps = TUNE.splash.fadeSteps
+    return math.min(1, math.floor(p * steps) / steps)
+end
+
 -- Radial vignette mesh: transparent inner ring -> dark outer ring, built once
 local vignette
 local function buildVignette()

@@ -55,8 +55,10 @@ end
 local function fadeAlpha()
     local dur = TUNE.fx.fadeTime
     local p = math.min(1, fade.t / dur)
-    if fade.phase == 'out' then return p end
-    return 1 - p
+    if fade.phase == 'in' then p = 1 - p end
+    -- NES-style: the black overlay snaps through palette tiers, no smooth ramp
+    local steps = TUNE.splash.fadeSteps
+    return math.min(1, math.floor(p * steps + 0.5) / steps)
 end
 
 local function updateFade(dt)

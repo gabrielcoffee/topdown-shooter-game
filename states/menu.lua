@@ -1,19 +1,20 @@
--- Main menu: dark arcade splash. Title slams down, menu items stagger in,
--- embers and fog drift through, the whole frame goes through the CRT chain.
+-- Main menu: just the texts over black, through the CRT chain. Coming from
+-- the intro the typed title glides up into place; the items NES-fade in at
+-- the bottom either way (same speed as the intro card).
 
 local State = require('core.state')
 local Theme = require('ui.theme')
 local MenuList = require('ui.menu_list')
 local Save = require('core.save')
-local Fx = require('ui.fx')
-local Particles = require('ui.particles')
 local flux = require('lib.flux')
 local Audio = require('core.audio')
+
+local TITLE_Y = 190 -- the title's resting position
 
 local menu = {}
 menu.fxMode = 'menu'
 
-function menu:enter()
+function menu:enter(opts)
     Audio.stopAmbience()
     Audio.cancelFade() -- a run that died mid-fade must not mute menu clicks
     Audio.setMusicTarget(1) -- music fades back in (slow)
@@ -44,11 +45,18 @@ function menu:enter()
     })
 
     self.list = MenuList:new(items, 500)
+    self.list.nesFade = true -- items fade in with the stepped intro fade
 
-    -- title slams down from above
-    self.titleY = -160
     self.time = 0
-    flux.to(self, TUNE.fx.titleSlamTime, { titleY = 190 }):ease('quartin')
+    if opts and opts.fromIntro then
+        -- seamless handoff: the typed title starts where the intro drew it
+        -- and glides up; the items wait until it has settled
+        self.titleY = require('states.splash').titleY
+        flux.to(self, TUNE.splash.titleGlide, { titleY = TITLE_Y }):ease('quartout')
+        self.list.animT = -TUNE.splash.titleGlide
+    else
+        self.titleY = TITLE_Y
+    end
 
     -- eerie occasional letter glitch on the title
     self.glitch = { wait = TUNE.menu.glitchGapMin, active = 0, idx = 1, char = nil }
@@ -110,23 +118,26 @@ end
 function menu:update(dt)
     self.time = self.time + dt
     self.list:update(dt)
-    Particles.update(dt)
     updateGlitch(self, dt)
 end
 
 function menu:draw()
     Theme.drawBackground()
 
-    Particles.drawFog()
-
     -- slight neon flicker on the title
     local flicker = 0.86 + 0.14 * love.math.noise(self.time * 7)
     drawGlitchTitle(self, self.titleY, flicker)
 
     self.list:draw()
-    Theme.drawHint(T('menu.hint'), SCREENHEIGHT - 60)
-
-    Particles.drawEmbers()
+    -- the hint fades with the items (same stepped alpha)
+    local ha = Theme.stepAlpha(math.max(0, math.min(1, self.list.animT / TUNE.splash.fadeIn)))
+    local hc = Theme.colors.textDim
+    local fh = Theme.fonts.hint
+    love.graphics.setFont(fh)
+    love.graphics.setColor(hc[1], hc[2], hc[3], ha)
+    local hint = T('menu.hint')
+    love.graphics.print(hint, SCREENWIDTH / 2 - fh:getWidth(hint) / 2, SCREENHEIGHT - 60)
+    love.graphics.setColor(1, 1, 1)
 end
 
 function menu:keypressed(key)

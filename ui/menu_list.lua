@@ -191,12 +191,19 @@ function MenuList:draw()
         local c = disabled and Theme.colors.barBack
             or (isSel and Theme.colors.blood or Theme.colors.text)
 
-        -- staggered slide-in: each row eases in from the left, delayed by index
-        local p = math.min(1, math.max(0,
-            (self.animT - (i - 1) * TUNE.fx.itemStagger) / TUNE.fx.itemInTime))
-        local ease = 1 - (1 - p) ^ 3
-        local a = ease
-        local slide = (1 - ease) * -70
+        -- entrance: NES-stepped group fade (main menu) or the classic
+        -- staggered slide-in from the left (everything else)
+        local a, slide
+        if self.nesFade then
+            a = Theme.stepAlpha(math.max(0, math.min(1, self.animT / TUNE.splash.fadeIn)))
+            slide = 0
+        else
+            local p = math.min(1, math.max(0,
+                (self.animT - (i - 1) * TUNE.fx.itemStagger) / TUNE.fx.itemInTime))
+            local ease = 1 - (1 - p) ^ 3
+            a = ease
+            slide = (1 - ease) * -70
+        end
 
         love.graphics.push()
         love.graphics.translate(slide, 0)
