@@ -195,7 +195,7 @@ function MenuList:draw()
         -- staggered slide-in from the left (everything else)
         local a, slide
         if self.nesFade then
-            a = Theme.stepAlpha(math.max(0, math.min(1, self.animT / TUNE.splash.fadeIn)))
+            a = Theme.stepAlpha(math.max(0, math.min(1, self.animT / TUNE.menu.fadeInTime)))
             slide = 0
         else
             local p = math.min(1, math.max(0,

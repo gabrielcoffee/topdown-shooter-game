@@ -363,7 +363,8 @@ return {
         pulseSpeed = 6,   -- selector chevron pulse (radians/sec)
         itemSpacing = 52, -- px between menu rows
         chevronGap = 18,  -- px between the > < selectors and the item text
-        colOffset = 310,  -- px each options column center sits from screen center
+        colOffset = 310,  -- px a column center sits from screen center (col items only)
+        fadeInTime = 1,   -- secs the menu items/hint NES-fade in (intro card uses splash.fadeIn)
 
         -- eerie title glitch: now and then one letter tears for a moment
         glitchGapMin = 2.5,  -- secs between bursts (random in [min, max])
@@ -471,7 +472,7 @@ return {
         ambient = 0.25,
         brightnessMin = 0.10,  -- slider floor ("DARK")
         brightnessMax = 0.40,  -- slider ceiling ("BRIGHT")
-        brightnessStep = 0.02, -- slider snap grid
+        brightnessStep = 0.03, -- slider snap grid: 10 steps of 10% (default = 50%)
         playerRange = 230,    -- player light radius, world px
         playerBright = 0.40,  -- player light intensity (1 = blinding white)
         shadowBlur = 2,       -- shadow edge softness, blur px (0 = hard pixel edges)

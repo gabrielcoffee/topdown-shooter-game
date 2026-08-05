@@ -61,6 +61,8 @@ function menu:enter(opts)
 
     -- eerie occasional letter glitch on the title
     self.glitch = { wait = TUNE.menu.glitchGapMin, active = 0, idx = 1, char = nil }
+
+    self.bestWave = Save.loadBest().wave -- 0 = never played, nothing shown
 end
 
 local GLITCH_POOL = '#%@!$&0139XZ?/'
@@ -132,14 +134,20 @@ function menu:draw()
     drawGlitchTitle(self, self.titleY, flicker)
 
     self.list:draw()
-    -- the hint fades with the items (same stepped alpha)
-    local ha = Theme.stepAlpha(math.max(0, math.min(1, self.list.animT / TUNE.splash.fadeIn)))
+    -- hint + record fade with the items (same stepped alpha)
+    local ha = Theme.stepAlpha(math.max(0, math.min(1, self.list.animT / TUNE.menu.fadeInTime)))
     local hc = Theme.colors.textDim
     local fh = Theme.fonts.hint
     love.graphics.setFont(fh)
     love.graphics.setColor(hc[1], hc[2], hc[3], ha)
     local hint = T('menu.hint')
     love.graphics.print(hint, SCREENWIDTH / 2 - fh:getWidth(hint) / 2, SCREENHEIGHT - 60)
+
+    -- all-time wave record, top right (only once the player has played)
+    if self.bestWave > 0 then
+        local rec = T('gameover.record', self.bestWave)
+        love.graphics.print(rec, SCREENWIDTH - fh:getWidth(rec) - 28, 28)
+    end
     love.graphics.setColor(1, 1, 1)
 end
 

@@ -20,9 +20,9 @@ local function apply()
     Audio.setVolumes(SETTINGS.master, SETTINGS.sfx, SETTINGS.music)
 end
 
-local function volumeItem(labelKey, field, row)
+local function volumeItem(labelKey, field)
     return {
-        label = labelKey, type = 'slider', col = 1, row = row,
+        label = labelKey, type = 'slider',
         get = function() return SETTINGS[field] end,
         set = function(v)
             SETTINGS[field] = v
@@ -38,7 +38,7 @@ local function brightnessItem()
     local span = L.brightnessMax - L.brightnessMin
     local steps = math.floor(span / L.brightnessStep + 0.5)
     return {
-        label = 'options.brightness', type = 'slider', col = 1, row = 4,
+        label = 'options.brightness', type = 'slider',
         get = function()
             return (SETTINGS.brightness - L.brightnessMin) / span
         end,
@@ -59,15 +59,13 @@ local function brightnessItem()
 end
 
 function options:enter()
-    -- two columns: sound + brightness sliders left, everything else right,
-    -- BACK centered underneath (keyboard order: down the left col, then right)
     self.list = MenuList:new({
-        volumeItem('options.master', 'master', 1),
-        volumeItem('options.sfx', 'sfx', 2),
-        volumeItem('options.music', 'music', 3),
+        volumeItem('options.master', 'master'),
+        volumeItem('options.sfx', 'sfx'),
+        volumeItem('options.music', 'music'),
         brightnessItem(),
         {
-            label = 'options.language', type = 'cycle', col = 2, row = 1,
+            label = 'options.language', type = 'cycle',
             value = function() return i18n.names[i18n.lang] end,
             cycle = function(dir)
                 local code = i18n.nextLanguage(dir)
@@ -77,7 +75,7 @@ function options:enter()
             end,
         },
         {
-            label = 'options.cross_color', type = 'cycle', col = 2, row = 2,
+            label = 'options.cross_color', type = 'cycle',
             value = function() return Crosshair.colorById(SETTINGS.crossColor).name end,
             cycle = function(dir)
                 SETTINGS.crossColor = Crosshair.nextColorId(SETTINGS.crossColor, dir)
@@ -85,7 +83,7 @@ function options:enter()
             end,
         },
         {
-            label = 'options.cross_outline', type = 'cycle', col = 2, row = 3,
+            label = 'options.cross_outline', type = 'cycle',
             value = function() return SETTINGS.crossOutline and T('options.on') or T('options.off') end,
             cycle = function()
                 SETTINGS.crossOutline = not SETTINGS.crossOutline
@@ -93,11 +91,11 @@ function options:enter()
             end,
         },
         {
-            label = 'options.graphics', type = 'action', col = 2, row = 4,
+            label = 'options.graphics', type = 'action',
             activate = function() State.push('graphics') end,
         },
         {
-            label = 'options.back', type = 'action', row = 6,
+            label = 'options.back', type = 'action',
             activate = function() State.pop() end,
         },
     }, 400)
