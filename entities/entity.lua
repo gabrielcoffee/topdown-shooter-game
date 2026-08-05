@@ -193,15 +193,17 @@ function Entity:_resolveAxis(world, axis, dt)
             -- (speed-capped, clipped by its own collisions), then we clamp
             -- against its new face. keepSpeed while it gives way, so the
             -- player's accel isn't reset every frame of the push.
+            -- A pushed crate can itself push the next crate while it still
+            -- has chain budget (rows up to crate.maxChain move as one).
             local keepSpeed = false
-            if e.pushBy and self.isPlayer then
+            if e.pushBy and (self.isPlayer or (self.pushBudget or 0) > 0) then
                 local pen
                 if axis == 'x' then
                     pen = (sign > 0) and (bx + bw - e.x) or (e.x + e.width - bx)
                 else
                     pen = (sign > 0) and (by + bh - e.y) or (e.y + e.height - by)
                 end
-                keepSpeed = e:pushBy(axis, sign, math.max(0, pen), dt, world, self.maxSpeed)
+                keepSpeed = e:pushBy(axis, sign, math.max(0, pen), dt, world, self.maxSpeed, self)
             end
 
             if axis == 'x' then

@@ -25,8 +25,6 @@ function Hotbar.draw(player)
     local x0 = math.floor((SCREENWIDTH - totalW) / 2)
     local y0 = SCREENHEIGHT - t.bottomMargin - size
 
-    love.graphics.setFont(smallFont)
-
     for i = 1, 5 do
         local x = x0 + (i - 1) * (size + gap)
         local item = player.items[i]
@@ -66,26 +64,41 @@ function Hotbar.draw(player)
             drawItemIcon(item, x, y0, size)
 
             -- corner counters: clip for guns, count for throwables
+            local cntY = y0 + size - font:getHeight() - 4
             love.graphics.setColor(1, 1, 1, math.max(a, 0.5))
             if item.isGun then
                 local txt = tostring(item.curClip)
                 love.graphics.print(txt,
-                    x + size - smallFont:getWidth(txt) - 4, y0 + size - 12)
+                    x + size - font:getWidth(txt) - 4, cntY)
             elseif item.isThrowable then
                 local txt = 'x' .. player:throwableCount()
                 love.graphics.print(txt,
-                    x + size - smallFont:getWidth(txt) - 4, y0 + size - 12)
+                    x + size - font:getWidth(txt) - 4, cntY)
                 -- the stowed throwable's count sits bottom-left, dimmed
                 local other = player.throwableType == 'molotov'
                     and player.grenades or player.molotovs
                 if other > 0 then
                     love.graphics.setColor(1, 1, 1, 0.35)
-                    love.graphics.print('x' .. other, x + 4, y0 + size - 12)
+                    love.graphics.print('x' .. other, x + 4, cntY)
                 end
             elseif item.isHealthPack then
                 local txt = 'x' .. player.medkits
                 love.graphics.print(txt,
-                    x + size - smallFont:getWidth(txt) - 4, y0 + size - 12)
+                    x + size - font:getWidth(txt) - 4, cntY)
+            end
+
+            -- full stack: "(MAX)" called out right above the slot
+            local maxed
+            if item.isThrowable then
+                maxed = player.grenades + player.molotovs >= TUNE.throwables.maxCarry
+            elseif item.isHealthPack then
+                maxed = player.medkits >= TUNE.healthpack.maxCarry
+            end
+            if maxed then
+                local txt = 'MAX' -- fits the slot width; "(MAX)" collided with +50HP
+                love.graphics.setColor(1, 0.85, 0.3, 0.9)
+                love.graphics.print(txt,
+                    x + (size - font:getWidth(txt)) / 2, y0 - font:getHeight() - 4)
             end
         end
 
@@ -101,7 +114,6 @@ function Hotbar.draw(player)
         love.graphics.print(tostring(i), x + 4, y0 + 3)
     end
 
-    love.graphics.setFont(font)
     love.graphics.setColor(1, 1, 1)
 end
 

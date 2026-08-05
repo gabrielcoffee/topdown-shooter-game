@@ -86,6 +86,67 @@ function Powerup:apply(world)
     Audio.play('gun_draw', 0.8) -- pickup blip placeholder
 end
 
+-- Icon painter shared by the ground drop and the HUD buff readout: draws the
+-- kind's placeholder icon (~26px art) centered on (cx, cy), scaled.
+function Powerup.drawIcon(k, cx, cy, scale)
+    love.graphics.push()
+    love.graphics.translate(cx, cy)
+    love.graphics.scale(scale or 1)
+
+    if k == 'nuke' then
+        love.graphics.setColor(1, 0.85, 0.2)
+        love.graphics.circle('fill', 0, 0, 12)
+        love.graphics.setColor(0.1, 0.1, 0.1)
+        love.graphics.circle('fill', 0, 0, 5)
+    elseif k == 'maxammo' then
+        love.graphics.setColor(0.25, 0.8, 0.3)
+        love.graphics.rectangle('fill', -11, -8, 22, 16, 2, 2)
+        love.graphics.setColor(0.1, 0.3, 0.12)
+        love.graphics.rectangle('line', -11, -8, 22, 16, 2, 2)
+    elseif k == 'instakill' then
+        love.graphics.setColor(0.95, 0.95, 0.95)
+        love.graphics.circle('fill', 0, 0, 12)
+        love.graphics.setColor(0.85, 0.1, 0.1)
+        love.graphics.setLineWidth(3)
+        love.graphics.line(-7, -7, 7, 7)
+        love.graphics.line(-7, 7, 7, -7)
+        love.graphics.setLineWidth(1)
+    elseif k == 'freeze' then
+        love.graphics.setColor(0.35, 0.85, 1)
+        love.graphics.polygon('fill', 0, -13, 10, 0, 0, 13, -10, 0)
+    elseif k == 'doublepoints' then
+        love.graphics.setColor(1, 0.8, 0.2)
+        love.graphics.circle('fill', 0, 0, 12)
+        love.graphics.setColor(0.25, 0.15, 0)
+        love.graphics.setFont(smallFont) -- glyph is icon art, not HUD text
+        local txt = 'x2'
+        love.graphics.print(txt, -smallFont:getWidth(txt) / 2,
+            -smallFont:getHeight() / 2)
+        love.graphics.setFont(font)
+    elseif k == 'firesale' then
+        love.graphics.setColor(0.3, 0.9, 0.35)
+        love.graphics.circle('fill', 0, 0, 12)
+        love.graphics.setColor(0, 0.25, 0.05)
+        love.graphics.setFont(smallFont)
+        local txt = '$'
+        love.graphics.print(txt, -smallFont:getWidth(txt) / 2,
+            -smallFont:getHeight() / 2)
+        love.graphics.setFont(font)
+    elseif k == 'carpenter' then
+        love.graphics.setColor(0.62, 0.42, 0.18)
+        love.graphics.rectangle('fill', -11, -9, 22, 18, 2, 2)
+        love.graphics.setColor(0.85, 0.65, 0.35)
+        love.graphics.setLineWidth(2)
+        love.graphics.line(-11, -9, 11, 9)
+        love.graphics.line(-11, 9, 11, -9)
+        love.graphics.rectangle('line', -11, -9, 22, 18, 2, 2)
+        love.graphics.setLineWidth(1)
+    end
+
+    love.graphics.pop()
+    love.graphics.setColor(1, 1, 1)
+end
+
 function Powerup:draw()
     local P = TUNE.powerups
 
@@ -103,59 +164,7 @@ function Powerup:draw()
     love.graphics.setColor(0, 0, 0, 0.3)
     love.graphics.ellipse('fill', cx, self.y + self.height - 2, 10, 4)
 
-    -- placeholder icons, 32x32 max
-    local k = self.kind
-    if k == 'nuke' then
-        love.graphics.setColor(1, 0.85, 0.2)
-        love.graphics.circle('fill', cx, cy, 12)
-        love.graphics.setColor(0.1, 0.1, 0.1)
-        love.graphics.circle('fill', cx, cy, 5)
-    elseif k == 'maxammo' then
-        love.graphics.setColor(0.25, 0.8, 0.3)
-        love.graphics.rectangle('fill', cx - 11, cy - 8, 22, 16, 2, 2)
-        love.graphics.setColor(0.1, 0.3, 0.12)
-        love.graphics.rectangle('line', cx - 11, cy - 8, 22, 16, 2, 2)
-    elseif k == 'instakill' then
-        love.graphics.setColor(0.95, 0.95, 0.95)
-        love.graphics.circle('fill', cx, cy, 12)
-        love.graphics.setColor(0.85, 0.1, 0.1)
-        love.graphics.setLineWidth(3)
-        love.graphics.line(cx - 7, cy - 7, cx + 7, cy + 7)
-        love.graphics.line(cx - 7, cy + 7, cx + 7, cy - 7)
-        love.graphics.setLineWidth(1)
-    elseif k == 'freeze' then
-        love.graphics.setColor(0.35, 0.85, 1)
-        love.graphics.polygon('fill', cx, cy - 13, cx + 10, cy, cx, cy + 13, cx - 10, cy)
-    elseif k == 'doublepoints' then
-        love.graphics.setColor(1, 0.8, 0.2)
-        love.graphics.circle('fill', cx, cy, 12)
-        love.graphics.setColor(0.25, 0.15, 0)
-        love.graphics.setFont(smallFont)
-        local txt = 'x2'
-        love.graphics.print(txt, cx - smallFont:getWidth(txt) / 2,
-            cy - smallFont:getHeight() / 2)
-        love.graphics.setFont(font)
-    elseif k == 'firesale' then
-        love.graphics.setColor(0.3, 0.9, 0.35)
-        love.graphics.circle('fill', cx, cy, 12)
-        love.graphics.setColor(0, 0.25, 0.05)
-        love.graphics.setFont(smallFont)
-        local txt = '$'
-        love.graphics.print(txt, cx - smallFont:getWidth(txt) / 2,
-            cy - smallFont:getHeight() / 2)
-        love.graphics.setFont(font)
-    elseif k == 'carpenter' then
-        love.graphics.setColor(0.62, 0.42, 0.18)
-        love.graphics.rectangle('fill', cx - 11, cy - 9, 22, 18, 2, 2)
-        love.graphics.setColor(0.85, 0.65, 0.35)
-        love.graphics.setLineWidth(2)
-        love.graphics.line(cx - 11, cy - 9, cx + 11, cy + 9)
-        love.graphics.line(cx - 11, cy + 9, cx + 11, cy - 9)
-        love.graphics.rectangle('line', cx - 11, cy - 9, 22, 18, 2, 2)
-        love.graphics.setLineWidth(1)
-    end
-
-    love.graphics.setColor(1, 1, 1)
+    Powerup.drawIcon(self.kind, cx, cy, 1)
 end
 
 return Powerup

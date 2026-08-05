@@ -78,6 +78,18 @@ function Vfx.new()
     local da = TUNE.fx.dustOpacity
     self.dust:setColors(1, 1, 1, da) -- one stop = constant alpha, no fade
 
+    -- med kit heal: the walk-dust puffs re-tinted soft pink, blooming around
+    -- the player and drifting UP until their 3-frame puff plays out
+    self.heal = self.dust:clone()
+    self.heal:setParticleLifetime(0.4, 0.75)
+    self.heal:setDirection(-math.pi / 2)
+    self.heal:setSpread(0.55)
+    self.heal:setSpeed(18, 42)
+    self.heal:setLinearDamping(0, 0)
+    self.heal:setLinearAcceleration(0, -45, 0, -20) -- keeps floating upward
+    self.heal:setEmissionArea('uniform', 12, 10)    -- all around the body
+    self.heal:setColors(1, 0.72, 0.82, TUNE.fx.healOpacity or 0.45)
+
     -- molotov ground fire: placeholder red/orange licks rising off the burn
     -- area; FirePatch bursts this every frame sized to its current radius
     self.fire = love.graphics.newParticleSystem(dot, 900)
@@ -204,6 +216,12 @@ function Vfx:footDust(x, y, count)
     self.dust:emit(count or TUNE.fx.dustCount)
 end
 
+-- Med kit used: pink dust blooms around the player and rises away
+function Vfx:healBurst(x, y)
+    self.heal:moveTo(x, y)
+    self.heal:emit(TUNE.fx.healCount or 16)
+end
+
 -- Door unlocked: wood chips + a dust cloud over the full door rectangle
 -- (hw/hh = half extents) and a brief gold spark pop where the lock gave way
 function Vfx:doorBurst(cx, cy, hw, hh)
@@ -233,6 +251,7 @@ function Vfx:update(dt)
     self.chips:update(dt)
     self.boom:update(dt)
     self.dust:update(dt)
+    self.heal:update(dt)
     self.fire:update(dt)
     self.wood:update(dt)
     for _, sys in pairs(self.clouds) do sys:update(dt) end
@@ -247,6 +266,7 @@ end
 
 -- Drawn in world space, after entities
 function Vfx:draw()
+    love.graphics.draw(self.heal) -- rises over the player, so above entities
     love.graphics.draw(self.bloodMist)
     love.graphics.draw(self.blood)
     love.graphics.draw(self.wood)

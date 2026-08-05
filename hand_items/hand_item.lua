@@ -174,18 +174,28 @@ function HandItem:draw(facingLeft)
     love.graphics.setColor(1, 1, 1)
 end
 
--- Bottom-left readout. The med kit adds a dimmed line under its name saying
--- what a click is worth, so the heal amount never has to be guessed.
+-- Bottom-left readout. The med kit also floats its heal value ("+50HP") over
+-- its hotbar slot, so what a click is worth never has to be guessed.
 function HandItem:drawHud(player)
     local y = SCREENHEIGHT - 40
     if self.isHealthPack then
-        love.graphics.print(T('hud.medkit', player and player.medkits or 0), 20, y)
-        love.graphics.setFont(smallFont)
-        love.graphics.setColor(1, 1, 1, 0.6)
-        love.graphics.print(T('hud.medkit_hint', TUNE.healthpack.healAmount),
-            20, y + font:getHeight() + 2)
+        local counter = T('hud.medkit', player and player.medkits or 0)
+        if player and player.medkits >= TUNE.healthpack.maxCarry then
+            counter = counter .. ' (MAX)'
+        end
+        love.graphics.print(counter, 20, y)
+
+        local hb = TUNE.hotbar
+        local totalW = 5 * hb.slotSize + 4 * hb.gap
+        local sx = math.floor((SCREENWIDTH - totalW) / 2) + 4 * (hb.slotSize + hb.gap)
+        local sy = SCREENHEIGHT - hb.bottomMargin - hb.slotSize
+        -- a "(MAX)" tag on the slot bumps the heal line one row up
+        local rows = (player and player.medkits >= TUNE.healthpack.maxCarry) and 2 or 1
+        local txt = T('hud.medkit_hint', TUNE.healthpack.healAmount)
+        love.graphics.setColor(0.55, 1, 0.6, 0.9)
+        love.graphics.print(txt, sx + (hb.slotSize - font:getWidth(txt)) / 2,
+            sy - (font:getHeight() + 4) * rows)
         love.graphics.setColor(1, 1, 1)
-        love.graphics.setFont(font)
         return
     end
     love.graphics.print(self.name, 20, y)

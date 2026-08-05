@@ -608,14 +608,23 @@ function World:draw()
     local round = T('hud.round', self.waves.wave)
     love.graphics.print(round, SCREENWIDTH - 20 - font:getWidth(round), 20)
 
-    -- active power-up buffs stack down the top-left
+    -- active power-up buffs stack down the top-left: icon, then the timer,
+    -- text blinking through the buff's last seconds (icon holds steady)
+    local P = TUNE.powerups
     local by = 20
     for _, k in ipairs({ 'instakill', 'freeze', 'doublepoints', 'firesale' }) do
-        if self.buffs[k] > 0 then
-            love.graphics.setColor(1, 0.85, 0.3)
-            love.graphics.print(
-                T('hud.buff_timer', T('powerup.' .. k), math.ceil(self.buffs[k])),
-                20, by)
+        local v = self.buffs[k]
+        if v > 0 then
+            require('entities.powerup').drawIcon(
+                k, 20 + 11, by + font:getHeight() / 2, 0.8)
+            local blinkOff = v <= (P.hudBlinkTime or 0)
+                and math.floor(v / (P.hudBlinkInterval or 0.25)) % 2 == 1
+            if not blinkOff then
+                love.graphics.setColor(1, 0.85, 0.3)
+                love.graphics.print(
+                    T('hud.buff_timer', T('powerup.' .. k), math.ceil(v)),
+                    20 + 28, by)
+            end
             by = by + 28
         end
     end

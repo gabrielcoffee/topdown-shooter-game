@@ -17,6 +17,25 @@ function Crate:new(x, y)
     return obj
 end
 
+-- Another pushable crate sitting flush ahead in the push direction?
+function Crate:crateAhead(world, axis, sign)
+    local x0, y0 = self.x, self.y
+    local x1, y1 = self.x + self.width, self.y + self.height
+    if axis == 'x' then
+        if sign > 0 then x1 = x1 + 1 else x0 = x0 - 1 end
+    else
+        if sign > 0 then y1 = y1 + 1 else y0 = y0 - 1 end
+    end
+    for _, e in ipairs(world.entities) do
+        if e.pushBy and e ~= self and not e.toRemove
+            and e.x < x1 and e.x + e.width > x0
+            and e.y < y1 and e.y + e.height > y0 then
+            return true
+        end
+    end
+    return false
+end
+
 -- Positional push, called from the player's collision resolution: the crate
 -- has no velocity of its own, it moves by the player's penetration right here
 -- (speed-capped, then clipped by its own walls/obstacles). Returns whether it
@@ -24,12 +43,18 @@ end
 -- Speed cap ramps: starts at a crawl the moment contact lands and works up to
 -- full WALK speed over pushRampTime (heavy-box feel). Sprinting doesn't push
 -- faster — a crate never outruns walk speed.
-function Crate:pushBy(axis, sign, penetration, dt, world, pusherSpeed)
+-- Chains: a pushed crate hands the crate ahead its budget minus one, so the
+-- player moves rows up to crate.maxChain long — at chainSpeedMult of walk
+-- speed — and a longer row blocks like a wall.
+function Crate:pushBy(axis, sign, penetration, dt, world, pusherSpeed, pusher)
     self.pushedNow = true
 
     local C = TUNE.crate
     local k = math.min(1, self.pushTimer / C.pushRampTime)
     local speed = TUNE.player.baseSpeed * (C.pushStartFrac + (1 - C.pushStartFrac) * k)
+    if pusher and pusher.isPlayer and self:crateAhead(world, axis, sign) then
+        speed = speed * (C.chainSpeedMult or 1)
+    end
     local cap = speed * dt
     if world.map:typeAt(self:getCenter()) == 'water' then
         cap = cap * TUNE.tiles.waterSpeedMult
@@ -45,7 +70,12 @@ function Crate:pushBy(axis, sign, penetration, dt, world, pusherSpeed)
         self.y = self.y + sign * amount
         self.vy = sign
     end
+    -- budget for crates THIS crate runs into during its own resolve
+    self.pushBudget = (pusher and pusher.isPlayer)
+        and ((C.maxChain or 1) - 1)
+        or math.max(0, ((pusher and pusher.pushBudget) or 1) - 1)
     self:_resolveAxis(world, axis, dt)
+    self.pushBudget = nil
     self.vx, self.vy = 0, 0
 
     -- safety net: never leave the map (normally moveAndCollide's job)
@@ -97,15 +127,6 @@ function Crate:draw()
         love.graphics.setBlendMode('alpha')
     end
     self.flash = false
-
-    -- crate health, above the sprite (same style as zombies)
-    local hp = math.ceil(self.health)
-    love.graphics.setFont(smallFont)
-    love.graphics.setColor(0.35, 0.23, 0.10)
-    love.graphics.print(hp, self.x + self.width/2 - smallFont:getWidth(hp)/2,
-        dy - smallFont:getHeight())
-    love.graphics.setFont(font)
-    love.graphics.setColor(Color.white())
 end
 
 return Crate

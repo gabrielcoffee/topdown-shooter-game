@@ -5,10 +5,13 @@ local Theme = {}
 
 Theme.gameTitle = 'DEADWAVE' -- shown on the main menu; change freely
 
+-- Font standard: title (big, wave banner) / item (menus) / hud (all info
+-- text). Nothing on screen renders smaller than the hud size — hint shares
+-- it (it used to be 12 and read too small).
 Theme.fonts = {
     title = love.graphics.newFont('assets/fonts/PressStart2P-Regular.ttf', 48),
     item  = love.graphics.newFont('assets/fonts/PressStart2P-Regular.ttf', 20),
-    hint  = love.graphics.newFont('assets/fonts/PressStart2P-Regular.ttf', 12),
+    hint  = love.graphics.newFont('assets/fonts/PressStart2P-Regular.ttf', 14),
     hud   = love.graphics.newFont('assets/fonts/PressStart2P-Regular.ttf', 14),
 }
 

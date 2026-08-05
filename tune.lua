@@ -53,7 +53,9 @@ return {
     crate = { size = 32, health = 100,
               pushRampTime = 1.2,   -- secs of continuous pushing until the crate reaches full walk speed
               pushStartFrac = 0.12, -- fraction of walk speed the push starts at (crawls, no dead delay)
-              pushGrace = 0.15 },   -- secs of lost contact before the ramp resets
+              pushGrace = 0.15,     -- secs of lost contact before the ramp resets
+              maxChain = 2,         -- crates the player can shove as one row (3+ = wall)
+              chainSpeedMult = 0.5 }, -- row-of-2 push speed vs walk speed (player crawls with it)
     door  = { price = 250, interactPad = 12,
               -- floating lock icon on the player's side of the door
               lockGap = 8,        -- px between the door face and the icon
@@ -206,6 +208,8 @@ return {
                     doublepoints = 20, firesale = 15, carpenter = 10 },
         lifetime = 20,        -- secs the drop stays on the ground
         blinkTime = 3, blinkInterval = 0.15,
+        -- top-left buff readout: timer text blinks through the last seconds
+        hudBlinkTime = 3, hudBlinkInterval = 0.25,
         pickupPad = 6,        -- px around the drop where walking over grabs it
         nukeMoney = 400,      -- flat cash for a nuke (both modes)
         instakillTime = 30,   -- secs every weapon one-shots
@@ -393,6 +397,10 @@ return {
         dustCount = 2,       -- particles per puff at full sprint
         dustWalkMult = 0.5,  -- walking emits this fraction of dustCount
         dustOpacity = 0.2,   -- constant alpha, no fade
+
+        -- med kit heal: pink dust puffs around the player, floating up
+        healCount = 16,      -- particles per heal
+        healOpacity = 0.45,  -- their constant alpha
     },
 
     render = {

@@ -170,6 +170,9 @@ function Player:selectSlot(i, fast)
     end
     if i == 1 or i == 2 then self.lastGunSlot = i end
 
+    -- deploy visual: guns replay their pickup animation on the way up
+    if newItem.isGun then newItem:startDraw() end
+
     -- CS-style deploy sound for whatever lands in hand. An empty gun skips
     -- straight into its reload sound (below) — its pick plays when that ends.
     if newItem.isGun then
@@ -476,16 +479,8 @@ function Player:update(dt, world)
         self.throwTimer = TUNE.throwables.useDelay -- a full pool can't be dumped at once
         self:syncThrowable() -- last of this type: flip to the other if loaded
         if not self:slotValid(4) then self:selectSlot(3) end
-    elseif leftPressed and canAct and self.leftReleased and heldItem.isHealthPack
-        and self.health < self.maxHealth and self.medkits > 0
-        and self.healTimer <= 0 then
-        local cx, cy = self:getCenter()
-        self.health = math.min(self.maxHealth, self.health + TUNE.healthpack.healAmount)
-        self.medkits = self.medkits - 1
-        self.healTimer = TUNE.healthpack.useDelay
-        Audio.playAt('medkit_heal', cx, cy, 0.9, TUNE.audio.pitchJitter, world)
-        -- one still in the bag: keep it out, otherwise fall back to the knife
-        if not self:slotValid(5) then self:selectSlot(3) end
+    elseif leftPressed and canAct and self.leftReleased and heldItem.isHealthPack then
+        self:useMedkit(world)
     end
 
     self.leftReleased = not leftPressed
@@ -523,6 +518,8 @@ function Player:update(dt, world)
         elseif self.touchingDoor and self:trySpend(self.touchingDoor.price) then
             world:openDoor(self.touchingDoor)
             self.touchingDoor = nil
+        elseif heldItem.isHealthPack and canAct then
+            self:useMedkit(world) -- E heals too when nothing else is in reach
         end
     end
     self.eReleased = not ePressed
@@ -732,6 +729,21 @@ function Player:drawHud()
     end
 end
 
+-- One med kit down the hatch (left click or E with it in hand): heal, use
+-- cooldown, pink puffs rising off the body, heal cue.
+function Player:useMedkit(world)
+    if self.health >= self.maxHealth or self.medkits <= 0
+        or self.healTimer > 0 then return end
+    local cx, cy = self:getCenter()
+    self.health = math.min(self.maxHealth, self.health + TUNE.healthpack.healAmount)
+    self.medkits = self.medkits - 1
+    self.healTimer = TUNE.healthpack.useDelay
+    world.vfx:healBurst(cx, cy)
+    Audio.playAt('medkit_heal', cx, cy, 0.9, TUNE.audio.pitchJitter, world)
+    -- one still in the bag: keep it out, otherwise fall back to the knife
+    if not self:slotValid(5) then self:selectSlot(3) end
+end
+
 -- Cash in, cash out. Every gain funnels through here so the cap holds
 -- everywhere (kills, chest, /money, which also takes negatives). Double
 -- points multiplies every gain, CoD-style (kills, hits, even the nuke).
@@ -794,6 +806,7 @@ function Player:giveGun(gun)
     self.lastGunSlot = target
     -- pickup = a fresh draw: same lockout + pick sound as a swap
     self.switchTimer = gun.drawTime or TUNE.player.switchDelay
+    gun:startDraw()
     if gun.id == 'shotgun' then
         gun:pump(false) -- shotgun racks on pickup (SFX + pose, no shell)
     elseif gun.pickSfx then

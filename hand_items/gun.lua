@@ -4,6 +4,17 @@ local ShellCasing = require('entities.shell_casing')
 local HandItem = require('hand_items.hand_item')
 local Audio = require('core.audio')
 local Animation = require('core.animation')
+local Gif = require('core.gif')
+
+-- Draw/pickup animation: the tail of the reload gif (mag slap + rack), spread
+-- over the gun's drawTime, then the static held sprite takes over. The frames
+-- share the held sprite's coordinate space, so the same pivot lines up.
+local function pickupAnim(path, fromFrame, drawTime)
+    local g = Gif.load(path)
+    local frames = g.frames - fromFrame + 1
+    return Animation:new(g.quads, fromFrame, g.frames,
+        (drawTime or 0.4) / frames, false, g.image)
+end
 
 local Gun = {}
 Gun.__index = Gun
@@ -110,6 +121,7 @@ function Gun:newUSP()
     obj.reloadSfx = 'usp_reload'
     obj.pickSfx = 'usp_pick'
     obj.reloadAnim = Animation:fromGif('assets/usp_reload.gif', false)
+    obj.pickupAnim = pickupAnim('assets/usp_reload.gif', 7, obj.drawTime)
     obj.shellQuad = Assets.quads.shell_pistol[1]
     obj.shellDrop = { 'pistol_shell' } -- casing-hit-ground SFX
     obj.ox = 4
@@ -135,6 +147,7 @@ function Gun:newAk47()
     obj.shellQuad = Assets.quads.shell_rifle[1]
     obj.shellDrop = { 'rifle_shell' }
     obj.reloadAnim = Animation:fromGif('assets/ak_reload.gif', false)
+    obj.pickupAnim = pickupAnim('assets/ak_reload.gif', 10, obj.drawTime)
     obj.ox = 12 -- reload gif shares the held sprite's coordinate space, same pivot
     obj.oy = 16
     obj.tipLen = 36
@@ -158,6 +171,7 @@ function Gun:newM4A1()
     obj.shellQuad = Assets.quads.shell_rifle[1]
     obj.shellDrop = { 'rifle_shell' }
     obj.reloadAnim = Animation:fromGif('assets/m4_reload.gif', false)
+    obj.pickupAnim = pickupAnim('assets/m4_reload.gif', 10, obj.drawTime)
     obj.ox = 12 -- reload gif shares the held sprite's coordinate space, same pivot
     obj.oy = 16
     obj.tipLen = 44
@@ -225,6 +239,12 @@ function Gun:update(dt, px, py, mx, my)
     self.kickPos = math.max(0, self.kickPos - dt / GK.posTime)
     self.kickAng = math.max(0, self.kickAng - dt / GK.angTime)
     self.reloadSettle = math.max(0, self.reloadSettle - dt)
+
+    -- pickup/draw animation plays out once, then the static sprite returns
+    if self.drawingIn and self.pickupAnim then
+        self.pickupAnim:update(dt)
+        if self.pickupAnim.ended then self.drawingIn = false end
+    end
 
     -- sprint pose (draw-only): while running the gun holds the tucked pose;
     -- once the sprint ends it swings to the real aim over run.settleTime
@@ -310,6 +330,7 @@ function Gun:reload()
     if self.reloading or self.curClip >= self.maxClip or self.bulletsLeft <= 0 then
         return
     end
+    self.drawingIn = false -- reload pose takes over from a mid-draw animation
     self:cutPick() -- gun goes down: no pick clack (playing or queued) survives
     self.reloading = true
     self.reloadTimer = 0
@@ -390,6 +411,23 @@ function Gun:ejectShell()
     world:addEntity(ShellCasing:new(self.x, self.y, dirX, self.shellQuad, self.shellDrop))
 end
 
+-- Deploy visual on select/pickup: replay the pickup animation. The shotgun
+-- has no gif tail — it shows its rack pose instead, pose only (the pump SFX
+-- already rides the pick sound, so no extra rack sound here).
+function Gun:startDraw()
+    if self.pickupAnim then
+        self.pickupAnim:restart()
+        self.drawingIn = true
+    elseif self.id == 'shotgun' then
+        local SG = TUNE.guns.shotgun
+        self.pumpActive = true
+        self.pumpTimer = 0
+        self.pumpDidRack = true -- straight to the pose, skip the pump SFX beat
+        self.pumpEject = false
+        self.pumpAnimTimer = SG.pumpAnimTime or 0
+    end
+end
+
 -- Shotgun rack: schedules the pump SFX + pose (and a shell eject if `ejectShell`)
 -- a beat into the window. Used per shot, on reload-finish, and on pickup.
 function Gun:pump(ejectShell)
@@ -453,6 +491,9 @@ function Gun:draw(facingLeft)
         img, quad = a.image, a.quads[a.index]
     elseif self.pumpDidRack and self.pumpAnimTimer > 0 then
         quad = Assets.quads.held_shotgun_pump[1] -- racked pose during the pump
+    elseif self.drawingIn and self.pickupAnim and not self.pickupAnim.ended then
+        local a = self.pickupAnim
+        img, quad = a.image, a.quads[a.index]
     end
 
     love.graphics.draw(
