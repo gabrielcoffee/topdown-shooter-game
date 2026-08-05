@@ -331,6 +331,7 @@ return {
         gunPickGain = 0.8, -- pick/raise handling volume (select, pickup, post-reload)
         dryFireGain = 0.7, -- empty-clip hammer click volume
         lowAmmoClickGain = 0.55, -- same click layered under the last shots of a clip
+        motherFuckerChance = 0.001, -- 0.1%: odds a damage hit plays the easter-egg line instead
 
         -- footsteps
         stepInterval = 0.32,  -- secs between steps at full run (scales with speed)
@@ -412,8 +413,7 @@ return {
         bannerEmberFade = 0.6, -- secs the menu embers fade in/out around the WAVE N banner
 
         -- gameplay
-        bloodParticles = 18,    -- forward droplets per hit (bullet AND knife)
-        bloodMistParticles = 8, -- lingering red haze around the wound, per hit
+        bloodParticles = 7,     -- wine puffs per hit (bullet AND knife) — sprite puffs, not droplets
 
         -- permanent blood splats on the floor (core/decals)
         decalHitChance = 0.75,  -- chance per damaging hit (bullet/knife/nade/fire)
@@ -491,7 +491,7 @@ return {
         contactDamage = 25,   -- fallback when a type has no damage of its own
         contactCooldown = 1.0, -- secs between hits, per zombie
         attackRange = 6,      -- px beyond touching circles where a hit lands
-        growlMin = 6, growlMax = 16, -- secs between random growls, per zombie
+        growlMin = 9, growlMax = 22, -- secs between random growls, per zombie (kept sparse)
         hitFlashTime = 0.08,  -- secs a hit zombie stays white
         repathTime = 0.4,     -- secs between A* recalculations, per zombie
         waypointRadius = 13,  -- px from a path waypoint that counts as reached

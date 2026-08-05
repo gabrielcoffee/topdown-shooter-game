@@ -7,7 +7,8 @@ mkdir -p dist
 rm -rf dist/CHAMBER9.love dist/CHAMBER9.app
 
 zip -9 -r -q dist/CHAMBER9.love . \
-    -x ".git/*" ".gitignore" "dist/*" "docs/*" "*.md" "*.DS_Store" "info.txt" "build_mac.sh"
+    -x ".git/*" ".gitignore" "dist/*" "docs/*" "*.md" "*.DS_Store" "info.txt" "build_mac.sh" \
+    -x "assets/(outdated)/*"
 
 cp -R /Applications/love.app dist/CHAMBER9.app
 cp dist/CHAMBER9.love dist/CHAMBER9.app/Contents/Resources/

@@ -24,33 +24,36 @@ function Vfx.new()
     local self = setmetatable({}, Vfx)
     local dot = softDot(8, 1.2)
 
-    -- blood: heavy droplets thrown forward from the wound (dark, chunky,
-    -- decal-colored) + a finer mist that hangs a beat longer around the hit
-    self.blood = love.graphics.newParticleSystem(dot, 600)
-    self.blood:setParticleLifetime(0.2, 0.6)
-    self.blood:setSpread(0.9)
-    self.blood:setSpeed(50, 220)
-    self.blood:setLinearDamping(3, 6)
-    self.blood:setSizes(1.1, 0.8, 0.35)
-    self.blood:setSizeVariation(1)
-    self.blood:setColors(
-        0.72, 0.06, 0.06, 1,
-        0.45, 0.04, 0.04, 0.95,
-        0.25, 0.02, 0.02, 0
-    )
-
-    self.bloodMist = love.graphics.newParticleSystem(dot, 400)
-    self.bloodMist:setParticleLifetime(0.35, 0.9)
-    self.bloodMist:setSpread(math.pi * 2) -- hangs around the wound, all sides
-    self.bloodMist:setSpeed(8, 45)
-    self.bloodMist:setLinearDamping(1.5, 3)
-    self.bloodMist:setSizes(1.5, 1.1, 0.4)
-    self.bloodMist:setSizeVariation(1)
-    self.bloodMist:setColors(
-        0.5, 0.03, 0.03, 0.55,
-        0.32, 0.02, 0.02, 0.4,
-        0.18, 0.01, 0.01, 0
-    )
+    -- blood: the shared puff sprite (muzzle frames 2+3 — frame 1 reads too
+    -- big) in dark wine tints near the ground-decal palette. A particle
+    -- system's color ramp repaints LIVE particles, so the tint variations
+    -- live in a small pool of clones and each burst picks one at random.
+    self.bloods = {}
+    do
+        local q2, q3 = Assets.quads.muzzle[2], Assets.quads.muzzle[3]
+        local _, _, qw, qh = q2:getViewport()
+        for _ = 1, 4 do
+            local sys = love.graphics.newParticleSystem(Assets.spritesheet, 300)
+            sys:setQuads(q2, q3)
+            sys:setOffset(qw / 2, qh / 2)
+            sys:setParticleLifetime(0.22, 0.45)
+            sys:setSpread(0.9)
+            sys:setSpeed(40, 170)
+            sys:setLinearDamping(3, 6)
+            sys:setRotation(0, math.pi * 2)
+            sys:setSizeVariation(0.5)
+            -- decal splats sit around (0.34..0.52, 0.04, 0.04); lean b up = wine
+            local r = 0.34 + love.math.random() * 0.18
+            local g = 0.03 + love.math.random() * 0.03
+            local b = 0.05 + love.math.random() * 0.05
+            sys:setColors(
+                r, g, b, 1,
+                r * 0.7, g * 0.7, b * 0.8, 0.9,
+                r * 0.4, g * 0.5, b * 0.6, 0
+            )
+            table.insert(self.bloods, sys)
+        end
+    end
 
     self.sparks = love.graphics.newParticleSystem(dot, 200)
     self.sparks:setParticleLifetime(0.05, 0.16)
@@ -154,14 +157,13 @@ function Vfx.new()
     return self
 end
 
--- angle = incoming bullet/swing angle; droplets spray forward from the hit
--- while the mist blooms around the wound itself (knives and bullets alike)
+-- angle = incoming bullet/swing angle; wine puffs spray forward from the
+-- hit (knives and bullets alike). Random clone = random tint per burst.
 function Vfx:bloodSplatter(x, y, angle)
-    self.blood:moveTo(x, y)
-    self.blood:setDirection(angle)
-    self.blood:emit(TUNE.fx.bloodParticles)
-    self.bloodMist:moveTo(x, y)
-    self.bloodMist:emit(TUNE.fx.bloodMistParticles)
+    local sys = self.bloods[love.math.random(#self.bloods)]
+    sys:moveTo(x, y)
+    sys:setDirection(angle)
+    sys:emit(TUNE.fx.bloodParticles)
 end
 
 -- Zombie spawn telegraph: ground haze in the incoming zombie's colors,
@@ -245,8 +247,7 @@ function Vfx:doorBurst(cx, cy, hw, hh)
 end
 
 function Vfx:update(dt)
-    self.blood:update(dt)
-    self.bloodMist:update(dt)
+    for _, sys in ipairs(self.bloods) do sys:update(dt) end
     self.sparks:update(dt)
     self.chips:update(dt)
     self.boom:update(dt)
@@ -267,8 +268,7 @@ end
 -- Drawn in world space, after entities
 function Vfx:draw()
     love.graphics.draw(self.heal) -- rises over the player, so above entities
-    love.graphics.draw(self.bloodMist)
-    love.graphics.draw(self.blood)
+    for _, sys in ipairs(self.bloods) do love.graphics.draw(sys) end
     love.graphics.draw(self.wood)
     love.graphics.draw(self.chips)
     love.graphics.setBlendMode('add')

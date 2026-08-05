@@ -444,7 +444,8 @@ function Enemy:update(dt, world)
     if self.growlTimer <= 0 then
         self.growlTimer = TUNE.zombies.growlMin
             + love.math.random() * (TUNE.zombies.growlMax - TUNE.zombies.growlMin)
-        Audio.playAt('zombie_growl', cx, cy, 1, TUNE.audio.pitchJitter, world)
+        -- growl group per kind: zombies/slow1.., normal1.., fast1..
+        Audio.playAt(self.kind, cx, cy, 1, TUNE.audio.pitchJitter, world)
     end
 
 end

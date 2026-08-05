@@ -63,10 +63,12 @@ local files = {
     spin_wheel     = 'assets/sounds/effects/spin_wheel.mp3',            -- mystery box item roulette
     crate_open     = 'assets/sounds/effects/crate_open.mp3',            -- mystery box lid opening
     fire_loop      = 'assets/sounds/effects/fire_loop.wav',     -- looped by FirePatch
-    -- player pain grunts (random via the 'hurt' group)
-    hurt1          = 'assets/sounds/effects/hurt1.wav',
-    hurt2          = 'assets/sounds/effects/hurt2.wav',
-    hurt3          = 'assets/sounds/effects/hurt3.wav',
+    -- player pain (random via the 'player_damage' group; old hurt grunts
+    -- retired to assets/(outdated)/)
+    player_damage1 = 'assets/sounds/effects/player_damage1.mp3',
+    player_damage2 = 'assets/sounds/effects/player_damage2.mp3',
+    player_dead    = 'assets/sounds/effects/player_dead.mp3',   -- death: replaces the damage cue
+    mother_fucker  = 'assets/sounds/effects/mother_fucker.mp3', -- rare damage easter egg
 }
 
 -- dirs scanned at load: every audio file registers by its bare name

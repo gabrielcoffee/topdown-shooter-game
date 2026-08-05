@@ -249,7 +249,13 @@ function Player:update(dt, world)
         -- because a hit half a second earlier used up the cooldown
         if self.hurtCue <= 0 or self.health <= 0 then
             require('ui.fx').damageVignette()
-            Audio.play('hurt', 0.9)
+            if self.health <= 0 then
+                Audio.play('player_dead', 0.9) -- death: only this, no damage grunt
+            elseif love.math.random() < TUNE.audio.motherFuckerChance then
+                Audio.play('mother_fucker', 0.9) -- rare easter egg on a hit
+            else
+                Audio.play('player_damage', 0.9)
+            end
             self.hurtCue = TUNE.player.hurtCueCooldown
         end
         -- red "-n" over the HP readout. Per-frame damage (spikes, fire) adds
