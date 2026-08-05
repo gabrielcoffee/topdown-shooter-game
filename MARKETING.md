@@ -1,6 +1,6 @@
-# DEADWAVE — Marketing Plan
+# CHAMBER 9 — Marketing Plan
 
-Zero-budget, solo-dev, organic-only. Built around one fact from every case study: **the product is 80–90% of the marketing** ([Choo-Choo Charles analysis](https://howtomarketagame.com/2021/10/17/how-choo-choo-charles-earned-wishlists/)). DEADWAVE's marketable product truth: **"CoD Zombies, but top-down, made by one guy."** Every piece of content leans on that nostalgia — mystery box rolls, wall-buys, nuke/instakill/max-ammo drops, high-round runs. That's the cultural undercurrent we tap, the same way Choo-Choo Charles tapped "evil Thomas the Tank Engine."
+Zero-budget, solo-dev, organic-only. Built around one fact from every case study: **the product is 80–90% of the marketing** ([Choo-Choo Charles analysis](https://howtomarketagame.com/2021/10/17/how-choo-choo-charles-earned-wishlists/)). CHAMBER 9's marketable product truth: **"CoD Zombies, but top-down, made by one guy."** Every piece of content leans on that nostalgia — mystery box rolls, wall-buys, nuke/instakill/max-ammo drops, high-round runs. That's the cultural undercurrent we tap, the same way Choo-Choo Charles tapped "evil Thomas the Tank Engine."
 
 ## The funnel
 
@@ -26,7 +26,7 @@ Notes:
 - Upload native to each platform. Never post a clip with the TikTok watermark to Reels — it gets downranked.
 - **Don't post trailers.** Nobody watches trailers as shorts. Post *moments* ([TikTok playbook](https://gamosy.com/blog/tiktok-game-marketing)).
 
-## Content pillars (DEADWAVE-specific)
+## Content pillars (CHAMBER 9-specific)
 
 Ranked by expected performance:
 

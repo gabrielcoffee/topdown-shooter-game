@@ -1,5 +1,4 @@
 return {
-    ['menu.subtitle']    = 'JUEGO DE ZOMBIS',
     ['menu.continue']    = 'CONTINUAR',
     ['menu.new_game']    = 'NUEVO JUEGO',
     ['menu.options']     = 'OPCIONES',

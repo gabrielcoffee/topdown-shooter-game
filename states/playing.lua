@@ -30,6 +30,7 @@ function playing:enter(opts)
     self.startFade = TUNE.start.fadeTime
     Audio.fadeIn(TUNE.start.fadeTime)
     Audio.playAmbience(world.ambience)
+    Audio.setMusicTarget(0) -- menu music ducks out fast for gameplay
 end
 
 -- leaving the run: critical-health overlay + heartbeat must not follow us out

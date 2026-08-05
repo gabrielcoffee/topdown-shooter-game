@@ -29,6 +29,7 @@ function love.load()
     Particles.load()
     _G.SETTINGS = Save.loadSettings()
     Audio.setVolumes(SETTINGS.master, SETTINGS.sfx, SETTINGS.music)
+    Audio.startMusic() -- menu music runs for the whole session, only fades
     i18n.setLanguage(SETTINGS.language)
     Screen.apply(SETTINGS) -- sets logical globals, window mode, letterbox
 
@@ -44,6 +45,12 @@ function love.load()
         elseif a == 'autotest_controls' then
             -- same screenshot/quit rhythm but on the controls splash
             State.switch('controls')
+            _G._autotest = { frames = 0 }
+        elseif a == 'autotest_menu' then
+            -- screenshot the main menu (already the default state)
+            _G._autotest = { frames = 0 }
+        elseif a == 'autotest_options' then
+            State.push('options')
             _G._autotest = { frames = 0 }
         elseif a == 'shotgun' then
             _G._autotest_shotgun = true
@@ -71,6 +78,7 @@ function love.update(dt)
     dt = math.min(dt, 1/30)
     flux.update(dt)
     Fx.update(dt)
+    Audio.update(dt) -- music fade + pause duck run in every state
     State.update(dt)
     if _autotest then
         _autotest.frames = _autotest.frames + 1

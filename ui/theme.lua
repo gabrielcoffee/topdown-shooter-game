@@ -3,13 +3,15 @@
 
 local Theme = {}
 
-Theme.gameTitle = 'DEADWAVE' -- shown on the main menu; change freely
+Theme.gameTitle = 'CHAMBER 9' -- shown on the main menu; change freely
 
 -- Font standard: title (big, wave banner) / item (menus) / hud (all info
 -- text). Nothing on screen renders smaller than the hud size — hint shares
 -- it (it used to be 12 and read too small).
 Theme.fonts = {
     title = love.graphics.newFont('assets/fonts/PressStart2P-Regular.ttf', 48),
+    -- dripping-horror display face, main-menu title only (OFL, Google Fonts)
+    gameTitle = love.graphics.newFont('assets/fonts/Nosifer-Regular.ttf', 64),
     item  = love.graphics.newFont('assets/fonts/PressStart2P-Regular.ttf', 20),
     hint  = love.graphics.newFont('assets/fonts/PressStart2P-Regular.ttf', 14),
     hud   = love.graphics.newFont('assets/fonts/PressStart2P-Regular.ttf', 14),
@@ -63,9 +65,10 @@ function Theme.drawBackground()
     love.graphics.clear(c[1], c[2], c[3])
 end
 
--- Big blood-red title with a hard drop shadow, centered at y
-function Theme.drawTitle(text, y, color, alpha)
-    local f = Theme.fonts.title
+-- Big blood-red title with a hard drop shadow, centered at y.
+-- font (optional) swaps the face — the menu passes fonts.gameTitle.
+function Theme.drawTitle(text, y, color, alpha, font)
+    local f = font or Theme.fonts.title
     love.graphics.setFont(f)
     local x = SCREENWIDTH / 2 - f:getWidth(text) / 2
     alpha = alpha or 1

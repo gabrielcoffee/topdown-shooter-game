@@ -349,11 +349,18 @@ return {
         bedGain = 0.7,
         stingerMin = 15, stingerMax = 40, -- secs between stingers
         stingerGain = 0.55,
+
+        -- menu music (No Birds): never stops, only fades with game state
+        menuMusicGain = 0.7,
+        musicFadeInTime = 5,  -- secs 0 -> full on pause / back to menu
+        musicFadeOutTime = 1, -- secs full -> 0 when the run (re)starts
     },
 
     menu = {
         pulseSpeed = 6,   -- selector chevron pulse (radians/sec)
         itemSpacing = 52, -- px between menu rows
+        chevronGap = 18,  -- px between the > < selectors and the item text
+        colOffset = 310,  -- px each options column center sits from screen center
     },
 
     fx = {

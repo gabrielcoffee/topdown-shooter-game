@@ -127,7 +127,7 @@ function light:isVisible()
 end
 
 function light:inRange(l,t,w,h,s)
-  -- PATCH (deadwave): lx/ly are screen-space px, so compare against the full
+  -- PATCH (chamber9): lx/ly are screen-space px, so compare against the full
   -- w/h. Stock code used w/s, h/s — culled lights in the right/bottom of the
   -- screen whenever scale > 1 (torches "turned off" as they drifted there).
   local lx, ly, rs = (self.x + l/s) * s, (self.y + t/s) * s, self.range * s

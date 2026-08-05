@@ -12,6 +12,7 @@ paused.fxMode = 'overlay'
 
 function paused:exit()
     Audio.setMuffled(false)
+    Audio.setMusicTarget(0) -- resume: music back out fast (menu quit re-raises it)
     -- RESUME clicked with the mouse: that same press is still down on the
     -- frame the world unfreezes and would fire the gun — dead until released
     -- (same lock the hole-fall uses)
@@ -22,6 +23,7 @@ end
 
 function paused:enter()
     Audio.setMuffled(true)
+    Audio.setMusicTarget(1) -- music fades in over the pause (slow)
     love.mouse.setVisible(true)
     self.list = MenuList:new({
         {
@@ -48,7 +50,6 @@ end
 
 function paused:update(dt)
     self.list:update(dt)
-    Audio.update(dt) -- the wind duck fades while the world is frozen
 end
 
 function paused:draw()

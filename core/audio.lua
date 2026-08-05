@@ -100,6 +100,11 @@ end
 -- run-start fade-in: multiplies every gameplay volume, rises 0 -> 1 over dur
 local fade = { mult = 1, t = 0, dur = 0 }
 
+-- Menu music: one looping stream that never stops, only fades. target 1 =
+-- audible (menu, pause), target 0 = silent (gameplay). Fade-in and fade-out
+-- speeds differ (tune.audio.musicFadeInTime / musicFadeOutTime).
+local menuMusic = { src = nil, vol = 1, target = 1 }
+
 local effectsOk = false
 local listener = { x = 0, y = 0 }        -- world px, for occlusion + stingers
 local reverb = { wet = 0, decay = 0.5, timer = 0 }
@@ -382,6 +387,35 @@ function Audio.setLowHealth(on)
     applyVolumes()
 end
 
+-- Start the menu music at launch; keeps looping for the whole session
+function Audio.startMusic()
+    if menuMusic.src then return end
+    local path = 'assets/music/no_birds.mp3'
+    if not love.filesystem.getInfo(path) then return end
+    menuMusic.src = love.audio.newSource(path, 'stream')
+    menuMusic.src:setLooping(true)
+    menuMusic.src:setVolume(Audio.master * Audio.music * TUNE.audio.menuMusicGain)
+    menuMusic.src:play()
+end
+
+-- 1 = menu/pause (fade in), 0 = gameplay (fade out)
+function Audio.setMusicTarget(t)
+    menuMusic.target = t
+end
+
+-- Per-frame music fade toward the target (part of Audio.update below)
+local function updateMusic(dt)
+    local m = menuMusic
+    if not m.src then return end
+    local A = TUNE.audio
+    if m.vol < m.target then
+        m.vol = math.min(m.target, m.vol + dt / A.musicFadeInTime)
+    elseif m.vol > m.target then
+        m.vol = math.max(m.target, m.vol - dt / A.musicFadeOutTime)
+    end
+    m.src:setVolume(Audio.master * Audio.music * A.menuMusicGain * m.vol)
+end
+
 -- Run-start fade: everything audible rises from silence over dur secs.
 -- Sounds played mid-fade start at the faded volume and rise with the rest.
 function Audio.fadeIn(dur)
@@ -394,9 +428,11 @@ function Audio.cancelFade()
     fade.t, fade.dur, fade.mult = 0, 0, 1
 end
 
--- Sparse one-shot stingers, placed in the world around the player so the
--- ambience feels alive without getting annoying
+-- Per-frame audio upkeep: music fade, run-start fade, pause duck, loop
+-- occlusion, ambience stingers. Called once from love.update — runs in every
+-- state (menu music must fade while menus are up, ducks while paused).
 function Audio.update(dt)
+    updateMusic(dt)
     if fade.mult < 1 and fade.dur > 0 then
         fade.t = fade.t + dt
         fade.mult = math.min(1, fade.t / fade.dur)

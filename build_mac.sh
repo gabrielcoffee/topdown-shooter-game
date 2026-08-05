@@ -1,26 +1,26 @@
 #!/bin/sh
-# Build DEADWAVE.love + fused DEADWAVE.app into dist/ (requires /Applications/love.app)
+# Build CHAMBER9.love + fused CHAMBER9.app into dist/ (requires /Applications/love.app)
 set -e
 cd "$(dirname "$0")"
 
 mkdir -p dist
-rm -rf dist/DEADWAVE.love dist/DEADWAVE.app
+rm -rf dist/CHAMBER9.love dist/CHAMBER9.app
 
-zip -9 -r -q dist/DEADWAVE.love . \
+zip -9 -r -q dist/CHAMBER9.love . \
     -x ".git/*" ".gitignore" "dist/*" "docs/*" "*.md" "*.DS_Store" "info.txt" "build_mac.sh"
 
-cp -R /Applications/love.app dist/DEADWAVE.app
-cp dist/DEADWAVE.love dist/DEADWAVE.app/Contents/Resources/
+cp -R /Applications/love.app dist/CHAMBER9.app
+cp dist/CHAMBER9.love dist/CHAMBER9.app/Contents/Resources/
 /usr/libexec/PlistBuddy \
-    -c "Set :CFBundleName DEADWAVE" \
-    -c "Set :CFBundleIdentifier com.gabrielcoffee.deadwave" \
-    dist/DEADWAVE.app/Contents/Info.plist
+    -c "Set :CFBundleName CHAMBER 9" \
+    -c "Set :CFBundleIdentifier com.gabrielcoffee.chamber9" \
+    dist/CHAMBER9.app/Contents/Info.plist
 /usr/libexec/PlistBuddy -c "Delete :UTExportedTypeDeclarations" \
-    dist/DEADWAVE.app/Contents/Info.plist 2>/dev/null || true
-codesign --force --deep --sign - dist/DEADWAVE.app
+    dist/CHAMBER9.app/Contents/Info.plist 2>/dev/null || true
+codesign --force --deep --sign - dist/CHAMBER9.app
 
 # zip of the .app for itch upload (ditto keeps signature + Finder metadata)
-rm -f dist/DEADWAVE.zip
-ditto -c -k --sequesterRsrc --keepParent dist/DEADWAVE.app dist/DEADWAVE.zip
+rm -f dist/CHAMBER9.zip
+ditto -c -k --sequesterRsrc --keepParent dist/CHAMBER9.app dist/CHAMBER9.zip
 
-echo "Built dist/DEADWAVE.app + dist/DEADWAVE.love + dist/DEADWAVE.zip"
+echo "Built dist/CHAMBER9.app + dist/CHAMBER9.love + dist/CHAMBER9.zip"

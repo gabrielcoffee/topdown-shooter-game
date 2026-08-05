@@ -524,10 +524,10 @@ function World:update(dt)
     Crosshair.update(dt, self)
     GrenadeAim.update(dt)
 
-    -- ears follow the player; reverb adapts to nearby walls; stingers tick
+    -- ears follow the player; reverb adapts to nearby walls
+    -- (Audio.update itself ticks globally from love.update)
     local lx, ly = self.player:getCenter()
     Audio.setListener(lx, ly, self)
-    Audio.update(dt)
 
     -- player death ends the run
     if self.player.health <= 0 then

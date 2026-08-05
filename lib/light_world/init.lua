@@ -105,7 +105,7 @@ function light_world:update(dt)
 end
 
 function light_world:draw(cb)
-  -- PATCH (deadwave): remember the caller's render target. The stock code
+  -- PATCH (chamber9): remember the caller's render target. The stock code
   -- presented to the screen via drawCanvasToCanvas(canvas, nil), which breaks
   -- when the caller draws inside another canvas chain (moonshine post-fx).
   local target = love.graphics.getCanvas()
@@ -119,7 +119,7 @@ function light_world:draw(cb)
     _ = self.disableReflection or self:drawReflection(    self.l,self.t,self.w,self.h,self.s)
   end)
 
-  -- PATCH (deadwave): present into the caller's target instead of the screen.
+  -- PATCH (chamber9): present into the caller's target instead of the screen.
   -- post_shader effects are unused here; add them back before this draw if needed.
   love.graphics.setCanvas(target)
   love.graphics.push()

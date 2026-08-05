@@ -16,6 +16,7 @@ menu.fxMode = 'menu'
 function menu:enter()
     Audio.stopAmbience()
     Audio.cancelFade() -- a run that died mid-fade must not mute menu clicks
+    Audio.setMusicTarget(1) -- music fades back in (slow)
     local items = {}
 
     if Save.runExists() then
@@ -63,8 +64,7 @@ function menu:draw()
 
     -- slight neon flicker on the title
     local flicker = 0.86 + 0.14 * love.math.noise(self.time * 7)
-    Theme.drawTitle(Theme.gameTitle, self.titleY, nil, flicker)
-    Theme.drawHint(T('menu.subtitle'), self.titleY + 80, Theme.colors.bloodDim)
+    Theme.drawTitle(Theme.gameTitle, self.titleY, nil, flicker, Theme.fonts.gameTitle)
 
     self.list:draw()
     Theme.drawHint(T('menu.hint'), SCREENHEIGHT - 60)

@@ -1,9 +1,12 @@
--- Reusable vertical menu. Keyboard (arrows/WASD + Enter, handled via
+-- Reusable menu list. Keyboard (arrows/WASD + Enter, handled via
 -- keypressed) and mouse (hover selects, click activates/drags) both work.
 -- Item shapes:
 --   { label = 'menu.new_game', type = 'action', activate = fn }
 --   { label = 'options.master', type = 'slider', get = fn, set = fn }  -- 0..1
 --   { label = 'options.language', type = 'cycle', value = fn, cycle = fn(dir) }
+-- Layout: single centered column by default. Items may set col (1 = left
+-- column, 2 = right column) + row for a two-column grid (options menu);
+-- col-less items stay centered on their row.
 -- Labels are i18n keys resolved with T() at draw time, so language
 -- switches update every open menu instantly.
 
@@ -15,6 +18,8 @@ MenuList.__index = MenuList
 
 local SLIDER_W = 240
 local SLIDER_H = 12
+local COL_SLIDER_W = 190 -- narrower bar so a slider row fits half the screen
+local PCT_W = 70         -- reserved width of the value text after the bar
 
 function MenuList:new(items, y, spacing)
     local obj = {
@@ -29,21 +34,52 @@ function MenuList:new(items, y, spacing)
     return obj
 end
 
-local function itemY(self, i)
-    return self.y + (i - 1) * self.spacing
-end
-
--- Wide hover band centered on screen
-local function itemHovered(self, i, mx, my)
-    local yy = itemY(self, i)
-    return mx > SCREENWIDTH / 2 - 340 and mx < SCREENWIDTH / 2 + 340
-        and my >= yy - self.spacing / 2 + 10 and my < yy + self.spacing / 2 + 10
+-- Column center x + row y for an item
+local function itemPos(self, i)
+    local item = self.items[i]
+    local cx = SCREENWIDTH / 2
+    if item.col == 1 then
+        cx = cx - TUNE.menu.colOffset
+    elseif item.col == 2 then
+        cx = cx + TUNE.menu.colOffset
+    end
+    return cx, self.y + ((item.row or i) - 1) * self.spacing
 end
 
 local function sliderRect(self, i)
-    local x = SCREENWIDTH / 2 + 40
-    local y = itemY(self, i) + Theme.fonts.item:getHeight() / 2 - SLIDER_H / 2
-    return x, y, SLIDER_W, SLIDER_H
+    local item = self.items[i]
+    local cx, yy = itemPos(self, i)
+    local x = item.col and (cx + 8) or (SCREENWIDTH / 2 + 40)
+    local w = item.col and COL_SLIDER_W or SLIDER_W
+    local y = yy + Theme.fonts.item:getHeight() / 2 - SLIDER_H / 2
+    return x, y, w, SLIDER_H
+end
+
+-- Horizontal extent of the item's drawn content (label+bar+value for
+-- sliders, the text itself otherwise). Hover and the > < selectors both
+-- work off this, so the mouse targets the word, not the whole row.
+local function itemBounds(self, i)
+    local f = Theme.fonts.item
+    local item = self.items[i]
+    local cx = itemPos(self, i)
+    if item.type == 'slider' then
+        local labelW = f:getWidth(T(item.label))
+        local x, _, w = sliderRect(self, i)
+        local labelRight = item.col and (cx - 8) or (SCREENWIDTH / 2 - 40)
+        return labelRight - labelW, x + w + 16 + PCT_W
+    end
+    local text = T(item.label)
+    if item.type == 'cycle' then text = text .. ': ' .. item.value() end
+    local w = f:getWidth(text)
+    return cx - w / 2, cx + w / 2
+end
+
+-- The word itself (plus a small pad), not a screen-wide band
+local function itemHovered(self, i, mx, my)
+    local x0, x1 = itemBounds(self, i)
+    local _, yy = itemPos(self, i)
+    local fh = Theme.fonts.item:getHeight()
+    return mx >= x0 - 6 and mx <= x1 + 6 and my >= yy - 4 and my < yy + fh + 4
 end
 
 local function moveSelection(self, dir)
@@ -109,9 +145,8 @@ function MenuList:mousepressed(x, y, btn)
         if itemHovered(self, i, x, y) then
             self.selected = i
             if item.type == 'slider' then
-                -- only clicks on the bar itself (small pad) grab it: the hover
-                -- band spans the whole row, and a click on the label used to
-                -- clamp to 0 and slam the volume to zero
+                -- only clicks on the bar itself (small pad) grab it: a click
+                -- on the label used to clamp to 0 and slam the volume to zero
                 local sx, _, sw = sliderRect(self, i)
                 if x >= sx - 8 and x <= sx + sw + 8 then
                     setSliderFromMouse(self, i, x)
@@ -148,10 +183,9 @@ end
 function MenuList:draw()
     local f = Theme.fonts.item
     love.graphics.setFont(f)
-    local cx = SCREENWIDTH / 2
 
     for i, item in ipairs(self.items) do
-        local yy = itemY(self, i)
+        local cx, yy = itemPos(self, i)
         local isSel = (i == self.selected)
         local disabled = item.enabled and not item.enabled()
         local c = disabled and Theme.colors.barBack
@@ -171,7 +205,8 @@ function MenuList:draw()
             -- label on the left, bar on the right
             love.graphics.setColor(c[1], c[2], c[3], a)
             local label = T(item.label)
-            love.graphics.print(label, cx - 40 - f:getWidth(label), yy)
+            local labelRight = item.col and (cx - 8) or (SCREENWIDTH / 2 - 40)
+            love.graphics.print(label, labelRight - f:getWidth(label), yy)
 
             local x, y, w, h = sliderRect(self, i)
             local bb = Theme.colors.barBack
@@ -194,17 +229,18 @@ function MenuList:draw()
             if item.type == 'cycle' then
                 text = text .. ': ' .. item.value()
             end
-            local x = cx - f:getWidth(text) / 2
             love.graphics.setColor(c[1], c[2], c[3], a)
-            love.graphics.print(text, x, yy)
+            love.graphics.print(text, cx - f:getWidth(text) / 2, yy)
         end
 
-        -- pulsing selector chevron
+        -- pulsing selector chevrons, hugging the item's actual content
         if isSel then
-            local pulse = math.sin(love.timer.getTime() * TUNE.menu.pulseSpeed) * 6
+            local x0, x1 = itemBounds(self, i)
+            local gap = TUNE.menu.chevronGap
+            local pulse = (math.sin(love.timer.getTime() * TUNE.menu.pulseSpeed) + 1) * 3
             love.graphics.setColor(c[1], c[2], c[3], a)
-            love.graphics.print('>', cx - 380 + pulse, yy)
-            love.graphics.print('<', cx + 380 - f:getWidth('<') + -pulse, yy)
+            love.graphics.print('>', x0 - gap - f:getWidth('>') - pulse, yy)
+            love.graphics.print('<', x1 + gap + pulse, yy)
         end
 
         love.graphics.pop()

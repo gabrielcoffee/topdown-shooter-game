@@ -6,7 +6,7 @@ SCREENHEIGHT = 960
 
 function love.conf(t)
     t.identity = 'shooter-game' -- stable save directory for settings + run save
-    t.window.title = 'DEADWAVE'
+    t.window.title = 'CHAMBER 9'
     t.window.width = 1920
     t.window.height = 1080
     t.window.resizable = true
