@@ -51,7 +51,10 @@ end
 
 local function killAllZombies()
     for _, e in ipairs(world.entities) do
-        if e.type == 'enemy' then e.toRemove = true end
+        if e.type == 'enemy' then
+            if e.growlSrc then e.growlSrc:stop() end -- no orphaned growls
+            e.toRemove = true
+        end
     end
 end
 

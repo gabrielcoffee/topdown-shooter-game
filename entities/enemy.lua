@@ -179,6 +179,13 @@ function Enemy:takeDamage(amount, world, econ)
     return killed
 end
 
+-- Hole fall skips the death path (no kill count, no death SFX) but must
+-- still cut a growl mid-play — same leak as dying while growling
+function Enemy:onFellInHole(world)
+    if self.growlSrc then self.growlSrc:stop() end
+    self.toRemove = true
+end
+
 -- Normalized direction toward a world point
 local function dirTo(fromX, fromY, toX, toY)
     local dx, dy = toX - fromX, toY - fromY
@@ -362,6 +369,11 @@ function Enemy:update(dt, world)
     if self.health <= 0 then
         if not self.toRemove then
             self.toRemove = true
+            -- growl mid-play dies with the body: the fast takes run up to
+            -- ~18s and used to keep "growling" past the WAVE COMPLETE banner.
+            -- (Pool steal could hand this source to another zombie first —
+            -- needs 8+ same-kind growls in flight, growls are 9-22s apart.)
+            if self.growlSrc then self.growlSrc:stop() end
             world.kills = (world.kills or 0) + 1 -- every death path lands here
             local dx, dy = self:getCenter()
             -- nukedSilent: a nuke wipe skips per-zombie SFX (audio pool
@@ -445,7 +457,8 @@ function Enemy:update(dt, world)
         self.growlTimer = TUNE.zombies.growlMin
             + love.math.random() * (TUNE.zombies.growlMax - TUNE.zombies.growlMin)
         -- growl group per kind: zombies/slow1.., normal1.., fast1..
-        Audio.playAt(self.kind, cx, cy, 1, TUNE.audio.pitchJitter, world)
+        -- handle kept so the death path can cut a growl still playing
+        self.growlSrc = Audio.playAt(self.kind, cx, cy, 1, TUNE.audio.pitchJitter, world)
     end
 
 end
