@@ -525,6 +525,9 @@ return {
         stuckRepath = 0.35,   -- secs of no progress before forcing an instant repath
         colliderCap = 28,     -- max wall-collision box (px) so big bodies fit 1-tile gaps
         crateDamage = 20,     -- damage per hit when a crate-breaker smashes a crate
+        lostDespawnTime = 3,  -- secs a zombie's center can sit outside every room
+                              -- before it silently despawns (void between rooms:
+                              -- invisible but audible, can strand the wave)
 
         -- breaksCrates: last resort only — when A* finds no route around the
         -- crates, this type paths straight through them and smashes the way

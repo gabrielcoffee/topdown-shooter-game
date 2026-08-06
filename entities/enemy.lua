@@ -390,6 +390,29 @@ function Enemy:update(dt, world)
         return
     end
 
+    -- Lost-body cull: a center outside EVERY room (the void between rooms —
+    -- botched spawn, shoved out a doorway corner) is invisible but still
+    -- audible, and an unreachable one strands the wave. lostDespawnTime secs
+    -- out there = silent despawn: growl cut, no kill count, no money, no SFX.
+    local lx, ly = self:getCenter()
+    local inRoom = false
+    for _, r in ipairs(world.rooms) do
+        if lx >= r.x and lx < r.x + r.w and ly >= r.y and ly < r.y + r.h then
+            inRoom = true
+            break
+        end
+    end
+    if inRoom then
+        self.lostTimer = nil
+    else
+        self.lostTimer = (self.lostTimer or 0) + dt
+        if self.lostTimer >= (TUNE.zombies.lostDespawnTime or 3) then
+            if self.growlSrc then self.growlSrc:stop() end
+            self.toRemove = true
+            return
+        end
+    end
+
     -- freeze power-up: statues — no movement, no attacks, no growls.
     -- Knockback zeroed so a knife shove doesn't resume on thaw.
     if world.buffs and world.buffs.freeze > 0 then
