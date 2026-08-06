@@ -45,7 +45,7 @@ local function waveLife(wave)
     if wave > w.lifeLinearUntil then
         life = life * w.lifeGrowth ^ (wave - w.lifeLinearUntil)
     end
-    return math.min(life, w.lifeCap or life)
+    return life
 end
 
 -- All numbers come from tune.lua
@@ -55,7 +55,8 @@ local function newTyped(x, y, wave, kind, color)
     obj.kind = kind -- 'slow'|'normal'|'fast', needed to rebuild from a save
     obj.speed = t.speed
     -- nightmare waves change spawn pacing + type mix only — no speed boost
-    obj.health = waveLife(wave or 1) * t.lifeMult
+    -- per-type ceiling: final life never passes the type's lifeCap
+    obj.health = math.min(waveLife(wave or 1) * t.lifeMult, t.lifeCap or math.huge)
     obj.maxHealth = obj.health
     obj.color = color
     obj.damage = t.damage or TUNE.zombies.contactDamage

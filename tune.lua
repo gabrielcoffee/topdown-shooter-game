@@ -543,18 +543,19 @@ return {
         -- slow uses assets/images/zombies/slow_zombie.gif (54x60, 4 frames): the normal
         -- sprite scaled 1.5x and recolored red, centered on the 48px circle
         -- cloudColor = spawn-telegraph haze tint, sampled from each type's sprite
-        slow   = { speed = 30, lifeMult = 1,    size = 48, damage = 25, hitPad = 5, losShortcut = true, breaksCrates = true,
+        -- lifeCap = ceiling on the FINAL life (after lifeMult) — each type caps
+        slow   = { speed = 30, lifeMult = 1,    lifeCap = 250, size = 48, damage = 25, hitPad = 5, losShortcut = true, breaksCrates = true,
                    cloudColor = { 0.61, 0.34, 0.28 },
                    animTime = 1.4 }, -- secs per walk loop (half the normal's pace)
         -- normal uses assets/images/zombies/normal_zombie.gif (36x40, 4 frames): sprite is
         -- centered on the 32px collision circle on both axes. Plain repeating
         -- loop (1-2-3-4-1...).
-        normal = { speed = 60, lifeMult = 0.5,  size = 32, damage = 20, hitPad = 3, breaksCrates = true,
+        normal = { speed = 60, lifeMult = 0.5,  lifeCap = 200, size = 32, damage = 20, hitPad = 3, breaksCrates = true,
                    cloudColor = { 0.36, 0.61, 0.47 },
                    animTime = 0.7 }, -- secs for one full walk-cycle loop
         -- fast uses assets/images/zombies/fast_zombie.gif (16x24): size = the body circle,
         -- which is the BOTTOM 16px of the sprite; the top 8px overhang above it
-        fast   = { speed = 90, lifeMult = 0.25, size = 16, damage = 20, hitPad = 2, breaksCrates = true,
+        fast   = { speed = 90, lifeMult = 0.25, lifeCap = 150, size = 16, damage = 20, hitPad = 2, breaksCrates = true,
                    cloudColor = { 0.68, 0.72, 0.2 },
                    animTime = 0.45 }, -- secs for one full run-cycle loop
     },
@@ -578,10 +579,10 @@ return {
         telegraphTime = 1, -- secs of colored spawn haze before the zombie appears
 
         lifeBase = 20,          -- wave-1 zombie life, before the type multiplier
-        lifePerWave = 20,       -- +this per wave while wave <= lifeLinearUntil (original pace)
+        lifePerWave = 20,       -- +this per wave while wave <= lifeLinearUntil
         lifeLinearUntil = 9,    -- linear growth up to this wave (= 180)...
-        lifeGrowth = 1.03,      -- ...then x this per wave afterwards (slow creep; was 1.1)
-        lifeCap = 250,          -- base life never passes this (type mult applies after)
+        lifeGrowth = 1.1,       -- ...then x this per wave afterwards
+        -- final life is still clamped per type: see zombies.<type>.lifeCap
 
         spawnDelayStart = 1.6,  -- secs between spawns on wave 1
         spawnDelayDecay = 0.9,  -- delay multiplied by this each wave
