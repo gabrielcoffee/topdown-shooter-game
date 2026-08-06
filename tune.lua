@@ -561,7 +561,7 @@ return {
 
     waves = {
         quotaBase = 4,          -- zombies in wave w = (this + w*(w+1)/2) * quotaMult
-        quotaMult = 1.2,        -- horde size scale -> 6, 8, 12, 16, 22, 30...
+        quotaMult = 1.5,        -- horde size scale -> 8, 11, 15, 21, 29, 38...
 
         -- chance a spawn comes from a room right next door instead of the
         -- player's own room. Only rooms already visited AND reachable right
@@ -578,14 +578,14 @@ return {
         telegraphTime = 1, -- secs of colored spawn haze before the zombie appears
 
         lifeBase = 20,          -- wave-1 zombie life, before the type multiplier
-        lifePerWave = 16,       -- +this per wave while wave <= lifeLinearUntil
-        lifeLinearUntil = 8,    -- linear growth up to this wave (= 132)...
-        lifeGrowth = 1.03,      -- ...then x this per wave afterwards (slow creep)
-        lifeCap = 250,          -- life never passes this, whatever the wave
+        lifePerWave = 20,       -- +this per wave while wave <= lifeLinearUntil (original pace)
+        lifeLinearUntil = 9,    -- linear growth up to this wave (= 180)...
+        lifeGrowth = 1.03,      -- ...then x this per wave afterwards (slow creep; was 1.1)
+        lifeCap = 250,          -- base life never passes this (type mult applies after)
 
         spawnDelayStart = 1.6,  -- secs between spawns on wave 1
         spawnDelayDecay = 0.9,  -- delay multiplied by this each wave
-        spawnDelayFloor = 0.3,  -- delay never drops below this
+        spawnDelayFloor = 0.24, -- delay never drops below this
         maxAlive = 60,          -- most zombies alive at once; the rest of the
                                 -- quota waits for free slots, keeps huge waves
                                 -- from tanking the framerate
