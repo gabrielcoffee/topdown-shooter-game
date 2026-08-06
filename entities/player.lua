@@ -662,6 +662,9 @@ function Player:draw()
 end
 
 function Player:drawHud()
+    -- /recording footage mode: no HUD at all
+    if world and world.recordingMode then return end
+
     self.items[self.itemIndex]:drawHud(self) -- bottom-left: held item + ammo
 
     -- bottom-right stack: HP on the bottom line, money right above it,

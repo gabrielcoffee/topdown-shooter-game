@@ -1,11 +1,12 @@
 -- Ground fire left by a molotov. Spreads from the impact point to
 -- molotov.blastRadius over spreadTime, burns for burnTime, and once per
--- tickInterval damages every zombie, crate AND the player inside the current
--- radius — with line of sight from the center, so fire never burns through
--- solid walls. Player burns ignore contact invuln (zone denial: standing in
+-- tickInterval damages every zombie and crate inside the current radius —
+-- with line of sight from the center, so fire never burns through solid
+-- walls. The player burns on their own faster clock (playerTickInterval /
+-- playerTickDamage) and ignores contact invuln (zone denial: standing in
 -- fire keeps hurting). Visuals: a scatter of animated fire.gif sprites over the
--- burn area (each pops in when the spread reaches it), plus ember particles
--- (Vfx.fire) and a flickering point light.
+-- burn area (each pops in when the spread reaches it) plus a flickering point
+-- light; ember particles / scorch / glow exist behind tune values, all 0 = off.
 
 local Entity = require('entities.entity')
 local Audio = require('core.audio')
@@ -23,6 +24,7 @@ function FirePatch:new(x, y)
     obj.age = 0
     -- first tick once the fire has fully spread, then every tickInterval
     obj.tickTimer = TUNE.molotov.spreadTime
+    obj.playerTickTimer = TUNE.molotov.spreadTime
     obj.light = nil -- created on first update (needs world)
     setmetatable(obj, FirePatch)
     return obj
@@ -74,11 +76,17 @@ function FirePatch:currentRadius()
     return M.blastRadius * math.min(1, self.age / M.spreadTime)
 end
 
+-- /recording footage mode stretches the burn (reads the world global, same
+-- as the chest's fire-sale check)
+function FirePatch:burnTime()
+    if world and world.recordingMode then return TUNE.recording.burnTime end
+    return TUNE.molotov.burnTime
+end
+
 -- 1 while burning, easing to 0 over the last fadeTime secs
 function FirePatch:dying()
-    local M = TUNE.molotov
-    local left = M.burnTime - self.age
-    return math.min(1, math.max(0, left / M.flame.fadeTime))
+    local left = self:burnTime() - self.age
+    return math.min(1, math.max(0, left / TUNE.molotov.flame.fadeTime))
 end
 
 function FirePatch:update(dt, world)
@@ -111,8 +119,11 @@ function FirePatch:update(dt, world)
     local radius = self:currentRadius()
     local cx, cy = self:getCenter()
 
-    -- embers on top of the flame sprites
-    world.vfx:fireBurst(cx, cy, radius, M.flame.emberFactor)
+    -- embers on top of the flame sprites (emberFactor 0 = sprites only;
+    -- fireBurst emits at least 1 particle per frame, so it must be skipped)
+    if M.flame.emberFactor > 0 then
+        world.vfx:fireBurst(cx, cy, radius, M.flame.emberFactor)
+    end
 
     self.tickTimer = self.tickTimer - dt
     if self.tickTimer <= 0 then
@@ -124,22 +135,39 @@ function FirePatch:update(dt, world)
                 local d = math.sqrt((ex - cx) ^ 2 + (ey - cy) ^ 2)
                 if d <= radius and not world.map:wallBetween(cx, cy, ex, ey) then
                     if e.type == 'enemy' and e.health > 0 then
-                        e:takeDamage(M.tickDamage, world, econ)
+                        -- footage mode: every zombie dies in exactly N ticks
+                        local dmg = M.tickDamage
+                        if world.recordingMode and e.maxHealth then
+                            dmg = e.maxHealth / TUNE.recording.molotovTicksToKill
+                        end
+                        e:takeDamage(dmg, world, econ)
                         world.vfx:bloodSplatter(ex, ey, math.atan2(ey - cy, ex - cx))
                     elseif e.type == 'crate' then
                         e.health = e.health - M.tickDamage
                         e.flash = true
                         if e.health <= 0 then world:removeEntity(e) end
-                    elseif e.isPlayer and not e.falling and not e.godMode then
-                        e.health = e.health - M.playerTickDamage
-                        e.flashTimer = TUNE.player.hitFlashTime
                     end
                 end
             end
         end
     end
 
-    if self.age >= M.burnTime then
+    -- player burn: own faster clock, same reach + wall rules as the main tick
+    self.playerTickTimer = self.playerTickTimer - dt
+    if self.playerTickTimer <= 0 then
+        self.playerTickTimer = self.playerTickTimer + M.playerTickInterval
+        local p = world.player
+        if p and not p.toRemove and not p.falling and not p.godMode then
+            local px, py = p:getCenter()
+            local d = math.sqrt((px - cx) ^ 2 + (py - cy) ^ 2)
+            if d <= radius and not world.map:wallBetween(cx, cy, px, py) then
+                p.health = p.health - M.playerTickDamage
+                p.flashTimer = TUNE.player.hitFlashTime
+            end
+        end
+    end
+
+    if self.age >= self:burnTime() then
         if self.light then world.lighting:removePoint(self.light) end
         Audio.stopLoop(self.sound)
         self.sound = nil

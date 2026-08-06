@@ -56,6 +56,7 @@ local function newTyped(x, y, wave, kind, color)
     obj.speed = t.speed
     -- nightmare waves change spawn pacing + type mix only — no speed boost
     obj.health = waveLife(wave or 1) * t.lifeMult
+    obj.maxHealth = obj.health
     obj.color = color
     obj.damage = t.damage or TUNE.zombies.contactDamage
     obj.breaksCrates = t.breaksCrates or false

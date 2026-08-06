@@ -178,6 +178,22 @@ local commands = {
     end },
 }
 
+-- Hidden footage mode: absent from commandNames, so /help and the
+-- suggestion popup never reveal it. Molotov kills in a fixed tick count,
+-- longer burn, HUD + closed-chat overlay hidden (see tune.recording).
+-- Flags the run as cheated directly — no yellow warning line on screen.
+commands.recording = { run = function()
+    world.recordingMode = not world.recordingMode
+    world.cheated = true
+    if world.recordingMode then
+        Chat.log = {} -- clean frame for the clip
+        Chat.logSel = nil
+        return 'recording ON (molotov: fixed-tick kills, long burn, HUD off)'
+    end
+    return 'recording OFF'
+end }
+commands.recoding = commands.recording -- typo-friendly alias
+
 local argOptions = {
     giveable = { 'usp', 'ak47', 'm4a1', 'shotgun', 'grenade', 'molotov', 'medkit' },
     zombie = { 'slow_zombie', 'normal_zombie', 'fast_zombie' },
@@ -569,6 +585,10 @@ local function selBounds(f, text, a, b, originX)
 end
 
 function Chat.draw()
+    -- footage mode: while the console is closed nothing chat-related draws
+    -- (command echoes would linger over the clip otherwise)
+    if not Chat.open and world and world.recordingMode then return end
+
     local f = Theme.fonts.hint
     love.graphics.setFont(f)
     local lineH = f:getHeight() + 8

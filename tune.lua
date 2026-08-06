@@ -283,6 +283,12 @@ return {
 
     dev = { enabled = true,     -- master switch for the chat console (T)
             flySpeedMult = 2 }, -- god-mode fly (shift held): speed vs base walk
+
+    -- /recording (hidden chat command, not in /help or suggestions): clean
+    -- footage mode — molotov fire kills any zombie in exactly ticksToKill
+    -- burn ticks, burns for burnTime secs, HUD + chat overlay hidden.
+    -- Toggle: run /recording again. Flags the run as cheated.
+    recording = { molotovTicksToKill = 5, burnTime = 10 },
     chat = {
         showTime = 8,   -- secs a line stays on screen before fading (chat closed)
         fadeTime = 1,   -- secs of the fade-out at the end of showTime
