@@ -161,9 +161,10 @@ function Enemy:takeDamage(amount, world, econ)
     self.flashTimer = TUNE.zombies.hitFlashTime
     local killed = self.health <= 0
     if econ then
-        local p = world.player
-        p:addMoney(econ.hitReward or 0)
-        if killed then p:addMoney(econ.killBonus or 0) end
+        -- one addMoney call so the killing hit's "+$n" popup shows hit
+        -- reward and kill bonus as a single summed number
+        local n = (econ.hitReward or 0) + (killed and econ.killBonus or 0)
+        world.player:addMoney(n)
     end
 
     -- blood decal on the floor: sometimes on a hit, usually on the kill;
