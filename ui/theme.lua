@@ -3,7 +3,7 @@
 
 local Theme = {}
 
-Theme.gameTitle = 'CHAMBER 9' -- shown on the main menu; change freely
+Theme.gameTitle = 'ZOMBIE CHAMBER' -- menu + splash title. FINAL NAME — do not change.
 
 -- Font standard: title (big, wave banner) / item (menus) / hud (all info
 -- text). Nothing on screen renders smaller than the hud size — hint shares
