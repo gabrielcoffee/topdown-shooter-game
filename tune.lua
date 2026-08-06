@@ -203,7 +203,7 @@ return {
     -- CoD-style wall buys (GunWall entities placed in LDtk; gun + optional price)
     wallbuy = { interactPad = 4,
                 ammoFactor = 0.6, -- ammo refill price = gun price x this
-                prices = { usp = 150, ak47 = 700, m4a1 = 600, shotgun = 500 } },
+                prices = { usp = 150, ak47 = 950, m4a1 = 800, shotgun = 1200 } },
 
     -- power-up drops: fast (runner) zombies may spawn glowing with one and
     -- drop it on death; walk over the drop to grab it
