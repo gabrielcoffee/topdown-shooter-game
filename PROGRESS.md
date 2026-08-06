@@ -2,6 +2,10 @@
 
 Ship date: **August 2, 2026**. A step is done only when built **and** playtested (note goes in the Playtest column). Details per step in PLAN.md.
 
+## 🚀 v1.0 LAUNCHED — 2026-08-06
+
+**Zombie Chamber v1.0 is live on itch.io** (Windows + macOS + Linux). Post-launch work tracks against this baseline; changelog entry "1.0 — FIRST RELEASE" lists what shipped.
+
 ## Phase 1 — Close the loop
 - [ ] Step 1: Player HP, contact damage, death, restart — **built 2026-07-20**, playtested: _no_
 - [ ] Step 2: Wave spawner — playtested: _no_
@@ -21,7 +25,7 @@ Ship date: **August 2, 2026**. A step is done only when built **and** playtested
 ## Phase 4 — Ship
 - [ ] Step 11: Title + death/score screens — playtested: _no_
 - [ ] Step 12: Tuning pass (Gabriel) — playtested: _no_
-- [ ] Step 13: Ship build on itch — playtested: _no_
+- [x] Step 13: Ship build on itch — **shipped 2026-08-06** (v1.0, win/mac/linux uploads)
 
 ## Post-plan additions (2026-07-27)
 - [ ] Economy modes: kills (default) vs hits+kill-bonus, menu selector — **built 2026-07-27**, playtested: _no_
