@@ -93,23 +93,9 @@ Iterate on pillars, not on effort. Effort stays constant.
 - **Steam page for the sequel/expanded version** — wishlists only matter on Steam; itch v1.0 is the audience-builder and proof.
 - **In-game clip helper** — "save last 10 seconds as GIF" key. Makes content capture free. SEQUEL.md candidate, not v1.0.
 
-## itch page copy (ready to paste)
+## itch page copy
 
-**Title:** Zombie Chamber
-**Tagline:** CoD Zombies, top-down, made by one guy.
-
-**Description:**
-
-> Zombie Chamber is a top-down zombie wave shooter with the full CoD Zombies loop: earn cash per hit, buy guns off the wall, gamble it at the mystery box, open doors deeper into the map, and survive nightmare waves that flip the horde into runners. Molotovs burn, shotguns pierce, power-ups drop — nuke, insta-kill, fire sale, max ammo. How far can you get?
->
-> - 4 guns + knife, grenades and molotovs
-> - Mystery box with shifting odds, wall-buys, 7 power-up drops
-> - Waves scale forever; every 5th is a NIGHTMARE wave
-> - Save & continue mid-run, records tracked
-> - CRT looks, dynamic lighting, full positional audio
-> - Made solo in Lua/LÖVE
-
-**Tags:** action, zombies, top-down-shooter, arcade, singleplayer, pixel-art, 2d
+Three ready-to-paste styles (direct/arcade, nostalgia/dev-story, atmospheric/horror) live in **DESCRIPTIONS.md**.
 
 ## References
 
