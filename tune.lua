@@ -98,7 +98,7 @@ return {
         -- pump-action: bulletDelay is the rack gate between shots; pumpDelay =
         -- beat into that window where the rack SFX+shell-eject+pose fires,
         -- pumpAnimTime = how long the pump pose is shown
-        shotgun = { damage = 10, clip = 7, bulletDelay = 0.5, reloadTime = 0.5, bulletLife = 0.7,
+        shotgun = { damage = 10, clip = 7, bulletDelay = 0.7, reloadTime = 0.5, bulletLife = 0.7,
                      drawTime = 0.6,
                      reloadOpenTime = 0.4, reserve = 32,
                      pumpDelay = 0.12, pumpAnimTime = 0.22,
@@ -202,7 +202,7 @@ return {
 
     -- CoD-style wall buys (GunWall entities placed in LDtk; gun + optional price)
     wallbuy = { interactPad = 4,
-                ammoFactor = 0.6, -- ammo refill price = gun price x this
+                ammoFactor = 0.5, -- ammo refill price = gun price x this
                 prices = { usp = 150, ak47 = 950, m4a1 = 800, shotgun = 1200 } },
 
     -- power-up drops: fast (runner) zombies may spawn glowing with one and
