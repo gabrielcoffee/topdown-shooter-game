@@ -2,7 +2,21 @@
 
 One entry per completed PLAN.md step. Newest on top. Format: date — step — what changed, player-visible terms.
 
-## [Unreleased]
+## 1.0 — 2026-08-06 — FIRST RELEASE
+
+**This is Zombie Chamber v1.0 — the first public release (itch.io).** Every entry below is part of it.
+
+### 2026-08-06 — Release polish
+- Game named ZOMBIE CHAMBER (final); v1.0 shown bottom-right on the menu
+- Music credit ("MUSIC: NO BIRDS - FRED FRITH") shows for 3s on every menu visit
+- Mystery box reworked: 15% gun base odds +2.5% per grenade/molotov/med kit held
+  (full inventory = guaranteed gun); consumables drawn from a shuffle bag
+- Med kits: carry 3, heal is a 2.5s channel (bar over the hotbar) — you can run
+  while healing and while reloading now
+- Wall prices: AK $950, M4 $800, shotgun $1200; ammo refill 50% of gun price
+- Shotgun pump: 0.7s between shots
+- The killing hit's money popup shows hit reward + kill bonus as one sum
+- Fixed: chat sometimes refusing input after cmd-tabbing back into the game
 
 ### 2026-07-29 — Grenade + med kit sounds, 1s use cooldowns
 - CS-style pin pull when a grenade comes into hand (deploy, type cycle, and again

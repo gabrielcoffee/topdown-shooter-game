@@ -388,6 +388,8 @@ return {
     },
 
     menu = {
+        musicCreditTime = 3,  -- secs the "MUSIC: ..." line shows per menu visit
+        musicCreditFade = 0.5, -- fade-out inside that window (gone at exactly 3s)
         pulseSpeed = 6,   -- selector chevron pulse (radians/sec)
         itemSpacing = 52, -- px between menu rows
         chevronGap = 18,  -- px between the > < selectors and the item text

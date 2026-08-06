@@ -63,6 +63,9 @@ function menu:enter(opts)
     self.glitch = { wait = TUNE.menu.glitchGapMin, active = 0, idx = 1, char = nil }
 
     self.bestWave = Save.loadBest().wave -- 0 = never played, nothing shown
+
+    -- music credit shows for a few seconds on every menu visit, then leaves
+    self.creditT = 0
 end
 
 local GLITCH_POOL = '#%@!$&0139XZ?/'
@@ -123,6 +126,10 @@ function menu:update(dt)
     self.list:update(dt)
     Particles.update(dt)
     updateGlitch(self, dt)
+    -- credit clock only runs once the menu has started fading in
+    if self.list.animT > 0 then
+        self.creditT = self.creditT + dt
+    end
 end
 
 function menu:draw()
@@ -140,9 +147,23 @@ function menu:draw()
     local hc = Theme.colors.textDim
     local fh = Theme.fonts.hint
     love.graphics.setFont(fh)
+
+    -- music credit, bottom center: shows for musicCreditTime secs per menu
+    -- visit, fading out over the last musicCreditFade of that window
+    local M = TUNE.menu
+    local left = M.musicCreditTime - self.creditT
+    if left > 0 then
+        local a = ha * math.min(1, left / M.musicCreditFade)
+        love.graphics.setColor(hc[1], hc[2], hc[3], a)
+        local hint = T('menu.hint')
+        love.graphics.print(hint, SCREENWIDTH / 2 - fh:getWidth(hint) / 2, SCREENHEIGHT - 60)
+    end
+
     love.graphics.setColor(hc[1], hc[2], hc[3], ha)
-    local hint = T('menu.hint')
-    love.graphics.print(hint, SCREENWIDTH / 2 - fh:getWidth(hint) / 2, SCREENHEIGHT - 60)
+
+    -- version, bottom right, always on
+    local ver = Theme.version
+    love.graphics.print(ver, SCREENWIDTH - fh:getWidth(ver) - 28, SCREENHEIGHT - 60)
 
     -- all-time wave record, top right (only once the player has played)
     if self.bestWave > 0 then
