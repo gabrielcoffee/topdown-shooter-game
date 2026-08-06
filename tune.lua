@@ -84,7 +84,7 @@ return {
         --                   click under the shot (omit = off)
         usp    = { damage = 20, clip = 15, bulletDelay = 0.15, reloadTime = 1.4, reloadAnimTime = 1.25, bulletLife = 0.5,
                    drawTime = 0.3, lowAmmoClicks = 2,
-                   hitReward = 6, killBonus = 10, maxHits = 3,
+                   hitReward = 8, killBonus = 15, maxHits = 3,
                    baseSpread = 0.008, moveSpread = 0.120, recoilPerShot = 0.030, recoilMax = 0.15, recoilDelay = 0.30, recoilRecover = 0.40 },
         ak47   = { damage = 40, clip = 30, bulletDelay = 0.1,  reloadTime = 2.5, bulletLife = 0.7,
                    drawTime = 0.5, lowAmmoClicks = 4,
@@ -140,7 +140,7 @@ return {
         settleTime = 0.085, -- secs to swing from run pose to real aim (~5 frames)
     },
 
-    knife   = { damage = 40,  hitReward = 20, killBonus = 20,
+    knife   = { damage = 40,  hitReward = 25, killBonus = 30,
                 -- knife pays most per hit: risk close = get paid
                 range = 44,          -- arc reach from player center, px
                 arcDeg = 110,        -- swing arc width, degrees (aiming matters)
@@ -561,7 +561,7 @@ return {
 
     waves = {
         quotaBase = 4,          -- zombies in wave w = (this + w*(w+1)/2) * quotaMult
-        quotaMult = 1.5,        -- horde size scale -> 8, 11, 15, 21, 29, 38...
+        quotaMult = 1.2,        -- horde size scale -> 6, 8, 12, 16, 22, 30...
 
         -- chance a spawn comes from a room right next door instead of the
         -- player's own room. Only rooms already visited AND reachable right
@@ -578,13 +578,14 @@ return {
         telegraphTime = 1, -- secs of colored spawn haze before the zombie appears
 
         lifeBase = 20,          -- wave-1 zombie life, before the type multiplier
-        lifePerWave = 20,       -- +this per wave while wave <= lifeLinearUntil
-        lifeLinearUntil = 7,    -- linear growth up to this wave (= 140)...
-        lifeGrowth = 1.1,       -- ...then x this per wave afterwards
+        lifePerWave = 16,       -- +this per wave while wave <= lifeLinearUntil
+        lifeLinearUntil = 8,    -- linear growth up to this wave (= 132)...
+        lifeGrowth = 1.03,      -- ...then x this per wave afterwards (slow creep)
+        lifeCap = 250,          -- life never passes this, whatever the wave
 
         spawnDelayStart = 1.6,  -- secs between spawns on wave 1
         spawnDelayDecay = 0.9,  -- delay multiplied by this each wave
-        spawnDelayFloor = 0.24, -- delay never drops below this
+        spawnDelayFloor = 0.3,  -- delay never drops below this
         maxAlive = 60,          -- most zombies alive at once; the rest of the
                                 -- quota waits for free slots, keeps huge waves
                                 -- from tanking the framerate

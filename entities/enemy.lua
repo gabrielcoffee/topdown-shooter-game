@@ -45,7 +45,7 @@ local function waveLife(wave)
     if wave > w.lifeLinearUntil then
         life = life * w.lifeGrowth ^ (wave - w.lifeLinearUntil)
     end
-    return life
+    return math.min(life, w.lifeCap or life)
 end
 
 -- All numbers come from tune.lua
