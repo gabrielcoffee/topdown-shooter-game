@@ -91,11 +91,7 @@ function Bullet:checkHits(world)
             world:removeEntity(self)
             world.vfx:wallHit(self.x, self.y, self.angle)
             if e.type == 'crate' then
-                e.health = e.health - self.damage
-                e.flash = true
-                if e.health <= 0 then
-                    world:removeEntity(e)
-                end
+                e:hit(self.damage, world, self.econ)
             end
             return
         end

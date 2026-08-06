@@ -53,15 +53,21 @@ local function pickType(w)
     return 'fast'
 end
 
--- Weighted power-up kind for a carrier zombie
-local function pickPowerup()
+-- Weighted power-up kind for a carrier zombie. Nightmares never hand out
+-- a nuke (would trivialize the horde), so its weight is dropped and the
+-- rest renormalize.
+local function pickPowerup(noNuke)
     local total = 0
-    for _, w in pairs(TUNE.powerups.weights) do total = total + w end
+    for kind, w in pairs(TUNE.powerups.weights) do
+        if not (noNuke and kind == 'nuke') then total = total + w end
+    end
     local pick = love.math.random() * total
     local chosen
     for kind, w in pairs(TUNE.powerups.weights) do
-        pick = pick - w
-        if pick <= 0 then chosen = kind break end
+        if not (noNuke and kind == 'nuke') then
+            pick = pick - w
+            if pick <= 0 then chosen = kind break end
+        end
     end
     return chosen
 end
@@ -251,7 +257,7 @@ function Waves:materialize(world, sp, t)
     -- on death; capped per wave so late hordes don't rain pickups
     if t == 'fast' and self.carriersThisWave < TUNE.powerups.maxPerWave
         and love.math.random() < TUNE.powerups.carrierChance then
-        e.carrier = pickPowerup()
+        e.carrier = pickPowerup(Waves.isNightmare(self.wave))
         self.carriersThisWave = self.carriersThisWave + 1
     end
 

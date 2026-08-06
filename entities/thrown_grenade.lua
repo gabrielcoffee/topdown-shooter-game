@@ -64,9 +64,7 @@ function ThrownGrenade:explode(world)
                     e:takeDamage(damage, world, econ)
                     world.vfx:bloodSplatter(ex, ey, math.atan2(ey - self.y, ex - self.x))
                 elseif e.type == 'crate' then
-                    e.health = e.health - damage
-                    e.flash = true
-                    if e.health <= 0 then world:removeEntity(e) end
+                    e:hit(damage, world, econ)
                 end
             end
         end

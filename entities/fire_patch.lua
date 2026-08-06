@@ -143,9 +143,7 @@ function FirePatch:update(dt, world)
                         e:takeDamage(dmg, world, econ)
                         world.vfx:bloodSplatter(ex, ey, math.atan2(ey - cy, ex - cx))
                     elseif e.type == 'crate' then
-                        e.health = e.health - M.tickDamage
-                        e.flash = true
-                        if e.health <= 0 then world:removeEntity(e) end
+                        e:hit(M.tickDamage, world, econ)
                     end
                 end
             end

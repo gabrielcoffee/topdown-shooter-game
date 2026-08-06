@@ -51,6 +51,7 @@ return {
     },
 
     crate = { size = 32, health = 100,
+              moneyFactor = 0.5,    -- $ per weapon hit = weapon's zombie hitReward x this (rounded)
               pushRampTime = 1.2,   -- secs of continuous pushing until the crate reaches full walk speed
               pushStartFrac = 0.12, -- fraction of walk speed the push starts at (crawls, no dead delay)
               pushGrace = 0.15,     -- secs of lost contact before the ramp resets

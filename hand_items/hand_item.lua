@@ -85,9 +85,7 @@ function HandItem:swing(aimAngle, player, world)
                 and math.abs(angleDiff(math.atan2(dy, dx), aimAngle)) <= math.rad(K.arcDeg) / 2
                 and not world.map:wallBetween(pcx, pcy, ecx, ecy) then
 
-                e.health = e.health - self.damage
-                e.flash = true
-                if e.health <= 0 then world:removeEntity(e) end
+                e:hit(self.damage, world, { hitReward = TUNE.knife.hitReward })
                 hit = true
             end
         end

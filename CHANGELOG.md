@@ -7,6 +7,9 @@ One entry per completed PLAN.md step. Newest on top. Format: date — step — w
 **This is Zombie Chamber v1.0 — the first public release (itch.io).** Every entry below is part of it.
 
 ### 2026-08-06 — Release polish
+- Crates pay: every weapon hit on a crate earns half that weapon's per-zombie
+  hit money (zombie chewing pays nothing)
+- Map updated for 1.0; nightmare-wave carriers never drop a nuke anymore
 - Game named ZOMBIE CHAMBER (final); v1.0 shown bottom-right on the menu
 - Music credit ("MUSIC: NO BIRDS - FRED FRITH") shows for 3s on every menu visit
 - Mystery box reworked: 15% gun base odds +2.5% per grenade/molotov/med kit held
