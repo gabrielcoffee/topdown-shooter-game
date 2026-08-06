@@ -51,7 +51,7 @@ return {
     },
 
     crate = { size = 32, health = 100,
-              moneyFactor = 0.5,    -- $ per weapon hit = weapon's zombie hitReward x this (rounded)
+              moneyFactor = 0,      -- $ per weapon hit = weapon's zombie hitReward x this (0 = crates pay nothing)
               pushRampTime = 1.2,   -- secs of continuous pushing until the crate reaches full walk speed
               pushStartFrac = 0.12, -- fraction of walk speed the push starts at (crawls, no dead delay)
               pushGrace = 0.15,     -- secs of lost contact before the ramp resets
@@ -140,7 +140,7 @@ return {
         settleTime = 0.085, -- secs to swing from run pose to real aim (~5 frames)
     },
 
-    knife   = { damage = 40,  hitReward = 25, killBonus = 30,
+    knife   = { damage = 40,  hitReward = 22, killBonus = 22,
                 -- knife pays most per hit: risk close = get paid
                 range = 44,          -- arc reach from player center, px
                 arcDeg = 110,        -- swing arc width, degrees (aiming matters)
@@ -203,7 +203,7 @@ return {
 
     -- CoD-style wall buys (GunWall entities placed in LDtk; gun + optional price)
     wallbuy = { interactPad = 4,
-                ammoFactor = 0.5, -- ammo refill price = gun price x this
+                ammoFactor = 0.6, -- ammo refill price = gun price x this
                 prices = { usp = 150, ak47 = 950, m4a1 = 800, shotgun = 1200 } },
 
     -- power-up drops: fast (runner) zombies may spawn glowing with one and

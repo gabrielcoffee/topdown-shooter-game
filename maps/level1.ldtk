@@ -1283,7 +1283,7 @@
 									"id": "V_String",
 									"params": ["m4a1"]
 								}] },
-								{ "__identifier": "price", "__type": "Int", "__value": 700, "__tile": null, "defUid": 205, "realEditorValues": [{ "id": "V_Int", "params": [700] }] }
+								{ "__identifier": "price", "__type": "Int", "__value": 600, "__tile": null, "defUid": 205, "realEditorValues": [{ "id": "V_Int", "params": [600] }] }
 							],
 							"__worldX": 32,
 							"__worldY": 1280
@@ -1690,7 +1690,7 @@
 									"id": "V_String",
 									"params": ["ak47"]
 								}] },
-								{ "__identifier": "price", "__type": "Int", "__value": 850, "__tile": null, "defUid": 205, "realEditorValues": [{ "id": "V_Int", "params": [850] }] }
+								{ "__identifier": "price", "__type": "Int", "__value": 750, "__tile": null, "defUid": 205, "realEditorValues": [{ "id": "V_Int", "params": [750] }] }
 							],
 							"__worldX": -1248,
 							"__worldY": 1280
@@ -1953,7 +1953,7 @@
 									"id": "V_String",
 									"params": ["shotgun"]
 								}] },
-								{ "__identifier": "price", "__type": "Int", "__value": 1000, "__tile": null, "defUid": 205, "realEditorValues": [{ "id": "V_Int", "params": [1000] }] }
+								{ "__identifier": "price", "__type": "Int", "__value": 900, "__tile": null, "defUid": 205, "realEditorValues": [{ "id": "V_Int", "params": [900] }] }
 							],
 							"__worldX": -1024,
 							"__worldY": 64
