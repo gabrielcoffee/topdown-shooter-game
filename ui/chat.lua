@@ -307,6 +307,9 @@ function Chat.openChat()
     Chat.swallowFrame = true
     refreshSuggestions()
     love.keyboard.setKeyRepeat(true)
+    -- window-mode churn (fullscreen toggles) can leave SDL's text input off;
+    -- re-arm it so textinput events are guaranteed while the console is up
+    love.keyboard.setTextInput(true)
 end
 
 function Chat.close()
@@ -330,8 +333,11 @@ function Chat.update(dt)
 end
 
 function Chat.textinput(t)
+    -- No cmdDown() gate here: love.keyboard.isDown modifier state goes stale
+    -- when Cmd+Tab steals the release (macOS keeps lgui "down"), which used
+    -- to silently kill all typing. Shortcut echoes are swallowed per-frame
+    -- by the clipboard branches in keypressed instead.
     if not Chat.open or Chat.swallowFrame then return end
-    if cmdDown() then return end -- Cmd+V etc. also emit textinput on some platforms
     insertText(t:lower())
     refreshSuggestions()
 end
@@ -393,21 +399,29 @@ end
 function Chat.keypressed(key)
     local cmd, shift, alt = cmdDown(), shiftDown(), altDown()
 
-    -- clipboard / select-all
-    if cmd and key == 'c' then copySelection() return end
+    -- clipboard / select-all; platforms that also echo the shortcut as a
+    -- textinput event land it this same frame, so swallow the frame
+    if cmd and key == 'c' then
+        copySelection()
+        Chat.swallowFrame = true
+        return
+    end
     if cmd and key == 'v' then
         insertText((love.system.getClipboardText() or ''):lower())
         refreshSuggestions()
+        Chat.swallowFrame = true
         return
     end
     if cmd and key == 'x' then
         copySelection()
         if deleteSelection() then refreshSuggestions() end
+        Chat.swallowFrame = true
         return
     end
     if cmd and key == 'a' then
         Chat.anchor, Chat.caret = 0, #Chat.buffer
         Chat.logSel = nil
+        Chat.swallowFrame = true
         return
     end
 
