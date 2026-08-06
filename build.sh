@@ -19,7 +19,7 @@ rm -rf "dist/$NAME.love" "dist/mac/$NAME.app" "dist/mac/$NAME-mac.zip" \
 
 # ----------------------------------------------------------------- .love
 zip -9 -r -q "dist/$NAME.love" . \
-    -x ".git/*" ".gitignore" "dist/*" "docs/*" "*.md" "*.DS_Store" "info.txt" "*.sh" \
+    -x ".git/*" ".gitignore" "dist/*" "distribution/*" "docs/*" "*.md" "*.DS_Store" "info.txt" "*.sh" \
     -x "assets/(outdated)/*"
 
 # ----------------------------------------------------------------- macOS
