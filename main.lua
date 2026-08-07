@@ -1,4 +1,11 @@
 _G.TUNE = require('tune')
+
+-- browser build? folds TUNE.web over TUNE, and gates the handful of things a
+-- tab cannot do (quit, boot fullscreen, dev console, streaming audio)
+local Web = require('core.web')
+_G.WEB = Web.enabled
+Web.applyTune(TUNE)
+
 require('core.assets') -- sets the nearest-neighbor filter before fonts/images load
 
 local State = require('core.state')

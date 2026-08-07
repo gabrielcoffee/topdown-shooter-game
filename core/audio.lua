@@ -112,6 +112,23 @@ local listener = { x = 0, y = 0 }        -- world px, for occlusion + stingers
 local reverb = { wet = 0, decay = 0.5, timer = 0 }
 local ambience = { bed = nil, set = nil, stingerTimer = 0 }
 
+-- The web build ships every sound re-encoded to .ogg (see build.sh web), so a
+-- path pointing at a .wav/.mp3 that isn't there falls back to the .ogg beside
+-- it. Desktop always hits the first branch and never pays for this.
+local function resolvePath(path)
+    if love.filesystem.getInfo(path) then return path end
+    local ogg = path:gsub('%.%w+$', '.ogg')
+    if ogg ~= path and love.filesystem.getInfo(ogg) then return ogg end
+    return nil
+end
+
+-- Streaming needs a decoder thread, and love.js has no threads -- every source
+-- in the browser must be fully decoded up front. This is why the web build
+-- ships short music/ambience loops instead of the full tracks.
+local function longSourceType()
+    return WEB and 'static' or 'stream'
+end
+
 local function registerGroup(name)
     local base = name:match('^(.-)%d+$')
     if base and base ~= '' then
@@ -122,8 +139,9 @@ end
 
 function Audio.load()
     for name, path in pairs(files) do
-        if love.filesystem.getInfo(path) then
-            pools[name] = { love.audio.newSource(path, 'static') }
+        local p = resolvePath(path)
+        if p then
+            pools[name] = { love.audio.newSource(p, 'static') }
             registerGroup(name)
         end
     end
@@ -162,18 +180,62 @@ local function resolve(name)
     return name
 end
 
+-- Global voice budget. poolSize caps how many copies of ONE sound can overlap,
+-- which says nothing about the total: 60 registered sounds each playing once
+-- is 60 voices. Desktop OpenAL shrugs that off, OpenAL-wasm does not. Counted
+-- on a timer rather than per play (isPlaying is a driver round-trip) and
+-- nudged as voices are handed out, so it only has to be roughly right.
+local liveVoices = 0
+local voiceTimer = 0
+
+local function countVoices()
+    local n = 0
+    for _, pool in pairs(pools) do
+        for _, s in ipairs(pool) do
+            if s:isPlaying() then n = n + 1 end
+        end
+    end
+    return n + #loops
+end
+
+-- Stop the voice closest to finishing, anywhere. Losing the last 40ms of a
+-- casing bounce is inaudible; losing the shot you just fired is not.
+local function stealGlobal()
+    local best, bestLeft
+    for _, pool in pairs(pools) do
+        for _, s in ipairs(pool) do
+            if s:isPlaying() then
+                local left = s:getDuration('seconds') - s:tell('seconds')
+                if not bestLeft or left < bestLeft then best, bestLeft = s, left end
+            end
+        end
+    end
+    if best then best:stop() end
+    return best
+end
+
 -- A new play must ALWAYS get a voice (rapid AK fire never goes silent).
 -- Free source first, grow the pool to poolSize, then steal the play that's
 -- closest to finishing — standard channel-stealing, what CS/Source does.
 local function grabSource(name)
     local pool = pools[name]
     if not pool then return nil end
+
+    -- over the global ceiling: free one before taking another
+    if liveVoices >= TUNE.audio.maxVoices and stealGlobal() then
+        liveVoices = liveVoices - 1
+    end
+
     for _, s in ipairs(pool) do
-        if not s:isPlaying() then return s end
+        if not s:isPlaying() then
+            liveVoices = liveVoices + 1
+            return s
+        end
     end
     if #pool < TUNE.audio.poolSize then
         local src = pool[1]:clone()
         table.insert(pool, src)
+        liveVoices = liveVoices + 1
         return src
     end
     local best, bestLeft
@@ -181,7 +243,7 @@ local function grabSource(name)
         local left = s:getDuration('seconds') - s:tell('seconds')
         if not bestLeft or left < bestLeft then best, bestLeft = s, left end
     end
-    best:stop()
+    best:stop() -- already counted as live; it stays live
     return best
 end
 
@@ -242,8 +304,8 @@ end
 -- outside the one-shot pools: the owner holds the handle and MUST stop it.
 -- gain is live-settable so the owner can fade the loop in/out.
 function Audio.loopAt(name, x, y, gain)
-    local path = files[name]
-    if not path or not love.filesystem.getInfo(path) then return nil end
+    local path = files[name] and resolvePath(files[name])
+    if not path then return nil end
     local A = TUNE.audio
     local src = love.audio.newSource(path, 'static')
     src:setLooping(true)
@@ -319,10 +381,10 @@ end
 -- Looping background bed for the level ('cave', 'forest', 'desert')
 function Audio.playAmbience(set)
     Audio.stopAmbience()
-    local path = 'assets/sounds/ambient/' .. set .. '_bed.ogg'
-    if not love.filesystem.getInfo(path) then return end
+    local path = resolvePath('assets/sounds/ambient/' .. set .. '_bed.ogg')
+    if not path then return end
     ambience.set = set
-    ambience.bed = love.audio.newSource(path, 'stream')
+    ambience.bed = love.audio.newSource(path, longSourceType())
     ambience.bed:setLooping(true)
     ambience.bed:setVolume(Audio.master * Audio.music * TUNE.audio.bedGain * fade.mult)
     ambience.bed:play()
@@ -373,8 +435,8 @@ function Audio.setLowHealth(on)
     lowHealth = on
     if on then
         if not heartbeat then
-            local path = 'assets/sounds/effects/heartbeat.wav'
-            if love.filesystem.getInfo(path) then
+            local path = resolvePath('assets/sounds/effects/heartbeat.wav')
+            if path then
                 heartbeat = love.audio.newSource(path, 'static')
                 heartbeat:setLooping(true)
             end
@@ -392,9 +454,9 @@ end
 -- Start the menu music at launch; keeps looping for the whole session
 function Audio.startMusic()
     if menuMusic.src then return end
-    local path = 'assets/music/no_birds.mp3'
-    if not love.filesystem.getInfo(path) then return end
-    menuMusic.src = love.audio.newSource(path, 'stream')
+    local path = resolvePath('assets/music/no_birds.mp3')
+    if not path then return end
+    menuMusic.src = love.audio.newSource(path, longSourceType())
     menuMusic.src:setLooping(true)
     menuMusic.src:setVolume(Audio.master * Audio.music * TUNE.audio.menuMusicGain)
     menuMusic.src:play()
@@ -435,6 +497,14 @@ end
 -- state (menu music must fade while menus are up, ducks while paused).
 function Audio.update(dt)
     updateMusic(dt)
+
+    -- resync the voice count with reality; between resyncs it drifts high
+    -- (finished sounds still counted), which errs toward stealing early
+    voiceTimer = voiceTimer - dt
+    if voiceTimer <= 0 then
+        voiceTimer = 0.25
+        liveVoices = countVoices()
+    end
     if fade.mult < 1 and fade.dur > 0 then
         fade.t = fade.t + dt
         fade.mult = math.min(1, fade.t / fade.dur)

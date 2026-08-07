@@ -50,6 +50,19 @@ function playing:update(dt)
     Chat.update(dt)
     world:update(dt)
 
+    -- Closing a browser tab never fires love.quit, so the desktop contract
+    -- ("close the window mid-run, Continue picks it up") has to be a timer
+    -- there instead. index.html flushes the save dir to IndexedDB.
+    if WEB and not world.gameOver then
+        self.autosave = (self.autosave or TUNE.autosaveInterval) - dt
+        if self.autosave <= 0 then
+            self.autosave = TUNE.autosaveInterval
+            if world.player and world.player.health > 0 then
+                require('core.save').saveRun(world:serialize())
+            end
+        end
+    end
+
     if world.gameOver then
         Chat.close() -- key repeat off before the menu takes over
         State.push('gameover')
@@ -110,6 +123,7 @@ function playing:keypressed(key)
         -- reload tune.lua and restart the run with the new values
         package.loaded['tune'] = nil
         TUNE = require('tune')
+        require('core.web').applyTune(TUNE) -- reload must not restore desktop values
         Fx.refresh()
         require('core.gif').clearCache() -- edited gifs get re-decoded too
         world = World:new({})

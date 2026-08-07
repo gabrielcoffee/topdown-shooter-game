@@ -59,8 +59,14 @@ function Screen.apply(settings)
     -- on single-display machines because LOVE clamps out-of-range indexes)
     local curDisplay = select(3, love.window.getPosition()) or 1
 
+    -- Browsers only grant fullscreen from inside a user gesture, so a saved
+    -- fullscreen=true applied during love.load is rejected and leaves the
+    -- window in a mismatched mode. itch.io's own fullscreen button is the
+    -- supported route in a tab.
+    local wantFullscreen = settings.fullscreen and not WEB
+
     local flags = {
-        fullscreen = settings.fullscreen or false,
+        fullscreen = wantFullscreen or false,
         fullscreentype = 'desktop',
         resizable = true,
         -- never let a drag-resize go shorter than the 960px logical canvas:
@@ -72,7 +78,12 @@ function Screen.apply(settings)
         display = curDisplay,
     }
     local w, h
-    if settings.fullscreen then
+    if WEB then
+        -- the canvas element IS the window; sizing it to the logical canvas
+        -- means no letterbox bars and a 1:1 blit. index.html then scales the
+        -- element with CSS to whatever the itch.io embed gives us.
+        w, h = LOGICAL.w, LOGICAL.h
+    elseif wantFullscreen then
         w, h = love.window.getDesktopDimensions(curDisplay)
     else
         w, h = parseRes(settings.resolution)

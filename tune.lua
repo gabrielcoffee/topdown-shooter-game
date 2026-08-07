@@ -339,6 +339,8 @@ return {
         sfxDefault = 1,
         musicDefault = 1,
         poolSize = 8, -- max simultaneous plays of the same sound (then oldest is stolen)
+        maxVoices = 64, -- hard ceiling on sounds playing at once, all pools combined
+                        -- (then the one closest to finishing is stolen)
 
         -- positional ("surround") audio; world px -> OpenAL units
         pxPerUnit = 100,     -- smaller = stronger pan + faster falloff
@@ -612,5 +614,31 @@ return {
             nearPlayerChance = 0.15, -- surprise-spawn roll during nightmares
             bonusMoney = 500,        -- cash for clearing one (shown on the end banner)
         },
+    },
+
+    -- ================================ WEB =================================
+    -- Only read by the browser build (core/web.lua folds these over the
+    -- values above at boot). Same shape as the real tables -- anything not
+    -- listed here keeps its desktop value. Editing a number in here changes
+    -- ONLY the browser build.
+    web = {
+        lighting = {
+            -- soft shadow edges cost 2 extra full-screen passes per frame, on
+            -- top of the per-light stencil work. WebGL cannot afford them.
+            shadowBlur = 0,
+        },
+        audio = {
+            -- OpenAL-wasm has a far tighter voice budget than desktop OpenAL,
+            -- and every source is fully decoded in RAM (no streaming without
+            -- threads). Smaller pools, hard global ceiling.
+            poolSize = 4,
+            maxVoices = 24,
+        },
+        -- the dev console needs Tab, Ctrl+C/V and clipboard access, none of
+        -- which behave in a browser tab
+        dev = { enabled = false },
+        -- run autosave interval, secs. Closing a tab never fires love.quit,
+        -- so the browser build cannot rely on save-on-exit.
+        autosaveInterval = 30,
     },
 }

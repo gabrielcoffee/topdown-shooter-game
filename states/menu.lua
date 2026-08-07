@@ -40,10 +40,14 @@ function menu:enter(opts)
         label = 'menu.options', type = 'action',
         activate = function() State.push('options') end,
     })
-    table.insert(items, {
-        label = 'menu.quit', type = 'action',
-        activate = function() love.event.quit() end,
-    })
+    -- no QUIT in a browser tab: love.event.quit() there tears the game down
+    -- and leaves a dead black canvas with no way back short of a page reload
+    if not WEB then
+        table.insert(items, {
+            label = 'menu.quit', type = 'action',
+            activate = function() love.event.quit() end,
+        })
+    end
 
     self.list = MenuList:new(items, 500)
     self.list.nesFade = true -- items fade in with the stepped intro fade
