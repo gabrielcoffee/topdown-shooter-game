@@ -508,6 +508,11 @@ return {
         playerRange = 230,    -- player light radius, world px
         playerBright = 0.40,  -- player light intensity (1 = blinding white)
         shadowBlur = 2,       -- shadow edge softness, blur px (0 = hard pixel edges)
+        maxLights = nil,      -- cap on simultaneous lights (nil = no cap)
+        shadowScale = 1,      -- resolution the light passes render at (1 = full
+                              -- canvas, 0.5 = quarter the pixels). Lights cost a
+                              -- full-buffer pass each, so this is THE lighting
+                              -- performance dial. Below ~0.5 shadow edges go soft.
         occluderCornerCut = 8, -- px chamfered off wall shadow corners (matches the soft wall sprites)
         muzzleRange = 210,    -- muzzle flash light radius
         muzzleBright = 0.65,  -- muzzle flash intensity
@@ -623,9 +628,14 @@ return {
     -- ONLY the browser build.
     web = {
         lighting = {
-            -- soft shadow edges cost 2 extra full-screen passes per frame, on
+            -- soft shadow edges cost an extra full-buffer pass per frame, on
             -- top of the per-light stencil work. WebGL cannot afford them.
             shadowBlur = 0,
+            -- and the light passes themselves run at half resolution: with
+            -- them at full res the browser managed 15fps, without lighting at
+            -- all it sat at a locked 60. Lights are the entire budget.
+            shadowScale = 0.5,
+            maxLights = 2,
         },
         audio = {
             -- OpenAL-wasm has a far tighter voice budget than desktop OpenAL,

@@ -1,12 +1,20 @@
 local util = {}
-local tempCanvas
 --TODO: the whole stencil/canvas system should be reviewed since it has been changed in a naive way
+
+-- PATCH (chamber9): one scratch canvas per size, not a single screen-sized one.
+-- The lighting buffers can be smaller than the screen (light_world's
+-- shadowScale), and bouncing a half-res canvas through a full-res scratch
+-- wasted the saving this was meant to make.
+local tempCanvases = {}
 
 function util.process(canvas, options)
   --TODO: now you cannot draw a canvas to itself
-  if not tempCanvas then
-    tempCanvas = love.graphics.newCanvas()
+  local w, h = canvas:getDimensions()
+  local key = w .. 'x' .. h
+  if not tempCanvases[key] then
+    tempCanvases[key] = love.graphics.newCanvas(w, h)
   end
+  local tempCanvas = tempCanvases[key]
   util.drawCanvasToCanvas(canvas, tempCanvas, options)
   util.drawCanvasToCanvas(tempCanvas, canvas, options)
 end
@@ -37,7 +45,13 @@ function util.drawCanvasToCanvas(canvas, other_canvas, options)
       love.graphics.setColor(1,1,1)
     end
     if love.graphics.getCanvas() ~= canvas then
-      love.graphics.draw(canvas,0,0)
+      -- options.scale upsamples a downscaled lighting buffer back to full size
+      local sc = options["scale"]
+      if sc then
+        love.graphics.draw(canvas, 0, 0, 0, sc, sc)
+      else
+        love.graphics.draw(canvas,0,0)
+      end
     end
     if options["blendmode"] then
       love.graphics.setBlendMode("alpha")

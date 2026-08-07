@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<title>Zombie Chamber</title>
+<style>
+  @font-face {
+    font-family: 'PressStart2P';
+    src: url('PressStart2P-Regular.ttf') format('truetype');
+    font-display: block;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: #000;
+    overflow: hidden;
+    font-family: 'PressStart2P', monospace;
+    color: #d8d8d8;
+    /* the game owns every click and drag; no text selection, no iOS callouts */
+    user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  }
+
+  #stage {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #000;
+  }
+
+  /* LOVE sets the canvas to the logical 1280x960 and writes inline styles
+     doing it, hence the !important -- the element is scaled to whatever the
+     itch.io embed (or fullscreen) gives us, keeping 4:3 and hard pixel edges */
+  #canvas {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    display: block;
+    outline: none;
+    visibility: hidden;
+  }
+
+  /* ---------------------------------------------------------- loading ---- */
+  #loader {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 2.2rem;
+    background: #000;
+    text-align: center;
+    padding: 1rem;
+  }
+
+  #title {
+    font-size: clamp(14px, 3.6vw, 34px);
+    color: #b81d1d;
+    letter-spacing: 0.12em;
+    text-shadow: 0 0 18px rgba(184, 29, 29, 0.45);
+  }
+
+  #status {
+    font-size: clamp(7px, 1.2vw, 11px);
+    color: #6e6e6e;
+    letter-spacing: 0.18em;
+    min-height: 1.4em;
+  }
+
+  /* deliberately square: rounded corners read as "web page", not as the game */
+  #bar {
+    width: min(52vw, 420px); height: 14px;
+    border: 2px solid #2c2c2c;
+    background: #0a0a0a;
+    padding: 2px;
+  }
+  #fill {
+    height: 100%; width: 0%;
+    background: #b81d1d;
+    box-shadow: 0 0 12px rgba(184, 29, 29, 0.6);
+    transition: width 0.15s linear;
+  }
+
+  #play {
+    font-family: inherit;
+    font-size: clamp(9px, 1.6vw, 15px);
+    color: #d8d8d8;
+    background: none;
+    border: 2px solid #b81d1d;
+    padding: 0.9em 1.6em;
+    cursor: pointer;
+    letter-spacing: 0.14em;
+    display: none;
+    animation: pulse 1.4s steps(2, end) infinite;
+  }
+  #play:hover { background: #b81d1d; color: #000; animation: none; }
+  @keyframes pulse { 50% { opacity: 0.45; } }
+
+  #hint {
+    font-size: clamp(6px, 1vw, 9px);
+    color: #3d3d3d;
+    letter-spacing: 0.16em;
+    line-height: 2;
+  }
+
+  /* CRT scanlines over the loading screen, matching the game's own filter */
+  #loader::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px,
+      rgba(0,0,0,0.28) 3px, rgba(0,0,0,0.28) 4px);
+  }
+
+  #fatal {
+    position: absolute; inset: 0; display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 1.4rem; background: #000; padding: 2rem; text-align: center;
+    font-size: clamp(7px, 1.2vw, 11px); line-height: 2; color: #b81d1d;
+    z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+
+  <div id="loader">
+    <div id="title">ZOMBIE CHAMBER</div>
+    <div id="bar"><div id="fill"></div></div>
+    <div id="status">LOADING</div>
+    <button id="play">CLICK TO PLAY</button>
+    <div id="hint">WASD MOVE &nbsp;·&nbsp; MOUSE AIM &nbsp;·&nbsp; ESC PAUSE</div>
+  </div>
+
+  <div id="fatal">
+    <div>FAILED TO START</div>
+    <div id="fatalmsg" style="color:#6e6e6e"></div>
+    <div style="color:#3d3d3d">TRY RELOADING THE PAGE</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var WASM_URL = 'love.wasm';
+
+  // ------------------------------------------------- 8-bit canvases, please
+  // LOVE's OpenGL ES 2 path will not allocate a canvas as RGBA8 unless the
+  // driver advertises OES_rgb8_rgba8, and WebGL1 never does -- even though
+  // RGBA/UNSIGNED_BYTE textures are 8 bits per channel there by definition.
+  // So every render target came out RGBA4444: 16 levels per channel, which
+  // turned each light's falloff into wide concentric rings. Desktop GL has
+  // the extension and looks correct, which is why this only ever showed up
+  // in the browser.
+  //
+  // Swap the type on allocation (pixels === null) and remember which textures
+  // were switched. A texture allocated as 8-bit cannot then accept a 4444
+  // upload -- WebGL rejects the mismatch with INVALID_OPERATION and LOVE
+  // reports "Cannot create image" -- so any later upload into one of those
+  // gets its packed 4444 shorts expanded to bytes to match.
+  (function () {
+    var RGBA4444 = 0x8033, UNSIGNED_BYTE = 0x1401;
+    var proto = window.WebGLRenderingContext && WebGLRenderingContext.prototype;
+    if (!proto) return;
+    var converted = new WeakSet();
+
+    // one uint16 per texel, RGBA one nibble each -> four bytes. n*17 maps
+    // 0..15 onto 0..255 exactly (15*17 = 255), so nothing shifts in tone.
+    function expand(pixels, w, h) {
+      if (!pixels) return pixels;
+      var src = new Uint16Array(pixels.buffer || pixels, pixels.byteOffset || 0, w * h);
+      var out = new Uint8Array(w * h * 4);
+      for (var i = 0; i < src.length; i++) {
+        var v = src[i], o = i * 4;
+        out[o] = ((v >> 12) & 0xF) * 17;
+        out[o + 1] = ((v >> 8) & 0xF) * 17;
+        out[o + 2] = ((v >> 4) & 0xF) * 17;
+        out[o + 3] = (v & 0xF) * 17;
+      }
+      return out;
+    }
+
+    var texImage2D = proto.texImage2D;
+    proto.texImage2D = function (target, level, internalformat, w, h, border, format, type, pixels) {
+      if (arguments.length === 9 && type === RGBA4444) {
+        var tex = this.getParameter(this.TEXTURE_BINDING_2D);
+        if (tex) converted.add(tex);
+        return texImage2D.call(this, target, level, internalformat, w, h, border, format,
+                               UNSIGNED_BYTE, pixels == null ? null : expand(pixels, w, h));
+      }
+      return texImage2D.apply(this, arguments);
+    };
+
+    var texSubImage2D = proto.texSubImage2D;
+    proto.texSubImage2D = function (target, level, xoff, yoff, w, h, format, type, pixels) {
+      if (arguments.length === 9 && type === RGBA4444) {
+        var tex = this.getParameter(this.TEXTURE_BINDING_2D);
+        if (tex && converted.has(tex)) {
+          return texSubImage2D.call(this, target, level, xoff, yoff, w, h, format,
+                                    UNSIGNED_BYTE, expand(pixels, w, h));
+        }
+      }
+      return texSubImage2D.apply(this, arguments);
+    };
+  })();
+
+  // web/smoke.js loads this page with ?smoke=1 and reads the canvas back to
+  // prove the build drew something. WebGL throws the drawing buffer away after
+  // each composite unless asked not to, and that costs real frame time, so it
+  // is on for the test and off for players.
+  if (location.search.indexOf('smoke') > -1) {
+    var getContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (type, attrs) {
+      if (String(type).indexOf('webgl') === 0) {
+        attrs = Object.assign({}, attrs || {}, { preserveDrawingBuffer: true });
+      }
+      return getContext.call(this, type, attrs);
+    };
+  }
+  var el = function (id) { return document.getElementById(id); };
+  var fill = el('fill'), status = el('status'), playBtn = el('play');
+
+  // ---------------------------------------------------------------- progress
+  // Two downloads land in parallel: love.wasm (fetched here, so the bytes are
+  // visible) and game.data (fetched by game.js, which only reports through
+  // setStatus). Both feed one bar -- a bar that stalls at 50% for the second
+  // half of an 8MB download reads as a hang.
+  var wasmLoaded = 0, wasmTotal = 0;
+  var dataLoaded = 0, dataTotal = 0;
+
+  function paint() {
+    var total = wasmTotal + dataTotal;
+    if (!total) return;
+    var pct = Math.min(100, Math.round(((wasmLoaded + dataLoaded) / total) * 100));
+    fill.style.width = pct + '%';
+    status.textContent = 'LOADING ' + pct + '%';
+  }
+
+  function fail(msg) {
+    el('fatal').style.display = 'flex';
+    el('fatalmsg').textContent = String(msg || '').slice(0, 200);
+  }
+
+  // ------------------------------------------------------------------ Module
+  // game.js reads this the moment it loads, so it has to exist first.
+  // ?args=autotest,shot9999 -> LOVE command-line args, so web/smoke.js can
+  // boot straight into a run and prove the gameplay shaders compile. Players
+  // never pass this; main.lua ignores anything it does not recognise.
+  var extraArgs = (/[?&]args=([^&]+)/.exec(location.search) || [])[1];
+  extraArgs = extraArgs ? decodeURIComponent(extraArgs).split(',') : [];
+
+  var Module = window.Module = {
+    arguments: ['./game.love'].concat(extraArgs),
+    INITIAL_MEMORY: 268435456,
+    printErr: console.error.bind(console),
+    canvas: el('canvas'),
+    setStatus: function (text) {
+      // "Downloading data... (loaded/total)" is the only byte-level signal
+      // game.js gives us
+      var m = /\((\d+)\/(\d+)\)/.exec(text || '');
+      if (m) { dataLoaded = +m[1]; dataTotal = +m[2]; paint(); }
+    },
+    monitorRunDependencies: function () {}
+  };
+
+  el('canvas').addEventListener('webglcontextlost', function (e) {
+    e.preventDefault();
+    fail('WEBGL CONTEXT LOST');
+  }, false);
+
+  window.onerror = function (msg) { fail(msg); };
+
+  // ------------------------------------------------------------------- input
+  // Keys the browser would otherwise eat: space and arrows scroll the page,
+  // tab walks focus off the canvas. SDL still receives them -- preventDefault
+  // stops the browser's own handling, not the event.
+  var SWALLOW = ['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+  window.addEventListener('keydown', function (e) {
+    if (SWALLOW.indexOf(e.code) > -1) e.preventDefault();
+  }, false);
+  // weapon switching is on the wheel; without this the page scrolls with it
+  window.addEventListener('wheel', function (e) { e.preventDefault(); }, { passive: false });
+
+  // --------------------------------------------------------------- save sync
+  // The save dir is an IndexedDB mount that only persists on an explicit
+  // syncfs. love.js does one on beforeunload, which browsers are free to skip
+  // (and Safari usually does), so flush on a timer and whenever the tab is
+  // backgrounded. states/playing.lua checkpoints the run every 30s to match.
+  // one at a time: overlapping syncs just redo each other's work, and
+  // love.js fires its own on beforeunload
+  var syncing = false;
+  function syncSaves() {
+    if (syncing || !Module.FS) return;
+    syncing = true;
+    try {
+      Module.FS.syncfs(false, function () { syncing = false; });
+    } catch (e) { syncing = false; }
+  }
+  setInterval(syncSaves, 10000);
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) syncSaves();
+  });
+  window.addEventListener('pagehide', syncSaves);
+
+  // ------------------------------------------------------------------- boot
+  // The runtime is NOT started on load. Browsers hand out an AudioContext
+  // only inside a user gesture, and an itch.io "click to play" lands on the
+  // parent page, not in this frame -- booting from our own button is what
+  // makes the game audible at all.
+  function ready() {
+    status.textContent = 'READY';
+    fill.style.width = '100%';
+    playBtn.style.display = 'block';
+    playBtn.focus();
+  }
+
+  playBtn.addEventListener('click', function () {
+    el('loader').style.display = 'none';
+    el('canvas').style.visibility = 'visible';
+    el('canvas').focus();
+    try {
+      Love(Module); // eslint-disable-line no-undef
+    } catch (e) {
+      fail(e && e.message);
+    }
+  });
+
+  function loadScript(src, onload) {
+    var s = document.createElement('script');
+    s.src = src;
+    s.onload = onload;
+    s.onerror = function () { fail('COULD NOT LOAD ' + src); };
+    document.body.appendChild(s);
+  }
+
+  // game.data first (it starts its own download immediately), then the wasm
+  // bytes, then love.js -- which picks up Module.wasmBinary instead of
+  // fetching love.wasm a second time.
+  loadScript('game.js', function () {
+    fetch(WASM_URL).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      wasmTotal = +(res.headers.get('content-length') || 0);
+      if (!res.body || !wasmTotal) return res.arrayBuffer(); // no stream: no bar, still works
+      var reader = res.body.getReader(), chunks = [];
+      return (function pump() {
+        return reader.read().then(function (r) {
+          if (r.done) {
+            var buf = new Uint8Array(wasmLoaded), at = 0;
+            chunks.forEach(function (c) { buf.set(c, at); at += c.length; });
+            return buf.buffer;
+          }
+          chunks.push(r.value);
+          wasmLoaded += r.value.length;
+          paint();
+          return pump();
+        });
+      })();
+    }).then(function (buf) {
+      Module.wasmBinary = buf;
+      wasmLoaded = wasmTotal = buf.byteLength;
+      paint();
+      loadScript('love.js', ready);
+    }).catch(function (e) { fail(e && e.message); });
+  });
+})();
+</script>
+</body>
+</html>

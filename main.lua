@@ -118,7 +118,12 @@ function love.update(dt)
     if _fps then
         _fps.t = _fps.t + dt; _fps.n = _fps.n + 1
         if _fps.t >= 1 then
-            io.stderr:write(('FPS %d frametime %.2fms\n'):format(love.timer.getFPS(), 1000/love.timer.getFPS()))
+            -- draw calls and canvas switches matter more than pixels in the
+            -- browser: every GL call crosses the wasm/JS boundary
+            local st = love.graphics.getStats()
+            io.stderr:write(('FPS %d frametime %.2fms draws %d canvasswitches %d shaderswitches %d\n')
+                :format(love.timer.getFPS(), 1000/love.timer.getFPS(),
+                        st.drawcalls, st.canvasswitches, st.shaderswitches))
             _fps.t = 0; _fps.n = 0
         end
     end

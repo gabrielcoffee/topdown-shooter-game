@@ -1,0 +1,11 @@
+{
+  "name": "zombiechamber-web",
+  "private": true,
+  "description": "Build tooling for the browser build only. The game itself is Lua/LOVE.",
+  "scripts": {
+    "smoke": "node web/smoke.js"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^24.0.0"
+  }
+}

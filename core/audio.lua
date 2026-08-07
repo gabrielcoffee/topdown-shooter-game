@@ -122,6 +122,8 @@ local function resolvePath(path)
     return nil
 end
 
+Audio.resolvePath = resolvePath -- anyone loading a sound directly needs this too
+
 -- Streaming needs a decoder thread, and love.js has no threads -- every source
 -- in the browser must be fully decoded up front. This is why the web build
 -- ships short music/ambience loops instead of the full tracks.

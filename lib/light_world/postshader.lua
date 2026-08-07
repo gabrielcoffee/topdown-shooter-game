@@ -79,16 +79,27 @@ local function new()
   return class
 end
 
-function post_shader:refreshScreenSize(w, h)
-  w, h = w or love.graphics.getWidth(), h or love.graphics.getHeight()
-  self.back_buffer = love.graphics.newCanvas(w, h)
+-- Kept because light_world calls it on every resize. Upstream allocated a
+-- full-screen back buffer here; nothing reads it now that only drawBlur
+-- survives, and drawBlur works through util.process's own scratch canvas.
+function post_shader:refreshScreenSize()
 end
 
 -- args[1] = vertical radius in px, args[2] = horizontal (defaults to the same).
--- A radius of 0 is a no-op that still cost two full-screen passes upstream.
+--
+-- Radius 0 cannot skip the shader entirely, however tempting: every pass ends
+-- `return vec4(col.rgb, 1.0)`, and that alpha of 1 is load-bearing. The caller
+-- multiplies this canvas over the lit scene, so a shadow buffer left at alpha 0
+-- multiplies the world away and leaves a blank blue screen. At radius 0 the
+-- generated shader has no taps and divides by 1 -- an identity copy whose only
+-- job is that alpha. Still one pass instead of the two upstream always ran.
 function post_shader:drawBlur(canvas, args)
   local v = math.floor(args[1] or 0)
   local h = math.floor(args[2] or args[1] or 0)
+  if v <= 0 and h <= 0 then
+    util.process(canvas, {shader = blurShader('v', 0), blendmode = "alpha"})
+    return
+  end
   if v > 0 then
     util.process(canvas, {shader = blurShader('v', v), blendmode = "alpha"})
   end

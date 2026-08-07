@@ -18,8 +18,13 @@ splash.fxMode = 'menu'
 -- plays a pitch-jittered clone.
 local clickBase
 local function playClick(self)
-    clickBase = clickBase
-        or love.audio.newSource('assets/sounds/effects/typewriter_key.mp3', 'static')
+    if clickBase == false then return end -- looked once, not there
+    if not clickBase then
+        -- resolvePath, not the raw path: the web build ships everything as ogg
+        local path = Audio.resolvePath('assets/sounds/effects/typewriter_key.mp3')
+        clickBase = path and love.audio.newSource(path, 'static') or false
+        if not clickBase then return end
+    end
     local src = clickBase:clone()
     src:setPitch(0.94 + love.math.random() * 0.12)
     src:setVolume(Audio.master * Audio.sfx * TUNE.splash.typeGain)

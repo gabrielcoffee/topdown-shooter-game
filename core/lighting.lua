@@ -56,6 +56,10 @@ function Lighting.new(map)
     -- light_world sizes its buffers to the OS window by default, so at fullscreen
     -- it re-renders every light pass at native resolution — the fullscreen lag.
     -- Pin them to the fixed logical canvas so cost is constant regardless of res.
+    -- lights are the whole frame budget in the browser; rendering their passes
+    -- at a fraction of the canvas is what buys the framerate back (1 = full)
+    self.lw:setShadowScale(TUNE.lighting.shadowScale)
+    self.lw:setMaxLights(TUNE.lighting.maxLights)
     self.lw:refreshScreenSize(SCREENWIDTH, SCREENHEIGHT)
     self.lw:setShadowBlur(TUNE.lighting.shadowBlur) -- soft shadow edges (0 = hard)
     self.lw.disableGlow = true    -- plain occluders: glow/material passes are
