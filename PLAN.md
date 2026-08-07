@@ -25,5 +25,8 @@ Rule: game playable end-to-end as early as possible — Phase 1 closes the loop,
 12. Tuning pass (yours — playtesting)
 13. Ship build on itch ($1)
 
+## Phase 5 — Web
+14. Browser build via love.js, playable on the itch page — see [docs/web-build-plan.md](docs/web-build-plan.md)
+
 ## Not on this plan (see SPEC cut list)
 Building, crates, ladders, multiplayer, story, extra maps, extra weapons, shop NPCs, armor. New ideas → SEQUEL.md.
