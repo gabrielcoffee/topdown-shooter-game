@@ -35,7 +35,7 @@ function love.load()
 
     State.switch('splash') -- studio card first; it fades into the menu
 
-    for _, a in ipairs(arg) do
+    for _, a in ipairs(arg or {}) do -- love.js loaders may not set arg at all
         if a == 'autotest' then
             -- headless smoke test: jump into a run, hitboxes on, screenshot
             -- to the save dir after ~1.5s, then quit

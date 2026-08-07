@@ -29,7 +29,9 @@ local shader = love.graphics.newShader([[
     attribute vec2 WindData; // x = bend weight 0..1, y = per-prop phase
     attribute vec4 UVBounds; // this sprite's cell, inset to texel centers
 
-    varying vec4 vBounds;
+    varying highp vec4 vBounds; // GLES2 would default this to mediump, and it
+                                // clamps atlas UVs -- 1/1024 precision bleeds
+                                // the neighbouring cell. No-op on desktop.
 
     uniform float t;
     uniform vec4 sway;     // amp px, speed, gust amp px, gust speed
@@ -66,7 +68,7 @@ local shader = love.graphics.newShader([[
         return transform_projection * vertex_position;
     }
 ]], [[
-    varying vec4 vBounds;
+    varying highp vec4 vBounds;
 
     // bending moves vertices by fractions of a pixel, so a sample at the very
     // edge can land on the next cell of the atlas — clamp it back in
