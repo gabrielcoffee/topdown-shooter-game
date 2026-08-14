@@ -289,6 +289,34 @@ return {
     dev = { enabled = true,     -- master switch for the chat console (T)
             flySpeedMult = 2 }, -- god-mode fly (shift held): speed vs base walk
 
+    -- LAN co-op. Desktop only: a browser tab cannot open UDP sockets, so the
+    -- web build has no ENet at all (see core/web.lua).
+    net = {
+        maxPlayers = 4,
+        gamePort = 23471,      -- ENet host port (clients connect here)
+        beaconPort = 23470,    -- UDP broadcast the server browser listens on
+        beaconInterval = 1,    -- secs between a host's beacons
+        beaconTimeout = 3,     -- secs before a silent host drops off the list
+
+        -- LAN round-trip is ~1ms against a 16.7ms frame, so everything runs at
+        -- full rate: no interpolation, no client prediction, no rewind buffers.
+        -- Budget at 4 players + 40 zombies is ~48 KB/s per client.
+        inputRate = 60,        -- Hz a client sends its input struct
+        snapshotRate = 60,     -- Hz the host broadcasts world state
+        timeout = 5,           -- secs of silence before a peer is dropped
+        connectTimeout = 8,    -- secs to give up on joining a host
+
+        -- voice: raw PCM, no codec (a LAN has bandwidth to burn and Opus would
+        -- be a native dependency for no gain). 25ms chunks stay under MTU.
+        voice = {
+            sampleRate = 16000, -- Hz; 8000 sounds like a phone, 16000 is clear
+            bitDepth = 16,
+            chunkMs = 25,       -- 400 samples = 800 bytes per packet
+            maxQueued = 6,      -- chunks buffered per speaker before dropping
+            proximityRange = 420, -- px falloff when the host picks proximity voice
+        },
+    },
+
     -- /recording (hidden chat command, not in /help or suggestions): clean
     -- footage mode — molotov fire kills any zombie in exactly ticksToKill
     -- burn ticks, burns for burnTime secs, HUD + chat overlay hidden.
