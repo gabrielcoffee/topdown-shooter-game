@@ -61,6 +61,7 @@ local function new(options)
   obj.reflectionVisibility = 1.0
   obj.shadowBlur           = 2.0
   obj.shadowScale          = 1.0 -- see setShadowScale
+  obj.shadowBatch          = {}  -- reused vertex scratch, see drawShadows
   obj.glowBlur             = 1.0
   obj.glowTimer            = 0.0
   obj.glowDown             = false
@@ -246,10 +247,28 @@ function light_world:drawShadows(l,t,w,h,s)
         love.graphics.setShader()
       end)
       love.graphics.setStencilTest("equal", 0)
+      -- PATCH (chamber9): one mesh for every shadow this light casts, instead
+      -- of a polygon() call per silhouette edge per body. This was the whole
+      -- cost of lighting in the browser -- 95 draw calls a frame at two lights.
+      local batch = self.shadowBatch
+      for k = 1, #batch do batch[k] = nil end
       for k = 1, #self.bodies do
         if self.bodies[k]:inLightRange(light) and self.bodies[k]:isVisible() then
-          self.bodies[k]:drawShadow(light)
+          self.bodies[k]:drawShadow(light, batch)
         end
+      end
+      if #batch > 0 then
+        local mesh = self.shadowMesh
+        if not mesh or mesh:getVertexCount() < #batch then
+          -- grow in steps so a busy frame does not reallocate every time
+          local size = math.max(256, 2 ^ math.ceil(math.log(#batch) / math.log(2)))
+          mesh = love.graphics.newMesh(size, 'triangles', 'stream')
+          self.shadowMesh = mesh
+        end
+        mesh:setVertices(batch)
+        mesh:setDrawRange(1, #batch)
+        love.graphics.setColor(1, 1, 1, 1) -- vertex colours carry the real one
+        love.graphics.draw(mesh)
       end
     end)
 

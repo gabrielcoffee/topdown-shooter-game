@@ -663,11 +663,15 @@ return {
             -- soft shadow edges cost an extra full-buffer pass per frame, on
             -- top of the per-light stencil work. WebGL cannot afford them.
             shadowBlur = 0,
-            -- and the light passes themselves run at half resolution: with
-            -- them at full res the browser managed 15fps, without lighting at
-            -- all it sat at a locked 60. Lights are the entire budget.
+            -- and the light passes themselves run at half resolution
             shadowScale = 0.5,
-            maxLights = 2,
+            -- Nearest N lights only. This used to be 2 and was the only thing
+            -- holding the framerate up; since occluders stopped being stamped
+            -- into the stencil as one texture each (lib/light_world/body.lua)
+            -- the browser sits at a locked 60 with 4. Uncapped still dips to
+            -- 53 in a torch-heavy room, so the cap stays -- it just costs
+            -- nothing visible now.
+            maxLights = 4,
         },
         audio = {
             -- OpenAL-wasm has a far tighter voice budget than desktop OpenAL,
