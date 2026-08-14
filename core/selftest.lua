@@ -108,6 +108,60 @@ function Selftest.run()
     ok(Protocol.unpackBeacon('garbage') == nil, 'foreign UDP traffic is ignored')
     ok(Protocol.unpackBeacon(nil) == nil, 'nil beacon is ignored')
 
+    -- ============================================================ names
+    section("player names")
+    do
+        local Name = require('core.name')
+        local good = { 'Notch', 'coffeebreak', 'Gabriel_99', 'xX_Sniper_Xx', 'abc',
+                       'A1', 'aaaaaaaaaaaaaaaaaaaa' }
+        for _, n in ipairs(good) do
+            local valid, why = Name.validate(n)
+            if #n >= Name.MIN and #n <= Name.MAX then
+                ok(valid, ('%q accepted (%s)'):format(n, tostring(why)))
+            end
+        end
+        local bad = {
+            { 'no',        Name.ERR.SHORT, 'too short' },
+            { '1cool',     Name.ERR.START, 'starts with a digit' },
+            { '_lead',     Name.ERR.START, 'starts with an underscore' },
+            { 'my name',   Name.ERR.CHARS, 'contains a space' },
+            { 'Zombe\xc3\xa9', Name.ERR.CHARS, 'non-ascii' },
+            { 'averyveryverylongname99', Name.ERR.LONG, 'too long' },
+            { '',          Name.ERR.SHORT, 'empty' },
+        }
+        for _, case in ipairs(bad) do
+            local valid, why = Name.validate(case[1])
+            ok(not valid, ('%q rejected (%s)'):format(case[1], case[3]))
+            ok(why == case[2], ('%q gave the right reason'):format(case[1]))
+        end
+
+        -- surrounding whitespace is trimmed, not rejected
+        local okTrim, trimmed = Name.validate('  Notch  ')
+        ok(okTrim and trimmed == 'Notch', 'whitespace is trimmed')
+
+        -- typing filter
+        ok(Name.allowedChar('a') and Name.allowedChar('Z')
+            and Name.allowedChar('7') and Name.allowedChar('_'),
+            'name field accepts letters, digits, underscore')
+        ok(not Name.allowedChar(' ') and not Name.allowedChar('-'),
+            'name field rejects space and punctuation')
+
+        -- sanitize rescues an old/hand-edited settings value
+        ok(Name.sanitize('123abc') == 'abc', 'sanitize drops a leading digit run')
+        ok(Name.sanitize('my name!') == 'myname', 'sanitize strips illegal chars')
+        ok(Name.sanitize('!!') == nil, 'sanitize gives up when nothing is left')
+
+        -- lobby dedupe
+        local taken = { coffeebreak = true }
+        ok(Name.dedupe('Notch', taken) == 'Notch', 'a free name is left alone')
+        ok(Name.dedupe('coffeebreak', taken) == 'coffeebreak2', 'collision gets a suffix')
+        taken.coffeebreak2 = true
+        ok(Name.dedupe('coffeebreak', taken) == 'coffeebreak3', 'suffix keeps counting')
+        local long = string.rep('a', Name.MAX)
+        local dd = Name.dedupe(long, { [long] = true })
+        ok(#dd <= Name.MAX, 'dedupe stays inside the length cap, got ' .. #dd)
+    end
+
     -- ---------------------------------------------------------------- move
     section("movement")
     local world = freshWorld()

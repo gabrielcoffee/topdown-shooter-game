@@ -61,6 +61,18 @@ function love.load()
             State.switch('menu')
             State.push('options')
             _G._autotest = { frames = 0 }
+        elseif a == 'lanhost' or a == 'lanjoin' then
+            -- two-process LAN check; see tools/lantest.sh
+            function love.errorhandler(msg)
+                io.stderr:write('CRASH: ' .. tostring(msg) .. '\n')
+                os.exit(1)
+            end
+            local Lantest = require('core.lantest')
+            if a == 'lanhost' then
+                Lantest.host(tonumber(arg[3]) or 20)
+            else
+                Lantest.join(arg[3] or '127.0.0.1', 20)
+            end
         elseif a == 'selftest' then
             -- scripted gameplay checks driven through the input struct;
             -- writes results to stderr and exits with a status code
