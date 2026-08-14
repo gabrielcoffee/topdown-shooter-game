@@ -24,6 +24,9 @@ Theme.colors = {
     textDim  = {0.45, 0.43, 0.40},
     bg       = {0.04, 0.04, 0.05},
     barBack  = {0.16, 0.15, 0.16},
+    -- amber, for keybind clashes: blood already means "selected" in menus,
+    -- so a conflict needs its own colour to read as a warning
+    conflict = {0.95, 0.55, 0.10},
 }
 
 -- NES-style fade: alpha snaps through a few discrete palette tiers instead

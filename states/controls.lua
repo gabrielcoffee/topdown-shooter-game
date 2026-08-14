@@ -6,6 +6,7 @@
 local State = require('core.state')
 local Theme = require('ui.theme')
 local Audio = require('core.audio')
+local Keybinds = require('core.keybinds')
 
 local controls = {}
 controls.fxMode = 'menu'
@@ -19,8 +20,11 @@ function controls:update(dt)
     self.t = self.t + dt
 end
 
--- One keycap: drop shadow, dark face, light border, centered letter
+-- One keycap: drop shadow, dark face, light border, centered letter.
+-- Widens past the requested w when a rebound key has a long name ('L SHIFT')
+-- so the label never spills over the border.
 local function drawKey(cx, cy, w, h, label)
+    w = math.max(w, Theme.fonts.hud:getWidth(label) + 24)
     local x, y = cx - w / 2, cy - h / 2
     love.graphics.setColor(0, 0, 0, 0.7)
     love.graphics.rectangle('fill', x + 4, y + 5, w, h, 6, 6)
@@ -88,33 +92,55 @@ function controls:draw()
 
     Theme.drawTitle(T('controls.title'), 90)
 
-    -- WASD cluster (left)
+    -- Movement cluster (left) -- labels come from the live binds, so a
+    -- remapped layout shows the player's own keys, not hardcoded WASD
     local key, gap = 64, 10
-    drawKey(340, 320, key, key, 'W')
-    drawKey(340 - key - gap, 394, key, key, 'A')
-    drawKey(340, 394, key, key, 'S')
-    drawKey(340 + key + gap, 394, key, key, 'D')
+    drawKey(340, 320, key, key, Keybinds.label('move_up'))
+    drawKey(340 - key - gap, 394, key, key, Keybinds.label('move_left'))
+    drawKey(340, 394, key, key, Keybinds.label('move_down'))
+    drawKey(340 + key + gap, 394, key, key, Keybinds.label('move_right'))
     actionLabel(T('controls.move'), 480, 358)
 
-    -- SHIFT under the cluster, left-aligned with A
-    drawKey(266 - key / 2 + 85, 505, 170, 56, 'SHIFT')
+    -- Sprint under the cluster, left-aligned with the left-move key
+    drawKey(266 - key / 2 + 85, 505, 170, 56, Keybinds.label('sprint'))
     actionLabel(T('controls.sprint'), 480, 505)
 
-    -- Mouse (right) + color-coded legend
+    -- Mouse (right) + color-coded legend. Shooting rebound off the mouse
+    -- names the key instead, so the drawing can't lie about it.
     drawMouse(900, 290, 120, 185)
-    legendRow(T('controls.shoot'), Theme.colors.blood, 810, 315)
+    local shootLabel = T('controls.shoot')
+    if Keybinds.get('shoot') ~= 'mouse1' then
+        shootLabel = shootLabel .. ' [' .. Keybinds.label('shoot') .. ']'
+    end
+    legendRow(shootLabel, Theme.colors.blood, 810, 315)
     legendRow(T('controls.weapon'), Theme.colors.nightmare, 810, 360)
 
-    -- Extras row: Q and T
+    -- Extras row: Q, T, and (browser only) P -- a tab keeps Escape for itself,
+    -- so P is the only pause key that reaches the game there
     local f = Theme.fonts.hud
     local kw, kGap, gGap, y = 48, 18, 90, 700
-    local w1 = kw + kGap + f:getWidth(T('controls.knife'))
-    local w2 = kw + kGap + f:getWidth(T('controls.chat'))
-    local x = (SCREENWIDTH - (w1 + gGap + w2)) / 2
-    drawKey(x + kw / 2, y, kw, kw, 'Q')
-    actionLabel(T('controls.knife'), x + kw + kGap, y)
-    drawKey(x + w1 + gGap + kw / 2, y, kw, kw, 'T')
-    actionLabel(T('controls.chat'), x + w1 + gGap + kw + kGap, y)
+    local row = { { Keybinds.label('quickknife'), T('controls.knife') } }
+    -- chat only opens when the dev console is on, which the browser build
+    -- turns off -- listing a key that does nothing there is worse than no key
+    if TUNE.dev and TUNE.dev.enabled then
+        table.insert(row, { Keybinds.label('chat'), T('controls.chat') })
+    end
+    if WEB then table.insert(row, { 'P', T('controls.pause') }) end
+
+    local total = 0
+    for i, e in ipairs(row) do
+        -- caps grow with a rebound key's name, so the row has to measure the
+        -- cap it will actually draw or long names overlap the next entry
+        e.kw = math.max(kw, f:getWidth(e[1]) + 24)
+        e.w = e.kw + kGap + f:getWidth(e[2])
+        total = total + e.w + (i > 1 and gGap or 0)
+    end
+    local x = (SCREENWIDTH - total) / 2
+    for _, e in ipairs(row) do
+        drawKey(x + e.kw / 2, y, e.kw, kw, e[1])
+        actionLabel(e[2], x + e.kw + kGap, y)
+        x = x + e.w + gGap
+    end
 
     -- Pulsing start prompt
     local fi = Theme.fonts.item

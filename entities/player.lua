@@ -6,7 +6,6 @@ local Animation = require('core.animation')
 local HandItem = require('hand_items.hand_item')
 local ThrownGrenade = require('entities.thrown_grenade')
 local Hotbar = require('ui.hotbar')
-local Chat = require('ui.chat')
 local Audio = require('core.audio')
 
 local Player = {}
@@ -15,6 +14,7 @@ setmetatable(Player, Entity)
 
 function Player:new(x, y, width, height)
     local obj = Entity:new(x, y, width, height)
+    obj.type = 'player'
     obj.color = Color.green
 
     -- Fixed 5 slots: [1] gun A, [2] gun B, [3] knife, [4] grenades, [5] med kit.
@@ -61,10 +61,11 @@ function Player:new(x, y, width, height)
     obj.falling = false
     obj.fallTimer = 0
     obj.invulnTimer = 0
+    obj.input = require('core.input').new() -- filled per frame, see Player:update
     obj.lockedInputs = {} -- buttons held when falling: dead until released
     -- the click that started this run (menu / retry button) can still be held
     -- when the world spawns — it must not become shot #1
-    if love.mouse.isDown(1) then obj.lockedInputs.mouse1 = true end
+    if love.mouse.isDown(1) then obj.lockedInputs.shoot = true end
     obj.slotHeld = {}     -- per-slot key state, so holding a number can't re-select
     obj.switchTimer = 0   -- deploy lockout after a weapon swap (blocks quick-switch)
     obj.throwTimer = 0    -- secs until the next throw is allowed (stacked grenades)
@@ -236,6 +237,10 @@ function Player:scrollSlot(dir)
 end
 
 function Player:update(dt, world)
+    -- every button/aim read below comes from here. Solo and host fill it from
+    -- the keyboard (core/input.lua), a networked client fills it from the
+    -- packet -- this function can't tell the difference.
+    local inp = self.input
 
     local pop = self.moneyPopup
     if pop then
@@ -290,10 +295,9 @@ function Player:update(dt, world)
 
             -- whatever was held going in must be released to work again
             self.lockedInputs = {}
-            for _, k in ipairs({'w', 'a', 's', 'd'}) do
-                if love.keyboard.isDown(k) then self.lockedInputs[k] = true end
+            for _, k in ipairs({'up', 'down', 'left', 'right', 'shoot'}) do
+                if inp[k] then self.lockedInputs[k] = true end
             end
-            if love.mouse.isDown(1) then self.lockedInputs.mouse1 = true end
         end
         return
     end
@@ -338,26 +342,23 @@ function Player:update(dt, world)
         end
     end
 
-    -- locked buttons free up once released (no and/or here: false isDown(1)
-    -- would fall through into keyboard.isDown('mouse1') and crash)
+    -- locked buttons free up once released. lockedInputs is keyed by input
+    -- field now, so this no longer has to know keyboard from mouse.
     for k in pairs(self.lockedInputs) do
-        local held
-        if k == 'mouse1' then held = love.mouse.isDown(1)
-        else held = love.keyboard.isDown(k) end
-        if not held then self.lockedInputs[k] = nil end
+        if not inp[k] then self.lockedInputs[k] = nil end
     end
 
     -- while the chat is open every gameplay input is dead (world keeps running)
-    local typing = Chat.open
-    local function keyDown(k)
-        return not typing and love.keyboard.isDown(k) and not self.lockedInputs[k]
+    local typing = inp.typing
+    local function btn(k)
+        return not typing and inp[k] and not self.lockedInputs[k]
     end
 
     -- MOVEMENT
-    local left = keyDown('a') and 1 or 0
-    local right = keyDown('d') and 1 or 0
-    local down = keyDown('s') and 1 or 0
-    local up = keyDown('w') and 1 or 0
+    local left = btn('left') and 1 or 0
+    local right = btn('right') and 1 or 0
+    local down = btn('down') and 1 or 0
+    local up = btn('up') and 1 or 0
 
     local moveY = down - up
     local moveX = right - left
@@ -371,7 +372,7 @@ function Player:update(dt, world)
     -- SHIFT = SPRINT: shift held + moving, always — no lockout after firing.
     -- While sprinting shoot/knife/throw are blocked (no aiming at full tilt);
     -- switching, reloading and the med kit patch-up all keep working.
-    local shiftHeld = keyDown('lshift') or keyDown('rshift')
+    local shiftHeld = btn('sprint')
     self.running = shiftHeld and (moveX ~= 0 or moveY ~= 0)
     -- god mode turns the sprint into a fly: through walls, over tiles, no dust
     self.flying = (self.godMode and self.running) or false
@@ -429,7 +430,7 @@ function Player:update(dt, world)
     -- Change item in hand (hotbar slots 1-5); edge-gated so a held key can't
     -- re-select every frame (deploy-sound spam + reload churn)
     for i = 1, 5 do
-        local down = not typing and love.keyboard.isDown(tostring(i))
+        local down = not typing and inp['slot' .. i]
         if down and not self.slotHeld[i] then
             if i == 4 and self.itemIndex == 4 then
                 self:cycleThrowable() -- 4 again = swap grenade/molotov
@@ -443,21 +444,17 @@ function Player:update(dt, world)
     end
 
     -- Q: quick-knife toggle (knife <-> whatever was in hand)
-    local qPressed = not typing and love.keyboard.isDown('q')
+    local qPressed = not typing and inp.quickknife
     if qPressed and self.qReleased then self:quickKnife() end
     self.qReleased = not qPressed
 
-    -- mouse in world coords; the camera is clamped at map edges, so use it
-    -- instead of assuming the player is centered on screen. getPosition is
-    -- window-space — map through the scaler to logical canvas space first.
-    local mx, my = require('ui.screen').mouse()
-    mx, my = mx / SCALE, my / SCALE
-    local worldMx = mx + world.camX
-    local worldMy = my + world.camY
+    -- aim already arrives in world coords: core/input.lua maps the cursor
+    -- through the scaler and this player's camera, and a networked client
+    -- has to send world coords anyway (the host can't see its camera).
+    local worldMx, worldMy = inp.aimX, inp.aimY
 
     -- INTERACTIONS
-    local leftPressed = not typing and love.mouse.isDown(1)
-        and not self.lockedInputs.mouse1
+    local leftPressed = btn('shoot')
     local heldItem = self.items[self.itemIndex]
 
     -- deploy lockout: right after a swap the new item can't act yet, so
@@ -508,7 +505,7 @@ function Player:update(dt, world)
     self.leftReleased = not leftPressed
 
     -- Reload
-    local rPressed = not typing and love.keyboard.isDown('r')
+    local rPressed = not typing and inp.reload
     if rPressed and self.rReleased and heldItem.isGun then
         heldItem:reload()
     end
@@ -522,7 +519,7 @@ function Player:update(dt, world)
         and world:getTouchingGunWall(self) or nil
     self.touchingDoor = (not self.touchingChest and not self.touchingDroppedGun
         and not self.touchingGunWall) and world:getTouchingDoor(self) or nil
-    local ePressed = not typing and love.keyboard.isDown('e')
+    local ePressed = not typing and inp.interact
     if ePressed and self.eReleased then
         if self.touchingChest then
             self.touchingChest:interact(self, world)
@@ -547,7 +544,7 @@ function Player:update(dt, world)
     self.eReleased = not ePressed
 
     -- G drops the gun in hand (it lands in front and expires on the ground)
-    local gPressed = not typing and love.keyboard.isDown('g')
+    local gPressed = not typing and inp.drop
     if gPressed and self.gReleased then self:dropHeldGun(world) end
     self.gReleased = not gPressed
 

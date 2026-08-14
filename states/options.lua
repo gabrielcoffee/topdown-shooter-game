@@ -95,6 +95,10 @@ function options:enter()
             activate = function() State.push('graphics') end,
         },
         {
+            label = 'options.controls', type = 'action',
+            activate = function() State.push('keybinds') end,
+        },
+        {
             label = 'options.back', type = 'action',
             activate = function() State.pop() end,
         },

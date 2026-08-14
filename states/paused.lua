@@ -59,7 +59,7 @@ function paused:draw()
 end
 
 function paused:keypressed(key)
-    if key == 'escape' then
+    if key == 'escape' or (WEB and key == 'p') then -- see playing.lua: no Escape in a tab
         State.pop()
     else
         self.list:keypressed(key)

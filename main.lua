@@ -35,6 +35,7 @@ function love.load()
     Fx.load()
     Particles.load()
     _G.SETTINGS = Save.loadSettings()
+    require('core.keybinds').init(SETTINGS) -- before any state can read input
     Audio.setVolumes(SETTINGS.master, SETTINGS.sfx, SETTINGS.music)
     Audio.startMusic() -- menu music runs for the whole session, only fades
     i18n.setLanguage(SETTINGS.language)
@@ -59,6 +60,19 @@ function love.load()
         elseif a == 'autotest_options' then
             State.switch('menu')
             State.push('options')
+            _G._autotest = { frames = 0 }
+        elseif a == 'selftest' then
+            -- scripted gameplay checks driven through the input struct;
+            -- writes results to stderr and exits with a status code
+            function love.errorhandler(msg)
+                io.stderr:write('CRASH: ' .. tostring(msg) .. '\n')
+                os.exit(1)
+            end
+            require('core.selftest').run()
+        elseif a == 'autotest_keys' then
+            State.switch('menu')
+            State.push('options')
+            State.push('keybinds')
             _G._autotest = { frames = 0 }
         elseif a == 'autotest_splash' then
             -- splash is the boot state; just screenshot it mid-fade-in

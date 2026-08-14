@@ -12,6 +12,7 @@ setmetatable(Bullet, Entity)
 function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime, econ, maxHits, showMuzzle)
     local obj = Entity:new(x, y, 2, 4)
 
+    obj.type = 'bullet' -- every other entity names itself; replication needs it
     obj.color = Color.white
     obj.speed = TUNE.bullet.speed
     obj.angle = angle

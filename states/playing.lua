@@ -7,6 +7,7 @@ local World = require('core.world')
 local Fx = require('ui.fx')
 local Chat = require('ui.chat')
 local Audio = require('core.audio')
+local Input = require('core.input')
 
 local playing = {}
 playing.fxMode = 'game'
@@ -48,6 +49,9 @@ function playing:update(dt)
     self.startFade = math.max(0, (self.startFade or 0) - dt)
 
     Chat.update(dt)
+    -- local player's buttons + aim for this frame, read once here so
+    -- Player:update never touches the keyboard directly (see core/input.lua)
+    Input.poll(world.player.input, world.camX, world.camY, Chat.open)
     world:update(dt)
 
     -- Closing a browser tab never fires love.quit, so the desktop contract
@@ -111,7 +115,9 @@ function playing:keypressed(key)
         return
     end
 
-    if key == 'escape' then
+    -- P pauses as well as Escape, and is the only one that works in a browser:
+    -- the tab owns Escape (it exits fullscreen) and never forwards it to us.
+    if key == 'escape' or (WEB and key == 'p') then
         State.push('paused')
     elseif key == 't' and TUNE.dev and TUNE.dev.enabled then
         -- T is the only opener: Enter and ` were too easy to hit mid-wave,

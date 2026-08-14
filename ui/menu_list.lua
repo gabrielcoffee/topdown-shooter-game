@@ -4,6 +4,8 @@
 --   { label = 'menu.new_game', type = 'action', activate = fn }
 --   { label = 'options.master', type = 'slider', get = fn, set = fn }  -- 0..1
 --   { label = 'options.language', type = 'cycle', value = fn, cycle = fn(dir) }
+--   { label = 'keys.move_up', type = 'keybind', value = fn, activate = fn,
+--     conflict = fn -> bool, capturing = fn -> bool }
 -- Layout: single centered column by default. Items may set col (1 = left
 -- column, 2 = right column) + row for a two-column grid (options menu);
 -- col-less items stay centered on their row.
@@ -55,6 +57,14 @@ local function sliderRect(self, i)
     return x, y, w, SLIDER_H
 end
 
+-- Keybind row geometry: where the label ends and where the key text starts
+local function keybindX(self, i)
+    local cx = itemPos(self, i)
+    local item = self.items[i]
+    if item.col then return cx - 8, cx + 8 end
+    return SCREENWIDTH / 2 - 40, SCREENWIDTH / 2 + 40
+end
+
 -- Horizontal extent of the item's drawn content (label+bar+value for
 -- sliders, the text itself otherwise). Hover and the > < selectors both
 -- work off this, so the mouse targets the word, not the whole row.
@@ -67,6 +77,14 @@ local function itemBounds(self, i)
         local x, _, w = sliderRect(self, i)
         local labelRight = item.col and (cx - 8) or (SCREENWIDTH / 2 - 40)
         return labelRight - labelW, x + w + 16 + PCT_W
+    end
+    if item.type == 'keybind' then
+        -- same split as a slider row: label right-aligned left of centre,
+        -- key text starting right of it
+        local labelW = f:getWidth(T(item.label))
+        local labelRight, keyX = keybindX(self, i)
+        return labelRight - labelW,
+               keyX + Theme.fonts.hint:getWidth(item.value())
     end
     local text = T(item.label)
     if item.type == 'cycle' then text = text .. ': ' .. item.value() end
@@ -100,7 +118,7 @@ end
 local function activate(self)
     local item = self.items[self.selected]
     if item.enabled and not item.enabled() then return end
-    if item.type == 'action' and item.activate then
+    if (item.type == 'action' or item.type == 'keybind') and item.activate then
         Audio.play('shell2', 0.5)
         item.activate()
     elseif item.type == 'cycle' then
@@ -230,6 +248,29 @@ function MenuList:draw()
             local valueText = item.format and item.format(item.get())
                 or (math.floor(item.get() * 100 + 0.5) .. '%')
             love.graphics.print(valueText, x + w + 16, yy + 4)
+            love.graphics.setFont(f)
+        elseif item.type == 'keybind' then
+            -- label left, key right. Amber = this key is bound to another
+            -- action too; blood already means "selected" so it can't mean
+            -- "clash". While capturing the key text blinks as [ ... ].
+            love.graphics.setColor(c[1], c[2], c[3], a)
+            local label = T(item.label)
+            local labelRight, keyX = keybindX(self, i)
+            love.graphics.print(label, labelRight - f:getWidth(label), yy)
+
+            local capturing = item.capturing and item.capturing()
+            local text = item.value()
+            local kc = c
+            if capturing then
+                kc = Theme.colors.blood
+                text = (math.floor(love.timer.getTime() * 3) % 2 == 0)
+                    and '[ ... ]' or '[     ]'
+            elseif item.conflict and item.conflict() then
+                kc = Theme.colors.conflict
+            end
+            love.graphics.setFont(Theme.fonts.hint)
+            love.graphics.setColor(kc[1], kc[2], kc[3], a)
+            love.graphics.print(text, keyX, yy + 4)
             love.graphics.setFont(f)
         else
             local text = T(item.label)

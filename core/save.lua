@@ -100,6 +100,10 @@ function Save.loadSettings()
         resolution = s.resolution or '1920x1080',
         fullscreen = s.fullscreen == nil and false or s.fullscreen,
         crtInGame = s.crtInGame == nil and false or s.crtInGame,
+        -- action -> key; core/keybinds.lua fills the gaps from its defaults
+        keybinds = type(s.keybinds) == 'table' and s.keybinds or {},
+        -- multiplayer identity, validated by core/name.lua
+        playerName = type(s.playerName) == 'string' and s.playerName or nil,
     }
 end
 
