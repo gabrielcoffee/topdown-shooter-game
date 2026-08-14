@@ -45,29 +45,13 @@
     visibility: hidden;
   }
 
-  /* ---------------------------------------------------------- loading ---- */
+  /* ---------------------------------------------------------- loading ----
+     A bar on black and nothing else. The game draws its own splash a second
+     later, so anything more here is a second title screen in front of it. */
   #loader {
     position: absolute; inset: 0;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 2.2rem;
+    display: flex; align-items: center; justify-content: center;
     background: #000;
-    text-align: center;
-    padding: 1rem;
-  }
-
-  #title {
-    font-size: clamp(14px, 3.6vw, 34px);
-    color: #b81d1d;
-    letter-spacing: 0.12em;
-    text-shadow: 0 0 18px rgba(184, 29, 29, 0.45);
-  }
-
-  #status {
-    font-size: clamp(7px, 1.2vw, 11px);
-    color: #6e6e6e;
-    letter-spacing: 0.18em;
-    min-height: 1.4em;
   }
 
   /* deliberately square: rounded corners read as "web page", not as the game */
@@ -82,36 +66,6 @@
     background: #b81d1d;
     box-shadow: 0 0 12px rgba(184, 29, 29, 0.6);
     transition: width 0.15s linear;
-  }
-
-  #play {
-    font-family: inherit;
-    font-size: clamp(9px, 1.6vw, 15px);
-    color: #d8d8d8;
-    background: none;
-    border: 2px solid #b81d1d;
-    padding: 0.9em 1.6em;
-    cursor: pointer;
-    letter-spacing: 0.14em;
-    display: none;
-    animation: pulse 1.4s steps(2, end) infinite;
-  }
-  #play:hover { background: #b81d1d; color: #000; animation: none; }
-  @keyframes pulse { 50% { opacity: 0.45; } }
-
-  #hint {
-    font-size: clamp(6px, 1vw, 9px);
-    color: #3d3d3d;
-    letter-spacing: 0.16em;
-    line-height: 2;
-  }
-
-  /* CRT scanlines over the loading screen, matching the game's own filter */
-  #loader::after {
-    content: ''; position: absolute; inset: 0; pointer-events: none;
-    background: repeating-linear-gradient(
-      to bottom, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px,
-      rgba(0,0,0,0.28) 3px, rgba(0,0,0,0.28) 4px);
   }
 
   #fatal {
@@ -129,11 +83,7 @@
   <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
 
   <div id="loader">
-    <div id="title">ZOMBIE CHAMBER</div>
     <div id="bar"><div id="fill"></div></div>
-    <div id="status">LOADING</div>
-    <button id="play">CLICK TO PLAY</button>
-    <div id="hint">WASD MOVE &nbsp;·&nbsp; MOUSE AIM &nbsp;·&nbsp; ESC PAUSE</div>
   </div>
 
   <div id="fatal">
@@ -223,7 +173,7 @@
     };
   }
   var el = function (id) { return document.getElementById(id); };
-  var fill = el('fill'), status = el('status'), playBtn = el('play');
+  var fill = el('fill');
 
   // ---------------------------------------------------------------- progress
   // Two downloads land in parallel: love.wasm (fetched here, so the bytes are
@@ -238,7 +188,6 @@
     if (!total) return;
     var pct = Math.min(100, Math.round(((wasmLoaded + dataLoaded) / total) * 100));
     fill.style.width = pct + '%';
-    status.textContent = 'LOADING ' + pct + '%';
   }
 
   function fail(msg) {
@@ -307,28 +256,134 @@
   });
   window.addEventListener('pagehide', syncSaves);
 
-  // ------------------------------------------------------------------- boot
-  // The runtime is NOT started on load. Browsers hand out an AudioContext
-  // only inside a user gesture, and an itch.io "click to play" lands on the
-  // parent page, not in this frame -- booting from our own button is what
-  // makes the game audible at all.
-  function ready() {
-    status.textContent = 'READY';
-    fill.style.width = '100%';
-    playBtn.style.display = 'block';
-    playBtn.focus();
-  }
+  // ------------------------------------------------------------ audio unlock
+  // A browser starts every AudioContext suspended until the page has seen a
+  // real user gesture. That used to be why booting waited behind a CLICK TO
+  // PLAY button; instead, remember every context SDL creates and resume them
+  // on the first click or keypress, whenever that lands. The game boots and
+  // plays immediately, silent for at most one gesture.
+  var contexts = [];
+  ['AudioContext', 'webkitAudioContext'].forEach(function (name) {
+    var Ctor = window[name];
+    if (!Ctor) return;
+    function Wrapped() {
+      var ctx = new Ctor(arguments[0]);
+      contexts.push(ctx);
+      return ctx;
+    }
+    Wrapped.prototype = Ctor.prototype;
+    window[name] = Wrapped;
+  });
 
-  playBtn.addEventListener('click', function () {
+  function unlockAudio() {
+    contexts.forEach(function (ctx) {
+      if (ctx.state === 'suspended') ctx.resume();
+    });
+  }
+  ['pointerdown', 'keydown', 'touchstart'].forEach(function (ev) {
+    window.addEventListener(ev, unlockAudio, true);
+  });
+
+  // ------------------------------------------------------------ input focus
+  // Keyboard events only reach SDL while the canvas has focus, and both
+  // entering and leaving fullscreen hand focus back to the document -- which
+  // left the game alive but completely unresponsive to WASD until you clicked
+  // it. Take focus back after every fullscreen change and on any click.
+  function grabFocus() {
+    var c = el('canvas');
+    if (c && document.activeElement !== c) c.focus({ preventScroll: true });
+  }
+  ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange'].forEach(
+    function (ev) {
+      document.addEventListener(ev, function () {
+        // Safari and Firefox restyle the element after the event; focusing on
+        // the next frame survives that, and a second later catches the rest
+        grabFocus();
+        requestAnimationFrame(grabFocus);
+        setTimeout(grabFocus, 250);
+      });
+    });
+  window.addEventListener('pointerdown', grabFocus, true);
+  window.addEventListener('focus', grabFocus);
+
+  // -------------------------------------------------- keep running in the bg
+  // A background tab gets zero requestAnimationFrame callbacks, so the run
+  // froze while its ambience kept playing. Emscripten drives LOVE's main loop
+  // through rAF, so swapping rAF for a Web Worker's timer while hidden keeps
+  // updating (worker timers are not clamped the way window timers are). The
+  // canvas still gets drawn to; the compositor just ignores it until you look
+  // back. Capped at 60Hz so a forgotten tab does not spin a core.
+  (function () {
+    var workerSrc =
+      'var t=null;onmessage=function(e){' +
+      'if(e.data===0){if(t){clearInterval(t);t=null}}' +
+      'else{if(t)clearInterval(t);t=setInterval(function(){postMessage(0)},e.data)}}';
+    var worker;
+    try {
+      worker = new Worker(URL.createObjectURL(
+        new Blob([workerSrc], { type: 'text/javascript' })));
+    } catch (e) {
+      return; // no worker: background tabs stay frozen, everything else works
+    }
+
+    var rAF = window.requestAnimationFrame.bind(window);
+    var hidden = document.hidden;  // the page can load straight into a bg tab
+    var outstanding = [];          // frames asked for but not yet run
+
+    // Every frame is tracked, visible or not. That matters: when the tab is
+    // hidden the browser simply never fires the callback the loop already
+    // handed to the real rAF, and since *that* callback is what asks for the
+    // next frame, the chain stops with nothing left to intercept. Holding our
+    // own reference is what lets the worker run it instead.
+    function run(entry, now) {
+      if (entry.done) return;
+      entry.done = true;
+      var i = outstanding.indexOf(entry);
+      if (i > -1) outstanding.splice(i, 1);
+      try { entry.cb(now); } catch (err) { console.error(err); }
+    }
+
+    window.requestAnimationFrame = function (cb) {
+      var entry = { cb: cb, done: false };
+      outstanding.push(entry);
+      // while hidden nothing is handed to the browser -- the worker drives it
+      if (!hidden) rAF(function (now) { run(entry, now); });
+      return 0;
+    };
+
+    worker.onmessage = function () {
+      if (!hidden) return;
+      var due = outstanding.slice();
+      var now = performance.now();
+      for (var i = 0; i < due.length; i++) run(due[i], now);
+    };
+
+    document.addEventListener('visibilitychange', function () {
+      hidden = document.hidden;
+      worker.postMessage(hidden ? 16 : 0);
+      if (!hidden) {
+        // frames queued while hidden were never given to the browser; hand
+        // them over now or the loop never restarts. A frame the browser is
+        // still holding runs twice over -- run() ignores the second.
+        outstanding.slice().forEach(function (entry) {
+          rAF(function (now) { run(entry, now); });
+        });
+      }
+    });
+  })();
+
+  // ------------------------------------------------------------------- boot
+  function ready() {
+    fill.style.width = '100%';
     el('loader').style.display = 'none';
     el('canvas').style.visibility = 'visible';
-    el('canvas').focus();
+    grabFocus();
     try {
       Love(Module); // eslint-disable-line no-undef
     } catch (e) {
       fail(e && e.message);
     }
-  });
+  }
 
   function loadScript(src, onload) {
     var s = document.createElement('script');

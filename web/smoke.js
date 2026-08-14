@@ -103,10 +103,17 @@ async function runPass(browser, pass, problems) {
   say('loading');
   await page.goto(`http://localhost:${PORT}/?smoke=1${pass.query}`, { waitUntil: 'load', timeout: 60000 });
 
-  // PLAY only appears once love.wasm AND game.data are fully in
-  await page.waitForSelector('#play', { visible: true, timeout: 120000 });
+  // The loader hides itself and the canvas becomes visible once love.wasm AND
+  // game.data are fully in -- there is no PLAY button any more, the runtime
+  // boots on its own and unlocks audio at the first click.
+  await page.waitForFunction(
+    () => {
+      const l = document.getElementById('loader');
+      return l && getComputedStyle(l).display === 'none';
+    },
+    { timeout: 120000 });
   say('downloads complete, starting');
-  await page.click('#play');
+  await page.click('#canvas'); // stands in for a player's first gesture
 
   await sleep(BOOT_WAIT);
   if (pass.skipIntro) await page.click('#canvas'); // the studio card is mostly black

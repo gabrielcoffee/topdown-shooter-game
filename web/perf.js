@@ -80,8 +80,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   const args = encodeURIComponent('autotest,shot9999,fpsprobe');
   await page.goto(`http://localhost:${PORT}/?args=${args}`, { waitUntil: 'load', timeout: 60000 });
-  await page.waitForSelector('#play', { visible: true, timeout: 120000 });
-  await page.click('#play');
+  // the loader hides itself once both downloads are in; the runtime boots on
+  // its own from there (there is no PLAY button any more)
+  await page.waitForFunction(
+    () => {
+      const l = document.getElementById('loader');
+      return l && getComputedStyle(l).display === 'none';
+    },
+    { timeout: 120000 });
+  await page.click('#canvas');
 
   console.log(`measuring ${SECONDS}s...`);
   await sleep(3000);

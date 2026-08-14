@@ -15,6 +15,7 @@ Upload target: `coffeebreak1/zombiechamber:html5`.
 ```sh
 ./build.sh web        # -> dist/web/  (~90s first time, ~20s after: audio is cached)
 node web/smoke.js     # loads the real build in Chrome, proves it draws
+node web/behaviour.js # canvas keeps focus through fullscreen; loop runs hidden
 node web/perf.js      # framerate + WebGL call counts, real GPU window
 ./deploy.sh web       # build + smoke test + butler push
 ```
@@ -35,6 +36,7 @@ node web/perf.js      # framerate + WebGL call counts, real GPU window
 | Menu QUIT | quits | hidden |
 | Boot fullscreen | applied | ignored (needs a user gesture) |
 | Run save | on window close | every 30s |
+| Pause | Escape | Escape **or P** — see below |
 
 Everything else — waves, weapons, map, tuning — is identical. Web values live
 in `TUNE.web` in `tune.lua` and are folded over the real values at boot by
@@ -45,6 +47,38 @@ the package.
 Silently degraded, no action needed: OpenAL EFX does not exist in love.js, so
 reverb and the lowpass wall-occlusion / pause muffle become no-ops. Volume
 ducking still works. Web sounds slightly flatter.
+
+---
+
+## What the tab takes away, and what it takes to get it back
+
+Three things a browser does that a window does not. All handled in
+`web/index.html`; `node web/behaviour.js` is what proves the last two still
+work, since neither shows up in a screenshot.
+
+**Escape never arrives.** It belongs to the browser (it exits fullscreen), so
+the pause key had to be something else. **P** pauses and unpauses in the web
+build, and the controls splash lists it there and only there.
+
+**Fullscreen steals focus.** SDL only sees keys while the canvas has focus, and
+both entering and leaving fullscreen hand focus back to the document — the game
+kept running but ignored WASD entirely until you clicked it. Focus is taken
+back on every `fullscreenchange` (and on the next frame after, for the browsers
+that restyle late).
+
+**A hidden tab gets no frames.** Background tabs get zero
+`requestAnimationFrame` callbacks, which froze the run while its ambience
+carried on playing. A Web Worker's timer drives the loop instead while hidden —
+worker timers are not clamped the way window timers are. The catch that made
+the first attempt fail: intercepting *future* rAF calls is not enough, because
+the frame already handed to the browser is the one that would have asked for
+the next. Every frame is tracked now, so the worker can run the outstanding one
+itself. Hidden runs a little *faster* than visible (no vsync); LÖVE integrates
+wall-clock dt, so the simulation speed is unaffected.
+
+There is no CLICK TO PLAY gate any more. The runtime boots as soon as both
+downloads land, behind nothing but a progress bar, and the AudioContext SDL
+creates is resumed on the player's first click or keypress.
 
 ---
 

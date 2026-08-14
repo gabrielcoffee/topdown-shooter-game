@@ -675,30 +675,62 @@ function body:drawMaterial()
   end
 end
 
+-- PATCH (chamber9): polygon bodies rasterise themselves into an image at
+-- creation purely so this could stamp them into the stencil. Every body owns a
+-- different texture, so LOVE's batcher could not merge them -- 24 bodies in
+-- range x 2 lights was ~48 draw calls a frame, and in the browser every one of
+-- those crosses the wasm/JS boundary. Drawing the polygon itself is untextured,
+-- so consecutive bodies collapse into a single draw.
+--
+-- The shapes this is used on are convex (chamfered wall rects, crates, doors),
+-- which is what polygon('fill') needs. image_mask stays bound and is harmless:
+-- an untextured draw samples LOVE's 1x1 white texture, so nothing discards.
 function body:drawStencil()
-  if not self.refraction and not self.reflection and not self.castsNoShadow then
+  if self.refraction or self.reflection or self.castsNoShadow then return end
+  if self.shadowType == 'polygon' and self.data then
+    love.graphics.polygon('fill', self.data)
+  elseif self.img then
     love.graphics.draw(self.img, self.x, self.y, self.rotation, self.scalex, self.scaley, self.ix, self.iy)
   end
 end
 
-function body:drawShadow(light)
+-- PATCH (chamber9): `batch` is an optional vertex accumulator. Polygon shadows
+-- used to be one love.graphics.polygon() per silhouette edge, which on a map
+-- of merged wall rects meant ~4 draw calls per body per light -- 95 draws a
+-- frame at two lights, and every one of them a wasm/JS boundary crossing in
+-- the browser. Given a batch, the quads are appended as triangles instead and
+-- the caller draws the lot in one mesh. Same geometry, same colours.
+function body:drawShadow(light, batch)
   if self.castsNoShadow or (self.zheight - light.z) > 0 then
     return
   end
 
-  love.graphics.setColor(self.red / 255, self.green / 255, self.blue / 255, self.alpha / 255)
+  local r, g, b, a = self.red / 255, self.green / 255, self.blue / 255, self.alpha / 255
   if self.shadowType == "polygon" then
+    if batch then
+      self:batchPolyShadow(light, batch, r, g, b, a)
+      return
+    end
+    love.graphics.setColor(r, g, b, a)
     self:drawPolyShadow(light)
-  elseif self.shadowType == "circle" then
+    return
+  end
+
+  -- circle and image shadows are rarer and are not batched: circles emit arcs
+  -- and image shadows are textured, neither of which fits an untextured mesh
+  love.graphics.setColor(r, g, b, a)
+  if self.shadowType == "circle" then
     self:drawCircleShadow(light)
   elseif self.shadowType == "image" and self.img then
     self:drawImageShadow(light)
   end
 end
 
+-- Walks the silhouette edges, handing each shadow quad to `emit`.
+-- Shared by the immediate and batched paths so the two cannot drift apart.
 --using shadow point calculations from this article
 --http://web.cs.wpi.edu/~matt/courses/cs563/talks/shadow/shadow.html
-function body:drawPolyShadow(light)
+function body:eachShadowQuad(light, emit)
   local lightPosition = vector(light.x, light.y)
   local lh = lightPosition * self.zheight
 
@@ -714,11 +746,30 @@ function body:drawPolyShadow(light)
     if vector(startToEnd.y, -startToEnd.x) * (vertex - lightPosition) > 0 then
       local point1 = (lh - (vertex * light.z))/height_diff
       local point2 = (lh - (nextVertex * light.z))/height_diff
-      love.graphics.polygon("fill",
-        vertex.x, vertex.y, point1.x, point1.y,
-        point2.x, point2.y, nextVertex.x, nextVertex.y)
+      emit(vertex.x, vertex.y, point1.x, point1.y,
+           point2.x, point2.y, nextVertex.x, nextVertex.y)
     end
   end
+end
+
+function body:drawPolyShadow(light)
+  self:eachShadowQuad(light, function(ax, ay, bx, by, cx, cy, dx, dy)
+    love.graphics.polygon("fill", ax, ay, bx, by, cx, cy, dx, dy)
+  end)
+end
+
+-- Same quads as drawPolyShadow, appended to `batch` as two triangles each.
+-- LOVE triangulates a convex quad the same way, so the covered pixels match.
+function body:batchPolyShadow(light, batch, r, g, b, a)
+  self:eachShadowQuad(light, function(ax, ay, bx, by, cx, cy, dx, dy)
+    local n = #batch
+    batch[n + 1] = { ax, ay, 0, 0, r, g, b, a }
+    batch[n + 2] = { bx, by, 0, 0, r, g, b, a }
+    batch[n + 3] = { cx, cy, 0, 0, r, g, b, a }
+    batch[n + 4] = { ax, ay, 0, 0, r, g, b, a }
+    batch[n + 5] = { cx, cy, 0, 0, r, g, b, a }
+    batch[n + 6] = { dx, dy, 0, 0, r, g, b, a }
+  end)
 end
 
 --using shadow point calculations from this article
