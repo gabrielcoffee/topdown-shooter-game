@@ -237,22 +237,56 @@ function Selftest.run()
     ok(p1.camX ~= nil and p2.camX ~= nil, 'both players have a camera')
     ok(world.camX == p1.camX, 'world camera mirrors the local player')
 
-    -- a room pan on one player must not stop the world for anyone else
+    -- --------------------------------------------- freeze rules per mode
+    -- helper: park a zombie next to the player and force a camera pan
+    local function panWithZombie(w, p)
+        local z2 = Enemy:newSlow(p.x + 120, p.y + 120, 1)
+        w:addEntity(z2)
+        step(w, 4)
+        p.transition = {
+            t = 0, room = p.currentRoom,
+            fromCamX = p.camX, fromCamY = p.camY,
+            toCamX = p.camX + 50, toCamY = p.camY,
+            playerFromX = p.x, playerFromY = p.y,
+            nudgeX = TUNE.rooms.nudgePx, nudgeY = 0,
+        }
+        return z2, z2.x, z2.y
+    end
+
+    -- SOLO: the world still freezes, and the player still drifts into the room
     world = freshWorld()
     p1 = world.player
-    local zom = Enemy:newSlow(p1.x + 120, p1.y + 120, 1)
-    world:addEntity(zom)
-    step(world, 4)
-    local zx, zy = zom.x, zom.y
-    -- force a transition on the local player
-    p1.transition = {
-        t = 0, room = p1.currentRoom,
-        fromCamX = p1.camX, fromCamY = p1.camY,
-        toCamX = p1.camX + 50, toCamY = p1.camY,
-    }
-    step(world, 10)
+    ok(not world:isMultiplayer(), 'one player = singleplayer rules')
+    ok(world:transitionTime() == TUNE.rooms.transitionTime,
+        'solo pan runs at the full transitionTime')
+    local zom, zx, zy = panWithZombie(world, p1)
+    local pxBefore = p1.x
+    step(world, 6)
+    ok(zom.x == zx and zom.y == zy,
+        'solo: world freezes during the pan, zombies hold still')
+    ok(p1.x > pxBefore, 'solo: player still drifts into the new room')
+
+    -- CO-OP: no freeze, and the pan is coopTimeMult as long
+    world = freshWorld()
+    p1 = world.player
+    p2 = world:addPlayer(p1.x + 400, p1.y)
+    ok(world:isMultiplayer(), 'two players = multiplayer rules')
+    ok(math.abs(world:transitionTime()
+        - TUNE.rooms.transitionTime * TUNE.rooms.coopTimeMult) < 1e-9,
+        ('co-op pan is %gx as long'):format(TUNE.rooms.coopTimeMult))
+    zom, zx, zy = panWithZombie(world, p1)
+    step(world, 6)
     ok(zom.x ~= zx or zom.y ~= zy,
-        'zombies keep moving while a camera pans (world no longer freezes)')
+        'co-op: zombies keep moving while a camera pans')
+
+    -- and it actually finishes in the shorter time
+    world = freshWorld()
+    p1 = world.player
+    p2 = world:addPlayer(p1.x + 400, p1.y)
+    panWithZombie(world, p1)
+    local coopFrames = math.ceil(world:transitionTime() * 60) + 2
+    step(world, coopFrames)
+    ok(p1.transition == nil, 'co-op pan completed inside the shortened window')
 
     -- ------------------------------------------------ real room transition
     -- the pan was rewritten to run per player without freezing the world, so

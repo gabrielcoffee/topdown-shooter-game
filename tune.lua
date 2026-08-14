@@ -48,6 +48,10 @@ return {
         enterFraction = 0.8,   -- how much of the player's hitbox must be inside the next room
         transitionTime = 0.55, -- secs of frozen camera pan between rooms
         nudgePx = 20,          -- px the player drifts into the new room during the pan
+        -- CO-OP ONLY: the world can't freeze (one player in a doorway would
+        -- stop the game for everyone), so the pan runs alongside the sim and
+        -- is shortened to stay out of the way. Solo is untouched by this.
+        coopTimeMult = 0.5,    -- x transitionTime when more than one player is in the run
     },
 
     crate = { size = 32, health = 100,

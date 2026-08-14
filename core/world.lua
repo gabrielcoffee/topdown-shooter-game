@@ -31,7 +31,11 @@ function World:new(opts)
         map = Map:new(levelDef),
         rooms = levelDef.rooms,
         ambience = levelDef.ambience,
-        transition = nil, -- set while the camera pans between rooms
+        transition = nil, -- set while the LOCAL player's camera pans between rooms
+        -- true once a LAN session owns this world. Kept separate from
+        -- #players so a host sitting alone in a lobby already behaves like
+        -- co-op instead of flipping rules the moment a friend joins.
+        multiplayer = opts.multiplayer or false,
         openedDoors = {}, -- door id -> true once bought (persists in saves)
         visitedRooms = {}, -- room name -> true once entered; gates spawn points
         -- timed power-up buffs, secs left (0 = off)
@@ -331,6 +335,9 @@ function World:checkRoomTransition(p)
                 t = 0, room = room,
                 fromCamX = p.camX, fromCamY = p.camY,
                 toCamX = toX, toCamY = toY,
+                -- solo only: the scripted drift into the new room
+                playerFromX = p.x, playerFromY = p.y,
+                nudgeX = nx*nudge, nudgeY = ny*nudge,
             }
             return
         end
@@ -346,21 +353,44 @@ function World:snapCamera(p)
     p.camX, p.camY = self:cameraFor(p.currentRoom, pcx, pcy)
 end
 
+-- How long a room pan lasts. Co-op halves it: the pan can't freeze the world
+-- there, so a long one leaves the camera sliding while zombies close in.
+function World:transitionTime()
+    if self:isMultiplayer() then
+        return TUNE.rooms.transitionTime * TUNE.rooms.coopTimeMult
+    end
+    return TUNE.rooms.transitionTime
+end
+
+-- More than one player in the run? Solo keeps the original frozen transition;
+-- everything co-op-specific hangs off this.
+function World:isMultiplayer()
+    return self.multiplayer == true or #self.players > 1
+end
+
+-- Advance one player's transition. Returns true while it is still running.
+function World:advanceTransition(dt, p)
+    local tr = p.transition
+    tr.t = tr.t + dt
+    local k = math.min(1, tr.t / self:transitionTime())
+    local e = 1 - (1 - k)^3 -- cubic ease-out, same curve as always
+    p.camX = tr.fromCamX + (tr.toCamX - tr.fromCamX) * e
+    p.camY = tr.fromCamY + (tr.toCamY - tr.fromCamY) * e
+    if k >= 1 then
+        p.currentRoom = tr.room
+        self.visitedRooms[tr.room.name] = true -- progression stays shared
+        self.adjacentCache = nil
+        p.transition = nil
+        return false
+    end
+    return true
+end
+
 -- One player's camera for this frame: either easing through a room change or
 -- locked to their current room. Runs for every player, every frame.
 function World:updatePlayerCamera(dt, p)
-    local tr = p.transition
-    if tr then
-        tr.t = tr.t + dt
-        local k = math.min(1, tr.t / TUNE.rooms.transitionTime)
-        local e = 1 - (1 - k)^3 -- cubic ease-out, same curve as before
-        p.camX = tr.fromCamX + (tr.toCamX - tr.fromCamX) * e
-        p.camY = tr.fromCamY + (tr.toCamY - tr.fromCamY) * e
-        if k >= 1 then
-            p.currentRoom = tr.room
-            self.visitedRooms[tr.room.name] = true -- progression stays shared
-            p.transition = nil
-        end
+    if p.transition then
+        self:advanceTransition(dt, p)
         return
     end
 
@@ -554,6 +584,27 @@ local function pushApart(world, a, b)
 end
 
 function World:update(dt)
+    -- SOLO room switch, unchanged from before co-op: the whole world freezes
+    -- while the camera pans and the player drifts a few px into the new room
+    -- (Celeste-style). Co-op cannot do this -- one player standing in a
+    -- doorway would stop the game for everybody and leave them helpless -- so
+    -- there the pan runs alongside the simulation, at coopTimeMult duration,
+    -- and nobody gets nudged. See World:updatePlayerCamera.
+    if not self:isMultiplayer() and self.player.transition then
+        local tr = self.player.transition
+        local running = self:advanceTransition(dt, self.player)
+        local k = math.min(1, tr.t / self:transitionTime())
+        local e = 1 - (1 - k)^3
+        self.player.x = tr.playerFromX + tr.nudgeX * e
+        self.player.y = tr.playerFromY + tr.nudgeY * e
+
+        self.camX, self.camY = self.player.camX, self.player.camY
+        self.currentRoom = self.player.currentRoom
+        self.transition = running and tr or nil
+        self.lighting:update(dt, self) -- torches keep flickering during the pan
+        return
+    end
+
     -- knife hitstop: everything freezes for a few frames on impact
     if self.hitstop and self.hitstop > 0 then
         self.hitstop = self.hitstop - dt
