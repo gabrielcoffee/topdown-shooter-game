@@ -173,6 +173,116 @@ function Selftest.run()
     step(world, 2)
     ok(p.facingLeft == false, 'aiming right faces the player right')
 
+    -- ==================================================== co-op groundwork
+    -- Everything below runs with a second player in world.players, which is
+    -- exactly the shape LAN co-op produces.
+
+    local Enemy = require('entities.enemy')
+
+    -- ------------------------------------------------- players / nearest
+    world = freshWorld()
+    local p1 = world.player
+    local p2 = world:addPlayer(p1.x + 400, p1.y)
+    ok(p2 ~= nil, 'addPlayer returned a player')
+    ok(#world.players == 2, 'two players in the world')
+    ok(world.player == p1, 'world.player still points at the local player')
+    ok(p1.netId ~= p2.netId, 'players got distinct netIds')
+
+    local c1x, c1y = p1:getCenter()
+    ok(world:nearestPlayer(c1x, c1y) == p1, 'nearestPlayer picks the close one')
+    local c2x, c2y = p2:getCenter()
+    ok(world:nearestPlayer(c2x, c2y) == p2, 'nearestPlayer picks the other one')
+
+    -- ------------------------------------------------------ run-over rule
+    ok(world:anyoneAlive(), 'both alive')
+    p1.health = 0
+    step(world, 2)
+    ok(world:anyoneAlive(), 'one player down is not a game over')
+    ok(not world.gameOver, 'gameOver stays false with a survivor')
+    ok(world:nearestPlayer(c1x, c1y) == p2, 'a downed player is not a target')
+    p2.health = 0
+    step(world, 2)
+    ok(world.gameOver, 'last player down ends the run')
+
+    -- --------------------------------------------------- money goes to the
+    -- shooter, not to whoever happens to be player 1
+    world = freshWorld()
+    p1 = world.player
+    p2 = world:addPlayer(p1.x + 400, p1.y)
+    local z = Enemy:newSlow(p2.x + 60, p2.y, 1)
+    world:addEntity(z)
+    local m1, m2 = p1.money, p2.money
+    z:takeDamage(1, world, { hitReward = 10, killBonus = 0 }, p2)
+    ok(p2.money == m2 + 10, ('shooter was paid (%d -> %d)'):format(m2, p2.money))
+    ok(p1.money == m1, 'the other player was not paid')
+
+    -- a nil attacker still pays someone (solo, environmental)
+    z:takeDamage(1, world, { hitReward = 5, killBonus = 0 }, nil)
+    ok(p1.money == m1 + 5, 'nil attacker falls back to the local player')
+
+    -- ------------------------------------------------- zombies pick a target
+    world = freshWorld()
+    p1 = world.player
+    p2 = world:addPlayer(p1.x + 600, p1.y)
+    local near = Enemy:newSlow(p2.x - 40, p2.y, 1)
+    world:addEntity(near)
+    step(world, 4)
+    ok(near.target == p2, 'zombie chases the nearest player, not player 1')
+
+    -- -------------------------------------------- independent room/cameras
+    world = freshWorld()
+    p1 = world.player
+    p2 = world:addPlayer(p1.x + 200, p1.y)
+    step(world, 4)
+    ok(p1.camX ~= nil and p2.camX ~= nil, 'both players have a camera')
+    ok(world.camX == p1.camX, 'world camera mirrors the local player')
+
+    -- a room pan on one player must not stop the world for anyone else
+    world = freshWorld()
+    p1 = world.player
+    local zom = Enemy:newSlow(p1.x + 120, p1.y + 120, 1)
+    world:addEntity(zom)
+    step(world, 4)
+    local zx, zy = zom.x, zom.y
+    -- force a transition on the local player
+    p1.transition = {
+        t = 0, room = p1.currentRoom,
+        fromCamX = p1.camX, fromCamY = p1.camY,
+        toCamX = p1.camX + 50, toCamY = p1.camY,
+    }
+    step(world, 10)
+    ok(zom.x ~= zx or zom.y ~= zy,
+        'zombies keep moving while a camera pans (world no longer freezes)')
+
+    -- ------------------------------------------------ real room transition
+    -- the pan was rewritten to run per player without freezing the world, so
+    -- walking into another room still has to actually change rooms
+    world = freshWorld()
+    p1 = world.player
+    local other
+    for _, r in ipairs(world.rooms) do
+        if r ~= p1.currentRoom then other = r break end
+    end
+    if other then
+        local startRoom = p1.currentRoom
+        -- drop the player into the middle of another room and let the check run
+        p1.x, p1.y = other.x + other.w/2 - p1.width/2, other.y + other.h/2 - p1.height/2
+        step(world, 2)
+        ok(p1.transition ~= nil or p1.currentRoom == other,
+            'entering another room starts a transition')
+        step(world, math.ceil(TUNE.rooms.transitionTime * 60) + 6)
+        ok(p1.currentRoom == other,
+            ('transition completed into the new room (%s -> %s)')
+                :format(startRoom.name, p1.currentRoom.name))
+        ok(p1.transition == nil, 'transition cleared when it finished')
+        ok(world.visitedRooms[other.name] == true, 'the new room is marked visited')
+        local wantX, wantY = world:cameraFor(other, p1:getCenter())
+        ok(math.abs(p1.camX - wantX) < 1 and math.abs(p1.camY - wantY) < 1,
+            'camera settled on the new room')
+    else
+        io.stderr:write('NOTE: map has one room, transition test skipped\n')
+    end
+
     io.stderr:write(('\nSELFTEST %d/%d checks passed\n'):format(checks - fails, checks))
     os.exit(fails == 0 and 0 or 1)
 end

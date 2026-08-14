@@ -7,6 +7,15 @@ Entity.__index = Entity
 -- so entities sharing a sortY don't flicker back and forth between frames
 local nextSerial = 0
 
+-- Network identity, separate from sortSerial: the host stamps it, snapshots
+-- address entities by it, and clients overwrite theirs from the packet. Wraps
+-- inside uint16 because that is how it goes on the wire.
+local nextNetId = 0
+local function newNetId()
+    nextNetId = (nextNetId % 65535) + 1
+    return nextNetId
+end
+
 function Entity:new(x, y, width, height)
     nextSerial = nextSerial + 1
     local obj = {
@@ -21,6 +30,7 @@ function Entity:new(x, y, width, height)
         type = 'default',
         toRemove = false,
         flash = false,
+        netId = newNetId(),
         sortSerial = nextSerial,
         fillStyle = 'line' -- placeholder circle: 'line' (empty) or 'fill'
     }

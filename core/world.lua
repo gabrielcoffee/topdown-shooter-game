@@ -44,9 +44,14 @@ function World:new(opts)
         gameOver = false
     }
 
-    -- player starts centered in the first LDtk room
+    -- player starts centered in the first LDtk room.
+    -- obj.players holds everyone in the run (co-op adds to it); obj.player is
+    -- this machine's player, and stays the one the camera, HUD, crosshair and
+    -- dev console follow. Solo: players == { player }.
     local r1 = obj.rooms[1]
     obj.player = Player:new(r1.x + r1.w/2 - 16, r1.y + r1.h/2 - 16, 32, 32)
+    obj.players = { obj.player }
+    obj.player.currentRoom = r1
     obj.currentRoom = r1
 
     -- playable area is the union of every room
@@ -98,8 +103,14 @@ function World:new(opts)
         obj.player.x, obj.player.y =
             obj.playerSpawn:playerPos(obj.player.width, obj.player.height)
         obj.currentRoom = obj:roomAt(obj.player:getCenter()) or obj.currentRoom
+        obj.player.currentRoom = obj.currentRoom
     end
     obj.visitedRooms[obj.currentRoom.name] = true
+
+    -- frame the spawn room before the first update, so the first frame's
+    -- cursor->world mapping and draw don't use a camera still sitting at 0,0
+    obj:snapCamera(obj.player)
+    obj.camX, obj.camY = obj.player.camX, obj.player.camY
 
     -- each spawn point belongs to a room; only visited rooms spawn zombies
     local half = TUNE.tiles.size / 2
@@ -110,6 +121,66 @@ function World:new(opts)
     obj.waves = Waves:new(spawnPoints)
     obj.waves:hold(TUNE.start.fadeTime, 1) -- banner waits out the run-start fade
     return obj
+end
+
+-- Adds a co-op player and puts them in the world. Phase 2 calls this when a
+-- peer joins; the selftest uses it to stand up a second player.
+function World:addPlayer(x, y)
+    if #self.players >= (TUNE.net and TUNE.net.maxPlayers or 4) then return nil end
+    local p = Player:new(x, y, 32, 32)
+    p.currentRoom = self:roomAt(p:getCenter())
+    self:snapCamera(p)
+    table.insert(self.players, p)
+    self:addEntity(p)
+    return p
+end
+
+function World:removePlayer(p)
+    for i, q in ipairs(self.players) do
+        if q == p then table.remove(self.players, i) break end
+    end
+    p.toRemove = true
+end
+
+-- Players still standing. Zombies chase these, waves spawn around these, and
+-- the run only ends when this comes back empty.
+function World:livePlayers(out)
+    out = out or {}
+    for i = #out, 1, -1 do out[i] = nil end
+    for _, p in ipairs(self.players) do
+        if p.health > 0 and not p.toRemove then table.insert(out, p) end
+    end
+    return out
+end
+
+function World:anyoneAlive()
+    for _, p in ipairs(self.players) do
+        if p.health > 0 and not p.toRemove then return true end
+    end
+    return false
+end
+
+-- Closest live player to a world point, plus the distance to them. Zombie
+-- targeting and contact damage both run off this; solo it always answers
+-- with the only player there is.
+function World:nearestPlayer(x, y)
+    local best, bestD2
+    for _, p in ipairs(self.players) do
+        if p.health > 0 and not p.toRemove then
+            local px, py = p:getCenter()
+            local dx, dy = px - x, py - y
+            local d2 = dx*dx + dy*dy
+            if not bestD2 or d2 < bestD2 then best, bestD2 = p, d2 end
+        end
+    end
+    return best, bestD2 and math.sqrt(bestD2) or nil
+end
+
+-- A live player picked at random (surprise spawns pick who to appear near)
+function World:randomLivePlayer()
+    local live = self:livePlayers()
+    if #live == 0 then return nil end
+    return live[love.math.random(#live)]
 end
 
 -- Camera centered on (px,py), clamped inside a room; rooms smaller than the
@@ -146,12 +217,15 @@ end
 -- room's walkable tiles and collect whatever other room the flood spills into.
 -- Unopened doors block the flood, so a room that is only geometrically next
 -- door (Room_4 behind the $1000 door) does NOT count until it's bought.
--- Result is cached; room switches and door buys clear it.
-function World:adjacentRooms()
-    if self.adjacentCache then return self.adjacentCache end
+-- Result is cached per room name (co-op: players stand in different rooms,
+-- so one shared cache would answer for whoever asked first); door buys clear
+-- the whole cache.
+function World:adjacentRooms(room)
+    room = room or self.currentRoom
+    self.adjacentCache = self.adjacentCache or {}
+    if self.adjacentCache[room.name] then return self.adjacentCache[room.name] end
 
     local map, ts = self.map, self.map.tileSize
-    local room = self.currentRoom
     -- only unopened doors block: crates are temporary and get smashed, they
     -- must not make a room you already walked through look disconnected
     local blocked = {}
@@ -215,21 +289,26 @@ function World:adjacentRooms()
         end
     end
 
-    self.adjacentCache = found
+    self.adjacentCache[room.name] = found
     return found
 end
 
 -- Starts a Celeste-style transition once enough of the player's hitbox
--- (TUNE.rooms.enterFraction) is inside a room that isn't the current one.
+-- (TUNE.rooms.enterFraction) is inside a room that isn't their current one.
 -- Walking back needs the same fraction, so the check can't flip-flop.
-function World:checkRoomTransition()
+--
+-- Co-op: rooms and cameras belong to each player, not to the world. Two
+-- players can stand in different rooms and each sees their own. The pan no
+-- longer freezes the simulation either -- with independent cameras, one
+-- player walking through a doorway would otherwise stop the game for
+-- everyone, and leave them standing still in front of a zombie.
+function World:checkRoomTransition(p)
     local inset = TUNE.movement.collisionInset
-    local p = self.player
     local bx, by = p.x + inset, p.y + inset
     local bw, bh = p.width - inset*2, p.height - inset*2
 
     for _, room in ipairs(self.rooms) do
-        if room ~= self.currentRoom
+        if room ~= p.currentRoom
             and roomOverlap(room, bx, by, bw, bh) >= TUNE.rooms.enterFraction then
 
             -- nudge along the player's heading; fallback: dominant axis
@@ -248,15 +327,47 @@ function World:checkRoomTransition()
             local toX, toY = self:cameraFor(room,
                 p.x + p.width/2 + nx*nudge, p.y + p.height/2 + ny*nudge)
 
-            self.transition = {
+            p.transition = {
                 t = 0, room = room,
-                fromCamX = self.camX, fromCamY = self.camY,
+                fromCamX = p.camX, fromCamY = p.camY,
                 toCamX = toX, toCamY = toY,
-                playerFromX = p.x, playerFromY = p.y,
-                nudgeX = nx*nudge, nudgeY = ny*nudge,
             }
             return
         end
+    end
+end
+
+-- Jump a player's camera straight to their room, no ease (spawn, respawn,
+-- and restoring a save mid-room)
+function World:snapCamera(p)
+    p.currentRoom = p.currentRoom or self:roomAt(p:getCenter())
+    p.transition = nil
+    local pcx, pcy = p:getCenter()
+    p.camX, p.camY = self:cameraFor(p.currentRoom, pcx, pcy)
+end
+
+-- One player's camera for this frame: either easing through a room change or
+-- locked to their current room. Runs for every player, every frame.
+function World:updatePlayerCamera(dt, p)
+    local tr = p.transition
+    if tr then
+        tr.t = tr.t + dt
+        local k = math.min(1, tr.t / TUNE.rooms.transitionTime)
+        local e = 1 - (1 - k)^3 -- cubic ease-out, same curve as before
+        p.camX = tr.fromCamX + (tr.toCamX - tr.fromCamX) * e
+        p.camY = tr.fromCamY + (tr.toCamY - tr.fromCamY) * e
+        if k >= 1 then
+            p.currentRoom = tr.room
+            self.visitedRooms[tr.room.name] = true -- progression stays shared
+            p.transition = nil
+        end
+        return
+    end
+
+    self:checkRoomTransition(p)
+    if not p.transition then
+        local pcx, pcy = p:getCenter()
+        p.camX, p.camY = self:cameraFor(p.currentRoom, pcx, pcy)
     end
 end
 
@@ -443,29 +554,6 @@ local function pushApart(world, a, b)
 end
 
 function World:update(dt)
-    -- Room switch: gameplay freezes while the camera pans and the player
-    -- drifts a few px into the new room (Celeste-style)
-    if self.transition then
-        local tr = self.transition
-        tr.t = tr.t + dt
-        local k = math.min(1, tr.t / TUNE.rooms.transitionTime)
-        local e = 1 - (1 - k)^3 -- cubic ease-out
-
-        self.camX = tr.fromCamX + (tr.toCamX - tr.fromCamX) * e
-        self.camY = tr.fromCamY + (tr.toCamY - tr.fromCamY) * e
-        self.player.x = tr.playerFromX + tr.nudgeX * e
-        self.player.y = tr.playerFromY + tr.nudgeY * e
-
-        self.lighting:update(dt, self) -- torches keep flickering during the pan
-        if k >= 1 then
-            self.currentRoom = tr.room
-            self.visitedRooms[tr.room.name] = true
-            self.adjacentCache = nil
-            self.transition = nil
-        end
-        return
-    end
-
     -- knife hitstop: everything freezes for a few frames on impact
     if self.hitstop and self.hitstop > 0 then
         self.hitstop = self.hitstop - dt
@@ -485,12 +573,15 @@ function World:update(dt)
         entity:update(dt, self)
     end
 
-    -- Zombies never overlap each other, or the player (unless falling)
+    -- Zombies never overlap each other, or any player (unless that one is
+    -- falling down a hole)
     for i = 1, #self.entities do
         local a = self.entities[i]
         if a.type == 'enemy' then
-            if not self.player.falling then
-                pushApart(self, self.player, a)
+            for _, p in ipairs(self.players) do
+                if not p.falling and p.health > 0 then
+                    pushApart(self, p, a)
+                end
             end
             for j = i + 1, #self.entities do
                 local b = self.entities[j]
@@ -511,13 +602,16 @@ function World:update(dt)
     -- wave FSM runs after the sweep so kills count the same frame
     self.waves:update(dt, self)
 
-    -- camera follows the player, locked to the current room; crossing into
-    -- another room starts the frozen pan instead
-    self:checkRoomTransition()
-    if not self.transition then
-        local pcx, pcy = self.player:getCenter()
-        self.camX, self.camY = self:cameraFor(self.currentRoom, pcx, pcy)
+    -- every player carries their own camera and room lock; the pan runs
+    -- alongside the simulation instead of pausing it
+    for _, p in ipairs(self.players) do
+        self:updatePlayerCamera(dt, p)
     end
+    -- world-level aliases for this machine's view: draw, lighting, audio and
+    -- the cursor->world mapping all read these
+    self.camX, self.camY = self.player.camX, self.player.camY
+    self.currentRoom = self.player.currentRoom
+    self.transition = self.player.transition
 
     self.vfx:update(dt)
     self.lighting:update(dt, self)
@@ -529,8 +623,9 @@ function World:update(dt)
     local lx, ly = self.player:getCenter()
     Audio.setListener(lx, ly, self)
 
-    -- player death ends the run
-    if self.player.health <= 0 then
+    -- the run ends when the last player standing goes down (solo: the only
+    -- one). Phase 4 puts the downed/revive window in front of this.
+    if not self:anyoneAlive() then
         self.gameOver = true
     end
 
@@ -811,6 +906,9 @@ function World:restore(data)
     self.player:restore(data.player or {})
     -- saved runs can end in any room
     self.currentRoom = self:roomAt(self.player:getCenter())
+    self.player.currentRoom = self.currentRoom
+    self:snapCamera(self.player)
+    self.camX, self.camY = self.player.camX, self.player.camY
     self.visitedRooms[self.currentRoom.name] = true
     self.adjacentCache = nil
 end

@@ -31,17 +31,21 @@ function Powerup:update(dt, world)
 
     -- walk-over pickup (padded AABB vs the player)
     local pad = TUNE.powerups.pickupPad
-    local p = world.player
-    if p.x < self.x + self.width + pad and p.x + p.width > self.x - pad
-        and p.y < self.y + self.height + pad and p.y + p.height > self.y - pad then
-        self:apply(world)
-        self.toRemove = true
+    for _, p in ipairs(world.players) do
+        if p.health > 0 and not p.toRemove
+            and p.x < self.x + self.width + pad and p.x + p.width > self.x - pad
+            and p.y < self.y + self.height + pad and p.y + p.height > self.y - pad then
+            self:apply(world, p)
+            self.toRemove = true
+            return
+        end
     end
 end
 
-function Powerup:apply(world)
+-- picker = who walked over it; buffs are shared, cash pays the picker
+function Powerup:apply(world, picker)
     local P = TUNE.powerups
-    local player = world.player
+    local player = picker or world.player
 
     if self.kind == 'nuke' then
         -- kill every live zombie; nukedSilent skips the per-zombie death SFX

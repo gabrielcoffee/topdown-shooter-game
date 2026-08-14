@@ -9,7 +9,7 @@ Bullet.__index = Bullet
 setmetatable(Bullet, Entity)
 
 
-function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime, econ, maxHits, showMuzzle)
+function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime, econ, maxHits, showMuzzle, owner)
     local obj = Entity:new(x, y, 2, 4)
 
     obj.type = 'bullet' -- every other entity names itself; replication needs it
@@ -19,6 +19,7 @@ function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime, econ, maxHits, 
     obj.sprite = Assets.quads.bullet[1]
     obj.damage = damage
     obj.econ = econ             -- payout numbers, spent by Enemy:takeDamage
+    obj.owner = owner           -- the player who fired: gets paid for the kill
     obj.hitsLeft = maxHits or 1 -- zombies left to pierce before the bullet dies
     obj.hitEnemies = {}         -- each zombie takes this bullet's damage once
     obj.lifetime = lifetime
@@ -92,7 +93,7 @@ function Bullet:checkHits(world)
             world:removeEntity(self)
             world.vfx:wallHit(self.x, self.y, self.angle)
             if e.type == 'crate' then
-                e:hit(self.damage, world, self.econ)
+                e:hit(self.damage, world, self.econ, self.owner)
             end
             return
         end
@@ -116,7 +117,7 @@ function Bullet:checkZombieHits(world, px, py)
             local r = self.radius + e.radius
             if dx*dx + dy*dy < r*r then
                 self.hitEnemies[e] = true
-                e:takeDamage(self.damage, world, self.econ)
+                e:takeDamage(self.damage, world, self.econ, self.owner)
                 world.vfx:bloodSplatter(bx, by, self.angle)
                 Audio.playAt('flesh_hit', bx, by, 1, TUNE.audio.pitchJitter, world)
 

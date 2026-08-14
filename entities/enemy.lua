@@ -148,9 +148,12 @@ end
 -- money per hit (+ a bonus on the kill), honors the instakill power-up.
 -- econ = the weapon's payout numbers { hitReward, killBonus }; nil
 -- (spikes, holes) hurts without paying and without instakill.
+-- attacker = the player who gets paid. Weapons carry their owner so the
+-- shooter is paid in co-op rather than whoever happens to be player 1;
+-- nil falls back to the local player (solo, and environmental damage).
 -- Returns true if this hit killed. Call sites keep their own juice
 -- (blood, knockback, hitstop) — this owns health, flash and money only.
-function Enemy:takeDamage(amount, world, econ)
+function Enemy:takeDamage(amount, world, econ, attacker)
     if self.health <= 0 then return false end
     if econ and world.buffs and world.buffs.instakill > 0 then
         amount = self.health
@@ -165,7 +168,8 @@ function Enemy:takeDamage(amount, world, econ)
         -- one addMoney call so the killing hit's "+$n" popup shows hit
         -- reward and kill bonus as a single summed number
         local n = (econ.hitReward or 0) + (killed and econ.killBonus or 0)
-        world.player:addMoney(n)
+        local paid = attacker or world.player
+        if paid then paid:addMoney(n) end
     end
 
     -- blood decal on the floor: sometimes on a hit, usually on the kill;
@@ -239,7 +243,13 @@ end
 function Enemy:followPlayer(dt, world)
     local ts = world.map.tileSize
     local cx, cy = self:getCenter()
-    local pcx, pcy = world.player:getCenter()
+    -- co-op: chase whoever is closest right now. The target is remembered so
+    -- the contact-damage pass hits the same player this tick's path was built
+    -- for, instead of re-picking and hitting someone else.
+    local target = world:nearestPlayer(cx, cy)
+    self.target = target
+    if not target then return end
+    local pcx, pcy = target:getCenter()
 
     local myCol, myRow = math.floor(cx / ts) + 1, math.floor(cy / ts) + 1
     local pCol, pRow = math.floor(pcx / ts) + 1, math.floor(pcy / ts) + 1
@@ -439,23 +449,28 @@ function Enemy:update(dt, world)
     -- Contact damage on the player (not while falling/invincible).
     -- Separation keeps the circles just apart, so plain overlap would never
     -- trigger: attackRange pads the reach a few px past touching.
-    local px, py = world.player:getCenter()
     local cx, cy = self:getCenter()
-    local ddx, ddy = px - cx, py - cy
-    local reach = self.radius + world.player.radius + TUNE.zombies.attackRange
+    -- bite whoever is nearest, which is normally the one being chased
+    local victim = world:nearestPlayer(cx, cy)
 
     self.attackTimer = self.attackTimer + dt
-    if self.attackTimer >= self.attackCooldown and ddx*ddx + ddy*ddy < reach*reach
-        and not world.player.falling and world.player.invulnTimer <= 0
-        and not world.player.godMode then
-        world.player.health = world.player.health - self.damage
-        world.player.flashTimer = TUNE.player.hitFlashTime
-        -- brief post-hit invuln: an encircling pack can't stack 3-4 contact
-        -- hits in the same beat and one-shot a full-health player
-        world.player.invulnTimer = math.max(world.player.invulnTimer,
-            TUNE.player.contactInvulnTime)
-        self.attackTimer = 0
-        Audio.playAt('zombie_attack', cx, cy, 1, TUNE.audio.pitchJitter, world)
+    if victim then
+        local px, py = victim:getCenter()
+        local ddx, ddy = px - cx, py - cy
+        local reach = self.radius + victim.radius + TUNE.zombies.attackRange
+
+        if self.attackTimer >= self.attackCooldown and ddx*ddx + ddy*ddy < reach*reach
+            and not victim.falling and victim.invulnTimer <= 0
+            and not victim.godMode then
+            victim.health = victim.health - self.damage
+            victim.flashTimer = TUNE.player.hitFlashTime
+            -- brief post-hit invuln: an encircling pack can't stack 3-4 contact
+            -- hits in the same beat and one-shot a full-health player
+            victim.invulnTimer = math.max(victim.invulnTimer,
+                TUNE.player.contactInvulnTime)
+            self.attackTimer = 0
+            Audio.playAt('zombie_attack', cx, cy, 1, TUNE.audio.pitchJitter, world)
+        end
     end
 
     -- crate smashing (breaksCrates types, and only while smashMode says the

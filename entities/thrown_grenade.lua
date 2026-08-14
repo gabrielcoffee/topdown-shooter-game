@@ -12,9 +12,10 @@ local ThrownGrenade = {}
 ThrownGrenade.__index = ThrownGrenade
 setmetatable(ThrownGrenade, Entity)
 
-function ThrownGrenade:new(x, y, targetX, targetY)
+function ThrownGrenade:new(x, y, targetX, targetY, owner)
     local obj = Entity:new(x, y, 8, 8)
     obj.type = 'thrown_grenade'
+    obj.owner = owner -- the thrower: gets paid for what the blast kills
 
     obj.startX, obj.startY = x, y
     obj.dist = math.max(1, math.sqrt((targetX-x)^2 + (targetY-y)^2))
@@ -61,10 +62,10 @@ function ThrownGrenade:explode(world)
             -- over walls by design, but the explosion doesn't blow through them
             if d <= radius and not world.map:wallBetween(self.x, self.y, ex, ey) then
                 if e.type == 'enemy' and e.health > 0 then
-                    e:takeDamage(damage, world, econ)
+                    e:takeDamage(damage, world, econ, self.owner)
                     world.vfx:bloodSplatter(ex, ey, math.atan2(ey - self.y, ex - self.x))
                 elseif e.type == 'crate' then
-                    e:hit(damage, world, econ)
+                    e:hit(damage, world, econ, self.owner)
                 end
             end
         end

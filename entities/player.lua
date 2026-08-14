@@ -26,6 +26,10 @@ function Player:new(x, y, width, height)
         [4] = HandItem:newGrenade(),
         [5] = HandItem:newHealthPack(),
     }
+    -- weapons remember who holds them: in co-op the shooter has to be the one
+    -- paid for the kill, and the sprint pose has to read its own player
+    -- instead of whoever happens to be world.player
+    for _, item in pairs(obj.items) do item.owner = obj end
     obj.itemIndex = 1
     obj.lastGunSlot = 1
     obj.lastSlot = 3      -- slot the Q quick-knife swaps back to
@@ -121,8 +125,10 @@ function Player:addMedkit()
     return true
 end
 
-local function throwableItem(kind)
-    return HandItem:newGrenade(kind == 'molotov' and 'molotov' or nil)
+local function throwableItem(kind, owner)
+    local item = HandItem:newGrenade(kind == 'molotov' and 'molotov' or nil)
+    item.owner = owner
+    return item
 end
 
 -- Deploy sound for slot 4: each throwable gets its own handling sound —
@@ -139,7 +145,7 @@ function Player:cycleThrowable()
     local count = other == 'molotov' and self.molotovs or self.grenades
     if count <= 0 then return end
     self.throwableType = other
-    self.items[4] = throwableItem(other)
+    self.items[4] = throwableItem(other, self)
     self:playThrowableDeploy()
 end
 
@@ -151,7 +157,7 @@ function Player:syncThrowable()
     local count = other == 'molotov' and self.molotovs or self.grenades
     if count > 0 then
         self.throwableType = other
-        self.items[4] = throwableItem(other)
+        self.items[4] = throwableItem(other, self)
     end
 end
 
@@ -487,10 +493,10 @@ function Player:update(dt, world)
         -- lands exactly where the targeting preview says (cursor clamped to maxRange)
         local tx, ty = require('ui.grenade_aim').target(world)
         if self.throwableType == 'molotov' then
-            world:addEntity(require('entities.thrown_molotov'):new(cx, cy, tx, ty))
+            world:addEntity(require('entities.thrown_molotov'):new(cx, cy, tx, ty, self))
             self.molotovs = self.molotovs - 1
         else
-            world:addEntity(ThrownGrenade:new(cx, cy, tx, ty))
+            world:addEntity(ThrownGrenade:new(cx, cy, tx, ty, self))
             self.grenades = self.grenades - 1
         end
         Audio.playAt('grenade_throw', cx, cy, 0.8, TUNE.audio.pitchJitter, world)
@@ -817,6 +823,8 @@ function Player:giveGun(gun)
         old:cancelReload()
         old:cutPick() -- the gun leaving the hand takes its sounds with it
     end
+    if old and old.isGun then old.owner = nil end -- gun leaving the hands
+    gun.owner = self
     self.items[target] = gun
     self.itemIndex = target
     self.lastGunSlot = target

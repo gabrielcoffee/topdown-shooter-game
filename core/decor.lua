@@ -275,7 +275,7 @@ function Decor:walkers(world)
         w[1], w[2], w[3], w[4] = x, y, push, reach
     end
 
-    add(world.player)
+    for _, p in ipairs(world.players) do add(p) end
     for _, e in ipairs(world.entities) do
         if e.type == 'enemy' and not e.toRemove then add(e) end
     end

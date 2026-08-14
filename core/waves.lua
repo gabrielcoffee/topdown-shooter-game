@@ -163,10 +163,19 @@ end
 -- (a map without markers must never crash the spawner).
 function Waves:activePoints(world)
     local inRoom, nextDoor, visited = {}, {}, {}
-    local current = world.currentRoom and world.currentRoom.name
-    local adjacent = world:adjacentRooms()
+    -- co-op: "the current room" is every room somebody is standing in, and
+    -- "next door" is anything adjacent to any of them
+    local current, adjacent = {}, {}
+    for _, p in ipairs(world.players) do
+        if p.health > 0 and p.currentRoom then
+            current[p.currentRoom.name] = true
+            for name in pairs(world:adjacentRooms(p.currentRoom)) do
+                adjacent[name] = true
+            end
+        end
+    end
     for _, sp in ipairs(self.spawnPoints) do
-        if sp.roomName == current then
+        if sp.roomName and current[sp.roomName] then
             table.insert(inRoom, sp)
         elseif sp.roomName and adjacent[sp.roomName] and world.visitedRooms[sp.roomName] then
             table.insert(nextDoor, sp)
@@ -191,8 +200,12 @@ end
 function Waves:nearPlayerPoint(world)
     local t = TUNE.waves
     local ts = TUNE.tiles.size
-    local px, py = world.player:getCenter()
-    local room = world.currentRoom
+    -- co-op: surprise somebody at random, in their own room, so the scare
+    -- isn't always aimed at the host
+    local victim = world:randomLivePlayer()
+    if not victim then return nil end
+    local px, py = victim:getCenter()
+    local room = victim.currentRoom
     for _ = 1, 12 do
         local ang = love.math.random() * math.pi * 2
         local dist = t.nearMinDist + love.math.random() * (t.nearMaxDist - t.nearMinDist)
@@ -329,7 +342,11 @@ function Waves:update(dt, world)
             -- surviving a nightmare pays: cash now, bonus line on the banner
             self.clearedNightmare = Waves.isNightmare(self.wave)
             if self.clearedNightmare then
-                world.player:addMoney(TUNE.waves.nightmare.bonusMoney or 0)
+                for _, p in ipairs(world.players) do
+                    if p.health > 0 then
+                        p:addMoney(TUNE.waves.nightmare.bonusMoney or 0)
+                    end
+                end
             end
             self:slamBanner()
             -- checkpoint: a crash or force-quit resumes from the cleared wave

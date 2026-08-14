@@ -248,7 +248,7 @@ function Gun:update(dt, px, py, mx, my)
 
     -- sprint pose (draw-only): while running the gun holds the tucked pose;
     -- once the sprint ends it swings to the real aim over run.settleTime
-    if world.player and world.player.running then
+    if self.owner and self.owner.running then
         self.runPose = true
         self.runBobT = self.runBobT + dt
         self.runSettle = TUNE.run.settleTime
@@ -466,7 +466,7 @@ function Gun:draw(facingLeft)
         local R = TUNE.run
         local runAng = facingLeft and math.pi or 0
         local tuck = (facingLeft and 1 or -1) * R.backPx
-        if world.player and world.player.running then
+        if self.owner and self.owner.running then
             ang = runAng
             dx = tuck
             dy = ((self.runBobT * R.bobHz) % 1 >= 0.5) and -1 or 0
@@ -604,7 +604,7 @@ function Gun:fire(leftReleased)
         world.vfx:muzzleSparks(mx, my, self.angle)
 
         -- aim spread pushes the shot (or the whole pellet cone) off center
-        local spread = self:currentSpread(world.player.moveFactor)
+        local spread = self:currentSpread(self.owner and self.owner.moveFactor or 0)
         local shotAngle = self.angle + (love.math.random() * 2 - 1) * spread
 
         if self.type == GUNTYPE.shotgun then
@@ -618,7 +618,8 @@ function Gun:fire(leftReleased)
                         self.bulletLifeTime,
                         self.econ,
                         self.maxHits,
-                        i == 1 -- one muzzle-flash anim per blast, not 14 stacked
+                        i == 1, -- one muzzle-flash anim per blast, not 14 stacked
+                        self.owner
                     )
                 )
             end
@@ -631,7 +632,8 @@ function Gun:fire(leftReleased)
                     self.bulletLifeTime,
                     self.econ,
                     self.maxHits,
-                    true
+                    true,
+                    self.owner
                 )
             )
         end

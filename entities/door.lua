@@ -46,8 +46,10 @@ end
 -- one opens" without cluttering the room from across the map.
 function Door:drawLock()
     local D = TUNE.door
-    local px, py = world.player:getCenter()
     local cx, cy = self:getCenter()
+    local near = world:nearestPlayer(cx, cy) or world.player
+    if not near then return end
+    local px, py = near:getCenter()
     local dx, dy = px - cx, py - cy
     local dist = math.sqrt(dx * dx + dy * dy)
     local alpha = (D.lockFadeFar - dist) / (D.lockFadeFar - D.lockFadeNear)

@@ -17,7 +17,7 @@ function paused:exit()
     -- frame the world unfreezes and would fire the gun — dead until released
     -- (same lock the hole-fall uses)
     if world and world.player and love.mouse.isDown(1) then
-        world.player.lockedInputs.mouse1 = true
+        world.player.lockedInputs.shoot = true -- keyed by input field, see core/input.lua
     end
 end
 

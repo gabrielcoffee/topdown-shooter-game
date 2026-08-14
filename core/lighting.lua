@@ -150,8 +150,35 @@ function Lighting:removePoint(p)
 end
 
 function Lighting:update(dt, world)
-    local px, py = world.player:getCenter()
-    self.playerLight:setPosition(px, py)
+    -- every player carries a light. One is built with the world (playerLight);
+    -- co-op players get theirs on first sight and keep it until they leave.
+    self.extraLights = self.extraLights or {}
+    for i, p in ipairs(world.players) do
+        if i == 1 then
+            local px, py = p:getCenter()
+            self.playerLight:setPosition(px, py)
+        else
+            local l = self.extraLights[p]
+            if not l then
+                local b = TUNE.lighting.playerBright
+                l = self.lw:newLight(0, 0, b, b * 0.88, b * 0.68, TUNE.lighting.playerRange)
+                self.extraLights[p] = l
+            end
+            local px, py = p:getCenter()
+            l:setPosition(px, py)
+        end
+    end
+    -- a player who left takes their light with them
+    for p, l in pairs(self.extraLights) do
+        local still = false
+        for _, q in ipairs(world.players) do
+            if q == p then still = true break end
+        end
+        if not still then
+            self.lw:remove(l)
+            self.extraLights[p] = nil
+        end
+    end
 
     for i = #self.flashes, 1, -1 do
         local f = self.flashes[i]

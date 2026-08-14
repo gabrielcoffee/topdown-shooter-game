@@ -11,9 +11,10 @@ local ThrownMolotov = {}
 ThrownMolotov.__index = ThrownMolotov
 setmetatable(ThrownMolotov, Entity)
 
-function ThrownMolotov:new(x, y, targetX, targetY)
+function ThrownMolotov:new(x, y, targetX, targetY, owner)
     local obj = Entity:new(x, y, 8, 8)
     obj.type = 'thrown_molotov'
+    obj.owner = owner -- carried into the fire patch it leaves behind
 
     obj.dist = math.max(1, math.sqrt((targetX - x) ^ 2 + (targetY - y) ^ 2))
     obj.dx = (targetX - x) / obj.dist
@@ -41,7 +42,7 @@ function ThrownMolotov:update(dt, world)
 end
 
 function ThrownMolotov:shatter(world)
-    world:addEntity(FirePatch:new(self.x, self.y))
+    world:addEntity(FirePatch:new(self.x, self.y, self.owner))
     -- glass shatter + ignite whoosh
     Audio.playAt('molotov_break', self.x, self.y, TUNE.molotov.breakGain,
         TUNE.audio.pitchJitter, world)

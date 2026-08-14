@@ -66,7 +66,7 @@ function HandItem:swing(aimAngle, player, world)
                 local nx, ny = 1, 0
                 if dist > 0 then nx, ny = dx/dist, dy/dist end
 
-                local dead = e:takeDamage(self.damage, world, self.econ)
+                local dead = e:takeDamage(self.damage, world, self.econ, player)
                 e.kbx = nx * K.knockback
                 e.kby = ny * K.knockback
                 world.vfx:bloodSplatter(ecx - nx * e.radius, ecy - ny * e.radius, math.atan2(dy, dx))
@@ -85,7 +85,7 @@ function HandItem:swing(aimAngle, player, world)
                 and math.abs(angleDiff(math.atan2(dy, dx), aimAngle)) <= math.rad(K.arcDeg) / 2
                 and not world.map:wallBetween(pcx, pcy, ecx, ecy) then
 
-                e:hit(self.damage, world, { hitReward = TUNE.knife.hitReward })
+                e:hit(self.damage, world, { hitReward = TUNE.knife.hitReward }, player)
                 hit = true
             end
         end

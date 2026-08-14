@@ -20,11 +20,14 @@ end
 -- One player-weapon hit: damage + flash, and the crate pays out — half the
 -- weapon's per-zombie hit money (crate.moneyFactor). econ nil (zombie chew)
 -- hurts without paying.
-function Crate:hit(damage, world, econ)
+function Crate:hit(damage, world, econ, attacker)
     self.health = self.health - damage
     self.flash = true
     if econ and econ.hitReward then
-        world.player:addMoney(math.floor(econ.hitReward * TUNE.crate.moneyFactor + 0.5))
+        local paid = attacker or world.player
+        if paid then
+            paid:addMoney(math.floor(econ.hitReward * TUNE.crate.moneyFactor + 0.5))
+        end
     end
     if self.health <= 0 then world:removeEntity(self) end
 end

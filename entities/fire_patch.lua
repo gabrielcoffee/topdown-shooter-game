@@ -18,9 +18,10 @@ local FirePatch = {}
 FirePatch.__index = FirePatch
 setmetatable(FirePatch, Entity)
 
-function FirePatch:new(x, y)
+function FirePatch:new(x, y, owner)
     local obj = Entity:new(x - 4, y - 4, 8, 8) -- tiny body centered on impact
     obj.type = 'fire_patch'
+    obj.owner = owner -- the molotov thrower, paid for burn kills
     obj.age = 0
     -- first tick once the fire has fully spread, then every tickInterval
     obj.tickTimer = TUNE.molotov.spreadTime
@@ -140,10 +141,10 @@ function FirePatch:update(dt, world)
                         if world.recordingMode and e.maxHealth then
                             dmg = e.maxHealth / TUNE.recording.molotovTicksToKill
                         end
-                        e:takeDamage(dmg, world, econ)
+                        e:takeDamage(dmg, world, econ, self.owner)
                         world.vfx:bloodSplatter(ex, ey, math.atan2(ey - cy, ex - cx))
                     elseif e.type == 'crate' then
-                        e:hit(M.tickDamage, world, econ)
+                        e:hit(M.tickDamage, world, econ, self.owner)
                     end
                 end
             end
@@ -154,13 +155,15 @@ function FirePatch:update(dt, world)
     self.playerTickTimer = self.playerTickTimer - dt
     if self.playerTickTimer <= 0 then
         self.playerTickTimer = self.playerTickTimer + M.playerTickInterval
-        local p = world.player
-        if p and not p.toRemove and not p.falling and not p.godMode then
-            local px, py = p:getCenter()
-            local d = math.sqrt((px - cx) ^ 2 + (py - cy) ^ 2)
-            if d <= radius and not world.map:wallBetween(cx, cy, px, py) then
-                p.health = p.health - M.playerTickDamage
-                p.flashTimer = TUNE.player.hitFlashTime
+        for _, p in ipairs(world.players) do
+            if p and not p.toRemove and not p.falling and not p.godMode
+                and p.health > 0 then
+                local px, py = p:getCenter()
+                local d = math.sqrt((px - cx) ^ 2 + (py - cy) ^ 2)
+                if d <= radius and not world.map:wallBetween(cx, cy, px, py) then
+                    p.health = p.health - M.playerTickDamage
+                    p.flashTimer = TUNE.player.hitFlashTime
+                end
             end
         end
     end
