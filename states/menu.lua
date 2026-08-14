@@ -36,6 +36,14 @@ function menu:enter(opts)
             State.fadeTo('controls')
         end,
     })
+    -- LAN co-op is desktop-only: a browser tab cannot open a UDP socket, so
+    -- love.js has no ENet and there is nothing to connect with
+    if not WEB then
+        table.insert(items, {
+            label = 'menu.multiplayer', type = 'action',
+            activate = function() State.fadeTo('multiplayer') end,
+        })
+    end
     table.insert(items, {
         label = 'menu.options', type = 'action',
         activate = function() State.push('options') end,

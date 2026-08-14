@@ -61,6 +61,16 @@ function love.load()
             State.switch('menu')
             State.push('options')
             _G._autotest = { frames = 0 }
+        elseif a == 'autotest_mp' then
+            State.switch('menu')
+            State.push('multiplayer')
+            _G._autotest = { frames = 0 }
+        elseif a == 'autotest_lobby' then
+            -- stand up a real host so the lobby has a live roster to draw
+            State.switch('menu')
+            require('net.session').startHost()
+            State.push('lobby')
+            _G._autotest = { frames = 0 }
         elseif a == 'lanhost' or a == 'lanjoin' then
             -- two-process LAN check; see tools/lantest.sh
             function love.errorhandler(msg)
@@ -119,6 +129,9 @@ function love.update(dt)
     flux.update(dt)
     Fx.update(dt)
     Audio.update(dt) -- music fade + pause duck run in every state
+    -- LAN session ticks globally: the lobby has to keep syncing while the
+    -- pause menu or options sit on top of it (desktop only, see menu.lua)
+    if not WEB then require('net.session').update(dt) end
     State.update(dt)
     if _autotest then
         _autotest.frames = _autotest.frames + 1

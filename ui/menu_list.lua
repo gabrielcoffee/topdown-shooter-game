@@ -6,6 +6,8 @@
 --   { label = 'options.language', type = 'cycle', value = fn, cycle = fn(dir) }
 --   { label = 'keys.move_up', type = 'keybind', value = fn, activate = fn,
 --     conflict = fn -> bool, capturing = fn -> bool }
+-- An item may replace `label` with `text = fn -> string` when its caption is
+-- built at runtime rather than translated (the LAN server list rows).
 -- Layout: single centered column by default. Items may set col (1 = left
 -- column, 2 = right column) + row for a two-column grid (options menu);
 -- col-less items stay centered on their row.
@@ -17,6 +19,13 @@ local Audio = require('core.audio')
 
 local MenuList = {}
 MenuList.__index = MenuList
+
+-- Caption for an item: a runtime `text` function wins over the i18n key, so
+-- rows like "Notch's game   2/4" can live in the same list as translated ones.
+local function captionOf(item)
+    if item.text then return item.text() end
+    return T(item.label)
+end
 
 local SLIDER_W = 240
 local SLIDER_H = 12
@@ -73,7 +82,7 @@ local function itemBounds(self, i)
     local item = self.items[i]
     local cx = itemPos(self, i)
     if item.type == 'slider' then
-        local labelW = f:getWidth(T(item.label))
+        local labelW = f:getWidth(captionOf(item))
         local x, _, w = sliderRect(self, i)
         local labelRight = item.col and (cx - 8) or (SCREENWIDTH / 2 - 40)
         return labelRight - labelW, x + w + 16 + PCT_W
@@ -81,12 +90,12 @@ local function itemBounds(self, i)
     if item.type == 'keybind' then
         -- same split as a slider row: label right-aligned left of centre,
         -- key text starting right of it
-        local labelW = f:getWidth(T(item.label))
+        local labelW = f:getWidth(captionOf(item))
         local labelRight, keyX = keybindX(self, i)
         return labelRight - labelW,
                keyX + Theme.fonts.hint:getWidth(item.value())
     end
-    local text = T(item.label)
+    local text = captionOf(item)
     if item.type == 'cycle' then text = text .. ': ' .. item.value() end
     local w = f:getWidth(text)
     return cx - w / 2, cx + w / 2
@@ -229,7 +238,7 @@ function MenuList:draw()
         if item.type == 'slider' then
             -- label on the left, bar on the right
             love.graphics.setColor(c[1], c[2], c[3], a)
-            local label = T(item.label)
+            local label = captionOf(item)
             local labelRight = item.col and (cx - 8) or (SCREENWIDTH / 2 - 40)
             love.graphics.print(label, labelRight - f:getWidth(label), yy)
 
@@ -254,7 +263,7 @@ function MenuList:draw()
             -- action too; blood already means "selected" so it can't mean
             -- "clash". While capturing the key text blinks as [ ... ].
             love.graphics.setColor(c[1], c[2], c[3], a)
-            local label = T(item.label)
+            local label = captionOf(item)
             local labelRight, keyX = keybindX(self, i)
             love.graphics.print(label, labelRight - f:getWidth(label), yy)
 
@@ -273,7 +282,7 @@ function MenuList:draw()
             love.graphics.print(text, keyX, yy + 4)
             love.graphics.setFont(f)
         else
-            local text = T(item.label)
+            local text = captionOf(item)
             if item.type == 'cycle' then
                 text = text .. ': ' .. item.value()
             end
