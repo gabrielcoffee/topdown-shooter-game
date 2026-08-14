@@ -127,7 +127,11 @@ re-encode after changing a sound.
 
 One-time, needs Gabriel (butler login is interactive):
 
-1. `brew install butler && butler login`
+1. `./deploy.sh install-butler`, then `butler login` (opens a browser — this is
+   the step that cannot be automated). Note there is **no homebrew formula** for
+   itch's butler: `brew install butler` installs Many Tricks' Butler.app, an
+   unrelated task launcher. `install-butler` pulls the real one from
+   `broth.itch.zone` into `~/.local/share/itch-butler` and symlinks it onto PATH.
 2. itch.io → Edit game → **Kind of project: HTML**
 3. `./deploy.sh web`, then tick **"This file will be played in the browser"**
    on the new upload
