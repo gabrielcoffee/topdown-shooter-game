@@ -1,8 +1,9 @@
 # Web Build — Zombie Chamber in the browser
 
-Status: **built and working.** `./build.sh web` produces an 8.5MB `dist/web/`
-that runs the real game in Chrome, Firefox and Safari. The only thing left is
-the one-time itch.io setup, which needs Gabriel's login (see Deploying).
+Status: **live and playable** at https://coffeebreak1.itch.io/zombiechamber —
+`./build.sh web` produces an 8.5MB `dist/web/` that runs the real game in
+Chrome, Firefox and Safari, at a locked 60fps. Note it ships from the
+`web-release` branch, not `main` (see below).
 
 Toolchain: [Davidobot/love.js](https://github.com/Davidobot/love.js) 11.4.1
 (LÖVE 11.5 + Emscripten), **compatibility mode** (`-c`). Compat mode has no
@@ -29,11 +30,12 @@ node web/perf.js      # framerate + WebGL call counts, real GPU window
 | Menu music | `no_birds.mp3`, 12.8 min, 320kbps | 60s ogg loop |
 | Ambience beds | 77–94s ogg, streamed | 40s ogg loops, static |
 | All other audio | wav / mp3 | ogg q2 |
-| Lights on screen | unlimited | 2 nearest |
+| Lights on screen | unlimited | 4 nearest |
 | Shadow softness | `shadowBlur = 2` | 0 (hard edges) |
 | Light pass resolution | full canvas | half (`shadowScale = 0.5`) |
 | Dev console (T) | on | off |
 | Menu QUIT | quits | hidden |
+| LAN multiplayer | yes | not in the build at all |
 | Boot fullscreen | applied | ignored (needs a user gesture) |
 | Run save | on window close | every 30s |
 | Pause | Escape | Escape **or P** — see below |
@@ -111,37 +113,48 @@ Real GPU, Chrome, 1280×960, wave 1. `node web/perf.js`.
 
 | Configuration | fps |
 |---|---|
-| Lighting disabled entirely | **60** (vsync cap) |
-| 1 light | 37 |
-| 2 lights (shipping) | **~30** |
-| 3 lights | 24 |
-| 4 lights | 21 |
-| Unlimited (~5 on screen), before any of this work | 15 |
+| 4 lights (shipping) | **60** locked |
+| Unlimited (~5 on screen) | 60 median, dips to 53 |
+| 2 lights, before the stencil fix | 36 |
+| Unlimited, before the stencil fix | 22 |
+| Lighting disabled entirely | 60 (vsync cap) |
 
-Lighting is the entire frame budget; everything else in the game runs at
-vsync. The moonshine chain (CRT, vignette, grain) costs nothing measurable —
-bypassing it changed nothing. Cost is **linear in light count**, roughly 7ms
-per light, on top of ~10ms of fixed lighting overhead.
+Lighting was the entire frame budget: 36fps with it on, a locked 60 with it
+off. It was **draw calls, not fill rate** — which is why half-resolution light
+buffers barely moved it, and why it hurt so much more in a browser than on
+desktop. Every GL call from wasm crosses into JS.
 
-What was tried and what it bought:
-- **Half-resolution light buffers** (`shadowScale`) — barely moved it. Proof
-  the bottleneck is not fill rate. Kept anyway; it is free.
+The culprit was the stencil pass, not the shadows. `light_world` rasterises
+each polygon occluder into its own `Image` at creation so the stencil pass can
+stamp it. Every body therefore owns a *different* texture, so LÖVE's batcher
+cannot merge any of them: 24 walls in light range × 2 lights was ~48
+unmergeable draws a frame. `body:drawStencil` now draws the polygon geometry
+instead — untextured, so consecutive bodies collapse into one draw. **130 draws
+per frame → 86, and a locked 60.**
+
+The shapes this relies on are convex (chamfered wall rects, crates, doors),
+which is what `polygon('fill')` needs. The `image_mask` shader stays bound and
+is harmless — an untextured draw samples LÖVE's 1×1 white texture, so nothing
+discards.
+
+What else was tried and what it bought:
+- **Batching shadow quads into one mesh per light** — worth only ~3fps. LÖVE
+  already merges consecutive untextured polygon fills, so these were never
+  separate GL draws. Kept: it removes the per-edge Lua overhead.
+- **Half-resolution light buffers** (`shadowScale`) — barely moved it. Kept; free.
 - **Cutting wasted passes** — the always-empty normal map rebuild and the
   identity blur. Worth a few fps.
-- **Capping light count** (`maxLights`) — the only big lever. 15 → 30fps.
+- **The moonshine chain** (CRT, vignette, grain) — 6fps at the old framerate
+  (36 → 42 bypassed). Left on; it is the game's whole look and there is room now.
 
-The remaining cost is per-light framebuffer and stencil churn: each light
-means its own buffer clear, ~3 stencil clears and a full-buffer shader pass,
-and Apple's tile-based GPU hates that pattern. Getting past ~30fps would mean
-changing how shadows are drawn — the standard trick is to drop the stencil and
-just draw shadow polygons in black over the light gradient, which needs no
-stencil buffer at all. That is a real rewrite of `light_world`'s core and would
-change desktop rendering too, so it is deliberately **not** done here. If 30fps
-in the browser turns out to bother people, that is the next move.
+The `maxLights` cap is no longer the framerate dial. It went 2 → 4 once the
+stencil fix landed: distant torches cast their pools again and it still never
+drops a frame. Uncapped dips to 53 in a torch-heavy room, so the cap stays, but
+it now costs nothing you can see.
 
-Cost of the cap, visually: only the 2 nearest lights (always including the
-player's) cast their pool. Distant torches still show their flame sprite but
-light nothing. In a dark game it is noticeable if you look for it.
+Replacing the stencil approach with black shadow polygons over the light
+gradient — the plan when 30fps looked like a rendering-technique problem — is
+**not needed** and was not done.
 
 ---
 
@@ -154,6 +167,28 @@ Nowhere near itch's limits (500MB extracted, 1000 files, 200MB/file).
 `build.sh web` caches the encoded audio in `dist/.cache/web-audio`, so only
 the first build pays the minute of ffmpeg. Delete that folder to force a
 re-encode after changing a sound.
+
+---
+
+## The web build ships from its own branch
+
+`main` carries the LAN multiplayer work, which is **download-only**. The
+browser build is single-player and ships from **`web-release`**: branched at
+`79a3225` (the last commit before multiplayer) with the web and perf work
+cherry-picked on top.
+
+So a web release is not `./deploy.sh web` on main. It is:
+
+```sh
+git worktree add /tmp/web-release web-release   # main stays untouched
+cd /tmp/web-release
+git cherry-pick <the web/perf commits from main>
+ln -s /path/to/repo/node_modules .              # for the smoke test
+./deploy.sh web
+```
+
+Check `ls core/ | grep net` comes back empty before pushing — that is the
+cheapest proof no multiplayer code went into the browser build.
 
 ---
 
