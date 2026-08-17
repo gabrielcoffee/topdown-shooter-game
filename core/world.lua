@@ -688,10 +688,53 @@ function World:update(dt)
     require('ui.fx').setLowHealth(critical)
 end
 
+-- Black out everything outside the room the local player is in.
+--
+-- The logical canvas follows the window's aspect (see ui/screen.lua), so a
+-- 16:9 window shows 853 world px across where 4:3 shows 640. Rooms wider than
+-- that genuinely reveal more map, which is the point — but Room_0 is exactly
+-- 640 wide, and without a mask a widescreen player would see over its walls
+-- into Room_1. Mid-transition the mask spans both rooms, otherwise the room
+-- being left would black out under the panning camera.
+function World:drawRoomMask()
+    local room = self.currentRoom
+    if not room then return end
+
+    local x0, y0 = room.x, room.y
+    local x1, y1 = room.x + room.w, room.y + room.h
+    local tr = self.transition
+    if tr and tr.room then
+        x0, y0 = math.min(x0, tr.room.x), math.min(y0, tr.room.y)
+        x1 = math.max(x1, tr.room.x + tr.room.w)
+        y1 = math.max(y1, tr.room.y + tr.room.h)
+    end
+
+    -- world -> screen, clamped to the canvas so the bars are never negative
+    local sx0 = math.max(0, math.floor((x0 - self.camX) * SCALE))
+    local sy0 = math.max(0, math.floor((y0 - self.camY) * SCALE))
+    local sx1 = math.min(SCREENWIDTH, math.ceil((x1 - self.camX) * SCALE))
+    local sy1 = math.min(SCREENHEIGHT, math.ceil((y1 - self.camY) * SCALE))
+
+    love.graphics.setColor(Color.void())
+    if sx0 > 0 then love.graphics.rectangle('fill', 0, 0, sx0, SCREENHEIGHT) end
+    if sx1 < SCREENWIDTH then
+        love.graphics.rectangle('fill', sx1, 0, SCREENWIDTH - sx1, SCREENHEIGHT)
+    end
+    if sy0 > 0 then
+        love.graphics.rectangle('fill', sx0, 0, sx1 - sx0, sy0)
+    end
+    if sy1 < SCREENHEIGHT then
+        love.graphics.rectangle('fill', sx0, sy1, sx1 - sx0, SCREENHEIGHT - sy1)
+    end
+    love.graphics.setColor(Color.white())
+end
+
 function World:draw()
 
-    -- Draws background color
-    love.graphics.clear(Color.skyblue())
+    -- Whatever the scene doesn't cover. Void-black, never a color: the light
+    -- passes are sized to the logical canvas and any mismatch used to show
+    -- through here as a bright blue band along an edge.
+    love.graphics.clear(Color.void())
 
     local camX, camY = self.camX, self.camY
     self.lighting:setView(camX, camY, SCALE)
@@ -744,6 +787,10 @@ function World:draw()
             if self.playerSpawn then self.playerSpawn:drawHitbox() end
         end
     end)
+
+    -- On a window wider than 4:3 the view is wider than some rooms, so without
+    -- this you would see straight into the room next door through its wall.
+    self:drawRoomMask()
 
     -- HUD DRAWING (native resolution, not pixel-scaled)
     for _, entity in ipairs(self.entities) do

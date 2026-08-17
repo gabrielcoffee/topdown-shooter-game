@@ -43,6 +43,7 @@ return {
     ['gfx.native']       = 'NATIVE',
     ['gfx.apply']        = 'APPLY',
     ['gfx.unapplied']    = 'UNAPPLIED CHANGES - PRESS APPLY',
+    ['gfx.resizable']    = 'DRAG THE WINDOW EDGE TO ANY SIZE YOU LIKE',
 
     ['gameover.title']   = 'YOU DIED',
     ['gameover.restart'] = 'RESTART',

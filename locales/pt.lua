@@ -43,6 +43,7 @@ return {
     ['gfx.native']       = 'NATIVA',
     ['gfx.apply']        = 'APLICAR',
     ['gfx.unapplied']    = 'ALTERAÇÕES PENDENTES - APLICAR',
+    ['gfx.resizable']    = 'ARRASTE A BORDA DA JANELA PARA QUALQUER TAMANHO',
 
     ['gameover.title']   = 'VOCÊ MORREU',
     ['gameover.restart'] = 'REINICIAR',

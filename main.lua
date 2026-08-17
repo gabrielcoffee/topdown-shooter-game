@@ -99,6 +99,13 @@ function love.load()
         elseif a == 'autotest_splash' then
             -- splash is the boot state; just screenshot it mid-fade-in
             _G._autotest = { frames = 0 }
+        elseif a:match('^win%d+x%d+$') then
+            -- force a window size for a screenshot test: `love . autotest
+            -- win1280x700`. Short and odd-shaped windows are exactly what
+            -- used to leave part of the canvas uncovered.
+            SETTINGS.fullscreen = false
+            SETTINGS.resolution = a:match('^win(%d+x%d+)$')
+            Screen.apply(SETTINGS)
         elseif a:match('^shot%d+$') and _G._autotest then
             -- autotest addon: screenshot at this frame instead of 90
             _G._autotest.shotFrame = tonumber(a:match('%d+'))
@@ -117,6 +124,8 @@ function love.load()
             io.stderr:write(('PROBE points=%dx%d pixels=%dx%d dpi=%.2f refresh=%s display=%s\n')
                 :format(love.graphics.getWidth(), love.graphics.getHeight(), pw, ph,
                 love.graphics.getDPIScale(), tostring(m[3] and m[3].refreshrate), tostring(m[3] and m[3].display)))
+            -- the sizes that have to agree, or something goes uncovered
+            io.stderr:write('PROBE ' .. Screen.debugSizes() .. '\n')
             _G._fps = { t = 0, n = 0 }
         end
     end
@@ -127,6 +136,7 @@ function love.update(dt)
     -- movement and timers never integrate a step bigger than a 30fps frame
     dt = math.min(dt, 1/30)
     flux.update(dt)
+    Screen.update(dt) -- deferred rebuild after a window drag settles
     Fx.update(dt)
     Audio.update(dt) -- music fade + pause duck run in every state
     -- LAN session ticks globally: the lobby has to keep syncing while the
@@ -179,8 +189,11 @@ function love.draw()
     Screen.present()
 end
 
-function love.resize()
-    Screen.recompute()
+-- A drag delivers one of these per frame. Screen keeps the blit rect (and so
+-- the mouse mapping) correct immediately and defers reallocating the canvas,
+-- shader chain and light buffers until the drag settles.
+function love.resize(w, h)
+    Screen.resized(w, h)
 end
 
 function love.keypressed(key)

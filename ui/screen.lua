@@ -1,27 +1,50 @@
 -- Resolution / fullscreen scaler.
 --
--- The whole game is drawn into a fixed-size *logical* canvas (SCREENWIDTH x
--- SCREENHEIGHT, 4:3). That canvas is blitted to the real window, scaled to fit
--- and centered, with black letterbox/pillarbox bars filling the remainder.
--- Window resolution and fullscreen only change the final blit — never the
--- layout, which stays pinned to the logical globals.
+-- The game draws into a *logical* canvas that is then blitted to the window.
+-- The canvas is 960 tall, ALWAYS, and its width follows the window's aspect
+-- ratio. Since canvas aspect == window aspect, the blit fills the window
+-- exactly and there are no bars at all on any normal display.
 --
--- Only resolutions at least as tall as the logical canvas (960) are offered:
--- shorter windows leave the bottom of the canvas uncovered (light_world only
--- renders the scene as tall as the window), which read as a blue bar.
+-- Height is what stays fixed, not width, because the map is authored to it:
+-- SCALE is 2, so 960 logical px = 480 world px = exactly the height of the
+-- shortest LDtk rooms (Room_0 is 640x480, Room_4 is 1280x480). Grow the view
+-- vertically and World:cameraFor starts centering those rooms and showing the
+-- nothing outside them. Growing horizontally is safe: wide windows simply see
+-- further left and right in the rooms wide enough to allow it, and World:draw
+-- masks whatever falls outside the current room.
+--
+-- Aspects outside 4:3..21:9 are clamped, so a freakishly tall or wide window
+-- gets ordinary black bars rather than a broken view.
 
 local Screen = {}
 
--- logical canvas size
-local LOGICAL = { w = 1280, h = 960 }
+-- logical canvas: fixed height, width derived from the window
+local LOGICAL_H = 960
+local MIN_ASPECT = 4 / 3
+local MAX_ASPECT = 21 / 9
 
--- windowed resolution presets (all >= 960 tall, so no uncovered blue bar)
-Screen.resolutions = { '1920x1080', '2560x1440' }
+-- Windowed presets. "native" tracks the desktop, which is what a laptop
+-- actually wants; the rest are common window sizes. Any of them can be
+-- dragged to any other size afterwards — nothing here is a supported-list.
+Screen.resolutions = { 'native', '1280x960', '1600x900', '1920x1080', '2560x1440' }
+
+-- A live drag delivers a resize event per frame. The blit rect is updated on
+-- every one of them (cheap, and aim would drift otherwise), but reallocating
+-- the canvas, the shader chain and the light buffers waits until the drag
+-- settles.
+local REBUILD_DELAY = 0.15
+local pendingRebuild = nil
 
 local canvas
 local rect = { x = 0, y = 0, scale = 1 }
 
 local function parseRes(s)
+    if tostring(s) == 'native' then
+        local dw, dh = love.window.getDesktopDimensions(
+            select(3, love.window.getPosition()) or 1)
+        -- leave room for the menu bar / taskbar, or the window opens clipped
+        return dw, math.floor(dh * 0.92)
+    end
     local w, h = tostring(s):match('(%d+)x(%d+)')
     return tonumber(w) or 1920, tonumber(h) or 1080
 end
@@ -33,14 +56,27 @@ function Screen.next(list, current, dir)
     return list[((idx - 1 + dir) % #list) + 1]
 end
 
--- Set the logical globals and (re)build the canvas.
-function Screen.setLogical()
-    SCREENWIDTH, SCREENHEIGHT = LOGICAL.w, LOGICAL.h
-    canvas = love.graphics.newCanvas(LOGICAL.w, LOGICAL.h)
-    canvas:setFilter('nearest', 'nearest')
+-- Logical canvas size for a given window size. Width is rounded to an even
+-- number so SCALE (2) divides it without leaving a half-pixel column.
+function Screen.logicalFor(ww, wh)
+    local aspect = math.max(MIN_ASPECT, math.min(ww / wh, MAX_ASPECT))
+    return math.floor(LOGICAL_H * aspect / 2 + 0.5) * 2, LOGICAL_H
 end
 
--- Recompute the letterbox rect for the current window size.
+-- Set the logical globals and (re)build the canvas. Returns true if the size
+-- actually changed, so callers can skip the expensive downstream rebuilds.
+function Screen.setLogical(ww, wh)
+    ww = ww or love.graphics.getWidth()
+    wh = wh or love.graphics.getHeight()
+    local w, h = Screen.logicalFor(ww, wh)
+    if canvas and SCREENWIDTH == w and SCREENHEIGHT == h then return false end
+    SCREENWIDTH, SCREENHEIGHT = w, h
+    canvas = love.graphics.newCanvas(w, h)
+    canvas:setFilter('nearest', 'nearest')
+    return true
+end
+
+-- Recompute the blit rect for the current window size. Cheap; safe every frame.
 function Screen.recompute()
     local ww, wh = love.graphics.getDimensions()
     local s = math.min(ww / SCREENWIDTH, wh / SCREENHEIGHT)
@@ -49,11 +85,39 @@ function Screen.recompute()
     rect.y = math.floor((wh - SCREENHEIGHT * s) / 2)
 end
 
+-- Everything baked against the logical size. Called after the logical size
+-- changes, and never during a drag.
+local function rebuildDerived()
+    require('ui.fx').resize(SCREENWIDTH, SCREENHEIGHT)
+    require('core.assets').rebakeBg()
+    require('ui.particles').load()
+
+    -- keep a live run's light buffers pinned to the logical size (never the
+    -- window) so fullscreen doesn't render light passes at native res = lag
+    if world and world.lighting then
+        world.lighting:resize(SCREENWIDTH, SCREENHEIGHT)
+    end
+end
+
+-- love.resize: keep the rect honest now, schedule the heavy work for later.
+function Screen.resized(ww, wh)
+    Screen.recompute()
+    pendingRebuild = REBUILD_DELAY
+end
+
+-- Ticked from love.update; fires the deferred rebuild once the drag settles.
+function Screen.update(dt)
+    if not pendingRebuild then return end
+    pendingRebuild = pendingRebuild - dt
+    if pendingRebuild > 0 then return end
+    pendingRebuild = nil
+    if Screen.setLogical() then rebuildDerived() end
+    Screen.recompute()
+end
+
 -- Apply a full graphics settings table: resolution, fullscreen.
 -- Rebuilds the canvas, moonshine chain, and every SCREENWIDTH-derived asset.
 function Screen.apply(settings)
-    Screen.setLogical()
-
     -- stay on whatever display the window currently lives on — a hardcoded
     -- index yanks the window to that monitor on every apply (and only worked
     -- on single-display machines because LOVE clamps out-of-range indexes)
@@ -69,10 +133,10 @@ function Screen.apply(settings)
         fullscreen = wantFullscreen or false,
         fullscreentype = 'desktop',
         resizable = true,
-        -- never let a drag-resize go shorter than the 960px logical canvas:
-        -- light passes only cover the window height -> uncovered blue bar
-        minwidth = 1280,
-        minheight = 960,
+        -- a floor, not a supported size: below this the HUD font stops being
+        -- readable once the canvas is scaled down to fit
+        minwidth = 960,
+        minheight = 600,
         vsync = 1,
         highdpi = false,
         display = curDisplay,
@@ -82,25 +146,21 @@ function Screen.apply(settings)
         -- the canvas element IS the window; sizing it to the logical canvas
         -- means no letterbox bars and a 1:1 blit. index.html then scales the
         -- element with CSS to whatever the itch.io embed gives us.
-        w, h = LOGICAL.w, LOGICAL.h
+        w, h = Screen.logicalFor(4, 3) -- browser build stays 4:3
     elseif wantFullscreen then
         w, h = love.window.getDesktopDimensions(curDisplay)
     else
         w, h = parseRes(settings.resolution)
     end
     local ok = love.window.setMode(w, h, flags)
+
+    -- from the real window, not the requested size: a window manager is free
+    -- to hand back something smaller than it was asked for, and on a laptop
+    -- it usually does
+    Screen.setLogical()
     Screen.recompute()
-
-    -- rebuild everything baked against the (possibly new) logical size
-    require('ui.fx').resize(SCREENWIDTH, SCREENHEIGHT)
-    require('core.assets').rebakeBg()
-    require('ui.particles').load()
-
-    -- keep a live run's light buffers pinned to the logical size (never the
-    -- window) so fullscreen doesn't render light passes at native res = lag
-    if world and world.lighting then
-        world.lighting:resize(SCREENWIDTH, SCREENHEIGHT)
-    end
+    rebuildDerived()
+    pendingRebuild = nil
 
     return ok -- callers can roll back if the window refused the mode
 end
@@ -127,6 +187,16 @@ end
 -- Current mouse position already mapped into logical space.
 function Screen.mouse()
     return Screen.toGame(love.mouse.getPosition())
+end
+
+-- For the fpsprobe diagnostic: what the window, the canvas and the light
+-- buffers each think their size is. A mismatch is what a blue band was.
+function Screen.debugSizes()
+    local lw = world and world.lighting and world.lighting.lw
+    return ('window=%dx%d logical=%dx%d blit=%.3f@%d,%d light=%s'):format(
+        love.graphics.getWidth(), love.graphics.getHeight(),
+        SCREENWIDTH, SCREENHEIGHT, rect.scale, rect.x, rect.y,
+        lw and ('%dx%d'):format(lw.w or -1, lw.h or -1) or 'none')
 end
 
 return Screen

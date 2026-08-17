@@ -43,6 +43,7 @@ return {
     ['gfx.native']       = 'NATIVA',
     ['gfx.apply']        = 'APLICAR',
     ['gfx.unapplied']    = 'CAMBIOS SIN APLICAR - APLICAR',
+    ['gfx.resizable']    = 'ARRASTRA EL BORDE DE LA VENTANA AL TAMAÑO QUE QUIERAS',
 
     ['gameover.title']   = 'HAS MUERTO',
     ['gameover.restart'] = 'REINICIAR',

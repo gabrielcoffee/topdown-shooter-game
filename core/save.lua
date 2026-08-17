@@ -97,7 +97,9 @@ function Save.loadSettings()
         crossColor = s.crossColor == 'green' and 'green' or 'white',
         crossOutline = s.crossOutline == nil and true or s.crossOutline,
         -- graphics
-        resolution = s.resolution or '1920x1080',
+        -- 'native' tracks the desktop, so a first run fits whatever screen it
+        -- lands on instead of asking a laptop for 1080p it cannot show
+        resolution = s.resolution or 'native',
         fullscreen = s.fullscreen == nil and false or s.fullscreen,
         crtInGame = s.crtInGame == nil and false or s.crtInGame,
         -- action -> key; core/keybinds.lua fills the gaps from its defaults

@@ -37,7 +37,10 @@ function graphics:enter()
         {
             label = 'gfx.resolution', type = 'cycle',
             value = function()
-                return p.fullscreen and T('gfx.native') or p.resolution
+                if p.fullscreen or p.resolution == 'native' then
+                    return T('gfx.native')
+                end
+                return p.resolution
             end,
             cycle = function(dir) p.resolution = Screen.next(Screen.resolutions, p.resolution, dir) end,
         },
@@ -90,6 +93,9 @@ function graphics:draw()
     self.list:draw()
     if dirty(self) then
         Theme.drawHint(T('gfx.unapplied'), SCREENHEIGHT - 80)
+    else
+        -- the preset list is a convenience, not the supported set
+        Theme.drawHint(T('gfx.resizable'), SCREENHEIGHT - 80)
     end
 end
 

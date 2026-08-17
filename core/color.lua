@@ -9,5 +9,8 @@ Color.white   = function() return 1, 1, 1, 1 end
 Color.magenta = function() return 1, 0, 1, 1 end
 Color.cyan    = function() return 0, 1, 1, 1 end
 Color.skyblue = function() return 0.5, 0.7, 1, 1 end
+-- what sits behind and outside the map: the same near-black core/map.lua paints
+-- void tiles with, so anything the scene doesn't cover reads as more darkness
+Color.void    = function() return 0.02, 0.02, 0.03, 1 end
 
 return Color
