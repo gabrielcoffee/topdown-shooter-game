@@ -8,6 +8,7 @@ local Fx = require('ui.fx')
 local Chat = require('ui.chat')
 local Audio = require('core.audio')
 local Input = require('core.input')
+local Rep = require('net.replication')
 
 local playing = {}
 playing.fxMode = 'game'
@@ -16,6 +17,22 @@ function playing:enter(opts)
     opts = opts or {}
     Chat.close()
     world = World:new(opts)
+
+    -- LAN run: our own player takes the slot the lobby gave us, so every
+    -- machine agrees which body is whose. Everyone else is added by the first
+    -- snapshot that mentions them (host side: as they connect).
+    Rep.begin(opts.role, opts.slot)
+    if opts.role then
+        world.player.netSlot = opts.slot or 1
+        world.netBySlot = { [world.player.netSlot] = world.player }
+        local me = require('net.session').players[world.player.netSlot]
+        world.player.netName = me and me.name or nil
+    end
+
+    if opts.role == 'host' then Rep.hostSeedPlayers(world) end
+
+    -- a client never restores a local save: its world comes from the host
+    if opts.role == 'client' then opts.run = nil end
     if opts.run then
         -- a hand-edited or outdated run.lua must not crash Continue: dump the
         -- bad save and fall back to a fresh run
@@ -39,6 +56,7 @@ function playing:exit()
     Fx.setLowHealth(false)
     Fx.setBleedout(0)
     Audio.setLowHealth(false)
+    Rep.stop()
 end
 
 function playing:update(dt)
@@ -54,11 +72,14 @@ function playing:update(dt)
     -- Player:update never touches the keyboard directly (see core/input.lua)
     Input.poll(world.player.input, world.camX, world.camY, Chat.open)
     world:update(dt)
+    -- inputs up / snapshot down. After world:update so the host broadcasts
+    -- the frame it just simulated rather than the one before it.
+    Rep.update(dt, world)
 
     -- Closing a browser tab never fires love.quit, so the desktop contract
     -- ("close the window mid-run, Continue picks it up") has to be a timer
     -- there instead. index.html flushes the save dir to IndexedDB.
-    if WEB and not world.gameOver then
+    if WEB and not world.gameOver and not Rep.isClient() then
         self.autosave = (self.autosave or TUNE.autosaveInterval) - dt
         if self.autosave <= 0 then
             self.autosave = TUNE.autosaveInterval
@@ -104,10 +125,11 @@ function playing:mousereleased(x, y, btn)
     Chat.mousereleased(x, y, btn)
 end
 
--- Wheel up = previous slot, wheel down = next (Minecraft direction)
+-- Banked into the input struct rather than acted on here, so the wheel
+-- travels to the host like every other button (see core/input.lua).
 function playing:wheelmoved(_, dy)
     if Chat.open or dy == 0 or world.gameOver then return end
-    world.player:scrollSlot(dy > 0 and -1 or 1)
+    Input.wheel(dy)
 end
 
 function playing:keypressed(key)
@@ -120,14 +142,17 @@ function playing:keypressed(key)
     -- the tab owns Escape (it exits fullscreen) and never forwards it to us.
     if key == 'escape' or (WEB and key == 'p') then
         State.push('paused')
-    elseif key == 't' and TUNE.dev and TUNE.dev.enabled then
+    elseif key == 't' and ((TUNE.dev and TUNE.dev.enabled) or Rep.active()) then
         -- T is the only opener: Enter and ` were too easy to hit mid-wave,
-        -- and they kill all gameplay input until Esc
+        -- and they kill all gameplay input until Esc. In a LAN run it opens
+        -- regardless of the dev gate -- that is what people are typing in.
         Chat.openChat()
     elseif key == 'h' then
         showHitboxes = not showHitboxes
-    elseif key == 'u' then
-        -- reload tune.lua and restart the run with the new values
+    elseif key == 'u' and not Rep.active() then
+        -- reload tune.lua and restart the run with the new values. Never in a
+        -- LAN run: it rebuilds the world outright, which one machine cannot
+        -- do on its own without every other machine's world going stale.
         package.loaded['tune'] = nil
         TUNE = require('tune')
         require('core.web').applyTune(TUNE) -- reload must not restore desktop values

@@ -35,6 +35,23 @@ function DroppedGun.dropNear(world, gun, ent)
     return dg
 end
 
+-- Client: the hop and the idle bob. The host owns the lifetime and the
+-- pickup, so self.life is never touched here.
+function DroppedGun:updateRemote(dt, world)
+    local D = TUNE.droppedGun
+    if self.vz ~= 0 or self.z > 0 then
+        self.vz = self.vz - D.bounceGravity * dt
+        self.z = self.z + self.vz * dt
+        if self.z <= 0 and self.vz < 0 then
+            self.z = 0
+            self.vz = -self.vz * D.bounceRestitution
+            if self.vz < D.bounceMinSpeed then self.vz = 0 end
+        end
+    else
+        self.bobTimer = self.bobTimer + dt
+    end
+end
+
 function DroppedGun:update(dt, world)
     local D = TUNE.droppedGun
     if self.vz ~= 0 or self.z > 0 then

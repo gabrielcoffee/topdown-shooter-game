@@ -2,14 +2,18 @@
 -- message handling that keeps a lobby in sync. Sits above net/transport and
 -- net/discovery; the UI (states/multiplayer, states/lobby) only talks to this.
 --
--- Phase 2 scope is the lobby: connect, roster, ready, start. Gameplay
--- replication (snapshots, events, voice) hangs off the same poll loop in
--- phase 3.
+-- Scope here is the lobby: connect, roster, ready, start. Gameplay
+-- replication (snapshots, inputs, events) is net/replication.lua, dispatched
+-- from the same poll loop below -- this file stays the one that knows who is
+-- in the game, and that one stays the one that knows what the game looks like.
 
 local Transport = require('net.transport')
 local Discovery = require('net.discovery')
 local Protocol = require('net.protocol')
 local Name = require('core.name')
+
+-- net/replication.lua requires this file back, so the reference is lazy
+local function Rep() return require('net.replication') end
 
 local Session = {}
 
@@ -56,6 +60,25 @@ function Session.roster()
     local out = {}
     for i = 1, TUNE.net.maxPlayers do out[i] = Session.players[i] end
     return out
+end
+
+-- net/replication.lua sends through these rather than reaching for the
+-- transport: `transport` is a local, and the run has no business knowing
+-- whether it is talking to one peer or three.
+function Session.send(chan, data, mode)
+    if not transport then return end
+    transport:broadcast(chan, data, mode)
+end
+
+function Session.sendTo(slot, chan, data, mode)
+    local p = Session.players[slot]
+    if not transport or not p or not p.peer then return end
+    transport:send(p.peer, chan, data, mode)
+end
+
+function Session.sendExcept(peer, chan, data, mode)
+    if not transport then return end
+    transport:broadcastExcept(peer, chan, data, mode)
 end
 
 function Session.count() return rosterCount() end
@@ -177,6 +200,42 @@ function Session.setVoiceMode(mode)
     sendLobby()
 end
 
+-- ------------------------------------------------------------------- chat
+
+-- Show a line locally. Host and client both end up here; nothing else prints
+-- a networked line.
+function Session.postChat(slot, line)
+    local p = Session.players[slot]
+    local who = (p and p.name) or ('slot ' .. tostring(slot))
+    require('ui.chat').post(who .. ': ' .. line)
+end
+
+-- Host: attribute a line to a slot, show it, and send it to everyone. Called
+-- for the host's own typing and for a client's CHAT packet alike, so there is
+-- exactly one path a chat line can take.
+function Session.sayAs(slot, line)
+    if Session.role ~= 'host' then return end
+    Session.postChat(slot, line)
+    local w = Protocol.writer(Protocol.MSG.CHAT)
+    w:u8(slot)
+    w:str(line)
+    Session.send(Transport.CHAN.EVENT, w:build(), 'reliable')
+end
+
+-- Either role: send what the local player just typed. Clients ask the host to
+-- broadcast it; the host does it directly.
+function Session.say(line)
+    if not Session.active() or not transport then return false end
+    if Session.role == 'host' then
+        Session.sayAs(Session.localSlot, line)
+    else
+        local w = Protocol.writer(Protocol.MSG.CHAT)
+        w:str(line)
+        transport:broadcast(Transport.CHAN.EVENT, w:build(), 'reliable')
+    end
+    return true
+end
+
 -- Host only. Everyone jumps into the run together.
 function Session.startRun()
     if Session.role ~= 'host' or not transport then return false end
@@ -231,11 +290,28 @@ local function hostHandle(event)
         sendLobby()
         refreshBeacon()
 
+        -- joining a run already in progress: they need a body immediately,
+        -- or the first snapshot describes a player nobody has
+        if Session.state == 'playing' then Rep().hostAddPlayer(slot) end
+
     elseif id == Protocol.MSG.READY then
         local p = playerByPeer(event.peer)
         if p then
             p.ready = r:bool()
             sendLobby()
+        end
+
+    elseif id == Protocol.MSG.INPUT then
+        local p = playerByPeer(event.peer)
+        if p then Rep().hostInput(p.slot, event.data) end
+
+    elseif id == Protocol.MSG.CHAT then
+        local p = playerByPeer(event.peer)
+        local line = r:str()
+        if p and r:ok() and line ~= '' then
+            -- the host is the only machine that decides a line is real, then
+            -- echoes it back to everyone including the sender
+            Session.sayAs(p.slot, line)
         end
 
     elseif id == Protocol.MSG.BYE then
@@ -293,6 +369,17 @@ local function clientHandle(event)
         Session.state = 'playing'
         if Session.onStart then Session.onStart() end
 
+    elseif id == Protocol.MSG.SNAPSHOT then
+        Rep().applySnapshot(r)
+
+    elseif id == Protocol.MSG.EVENT then
+        Rep().applyEvent(r)
+
+    elseif id == Protocol.MSG.CHAT then
+        local slot = r:u8()
+        local line = r:str()
+        if r:ok() then Session.postChat(slot, line) end
+
     elseif id == Protocol.MSG.BYE then
         Session.errorKey = 'net.err_host_left'
         Session.leave()
@@ -328,6 +415,7 @@ function Session.update(dt)
             if Session.role == 'host' then
                 local p = playerByPeer(event.peer)
                 if p then
+                    Rep().hostRemovePlayer(p.slot)
                     Session.players[p.slot] = nil
                     sendLobby()
                     refreshBeacon()

@@ -66,10 +66,15 @@ function HandItem:swing(aimAngle, player, world)
                 local nx, ny = 1, 0
                 if dist > 0 then nx, ny = dx/dist, dy/dist end
 
+                local hitAngle = math.atan2(dy, dx)
+                e.lastHitAngle = hitAngle
                 local dead = e:takeDamage(self.damage, world, self.econ, player)
                 e.kbx = nx * K.knockback
                 e.kby = ny * K.knockback
-                world.vfx:bloodSplatter(ecx - nx * e.radius, ecy - ny * e.radius, math.atan2(dy, dx))
+                local hx, hy = ecx - nx * e.radius, ecy - ny * e.radius
+                world.vfx:bloodSplatter(hx, hy, hitAngle)
+                local Rep = require('net.replication')
+                if Rep.isHost() then Rep.event(Rep.EV.MELEE, hx, hy, hitAngle) end
 
                 hit = true
                 killed = killed or dead

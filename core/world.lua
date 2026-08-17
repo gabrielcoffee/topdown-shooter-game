@@ -20,6 +20,22 @@ local GrenadeAim = require('ui.grenade_aim')
 local World = {}
 World.__index = World
 
+-- Entity types the LAN host alone simulates. On a client these never run
+-- their normal update: they would deal damage twice, pick a power-up nobody
+-- walked over, or drift off the position the snapshot just set. Each gets an
+-- updateRemote instead (animation, flicker, bob) or simply holds still.
+--
+-- Anything NOT listed here runs identically on every machine because it can
+-- only affect what that machine sees -- shell casings are the whole list
+-- today. Adding a type that touches health, money or entity lifetime and
+-- forgetting to list it here is the way this goes wrong.
+local HOST_OWNED = {
+    player = true, enemy = true, bullet = true,
+    thrown_grenade = true, thrown_molotov = true, fire_patch = true,
+    powerup = true, dropped_gun = true, crate = true, chest = true,
+    door = true, gunwall = true,
+}
+
 function World:new(opts)
     opts = opts or {}
     local levelDef = Ldtk.load('maps/level1.ldtk')
@@ -36,6 +52,12 @@ function World:new(opts)
         -- #players so a host sitting alone in a lobby already behaves like
         -- co-op instead of flipping rules the moment a friend joins.
         multiplayer = opts.multiplayer or false,
+        -- Who decides what happens here. Solo and the LAN host simulate; a
+        -- client runs the same world as a puppet and takes every authoritative
+        -- fact from the host's snapshot (see net/replication.lua). Nothing
+        -- else in the codebase has to know which it is.
+        authoritative = opts.role ~= 'client',
+        netRole = opts.role, -- 'host' | 'client' | nil (solo)
         openedDoors = {}, -- door id -> true once bought (persists in saves)
         visitedRooms = {}, -- room name -> true once entered; gates spawn points
         -- timed power-up buffs, secs left (0 = off)
@@ -563,6 +585,10 @@ end
 function World:openDoor(door)
     if door.id then
         self.openedDoors[door.id] = true
+        -- LAN: doors are shared progression, and the door id is an LDtk
+        -- string that means the same thing on every machine
+        local Rep = require('net.replication')
+        if Rep.isHost() then Rep.event(Rep.EV.DOOR, door.id) end
     end
     local cx, cy = door:getCenter()
     Audio.playAt('door_unlock', cx, cy, 0.9, TUNE.audio.pitchJitter, self)
@@ -653,26 +679,44 @@ function World:update(dt)
         if self.pickupToast.t <= 0 then self.pickupToast = nil end
     end
 
-    for _, entity in ipairs(self.entities) do
-        entity:update(dt, self)
+    if self.authoritative then
+        for _, entity in ipairs(self.entities) do
+            entity:update(dt, self)
+        end
+    else
+        for _, entity in ipairs(self.entities) do
+            if HOST_OWNED[entity.type] then
+                -- puppet: position and state come from the snapshot, and
+                -- updateRemote advances only what would otherwise look
+                -- frozen. No updateRemote at all = does not tick here.
+                if entity.updateRemote then entity:updateRemote(dt, self) end
+            else
+                -- purely local: shell casings, and anything else that hurts
+                -- nobody and is cheaper to run than to replicate
+                entity:update(dt, self)
+            end
+        end
     end
 
     -- Zombies never overlap each other, or any player (unless that one is
-    -- falling down a hole)
-    for i = 1, #self.entities do
-        local a = self.entities[i]
-        if a.type == 'enemy' then
-            for _, p in ipairs(self.players) do
-                -- a downed player is still a body in the way; only a dead
-                -- one (spectating until the next wave) stops colliding
-                if not p.falling and (p:isUp() or p.downed) then
-                    pushApart(self, p, a)
+    -- falling down a hole). Host only: on a client the snapshot already
+    -- carries the resolved positions, and a second push here would fight it.
+    if self.authoritative then
+        for i = 1, #self.entities do
+            local a = self.entities[i]
+            if a.type == 'enemy' then
+                for _, p in ipairs(self.players) do
+                    -- a downed player is still a body in the way; only a dead
+                    -- one (spectating until the next wave) stops colliding
+                    if not p.falling and (p:isUp() or p.downed) then
+                        pushApart(self, p, a)
+                    end
                 end
-            end
-            for j = i + 1, #self.entities do
-                local b = self.entities[j]
-                if b.type == 'enemy' then
-                    pushApart(self, a, b)
+                for j = i + 1, #self.entities do
+                    local b = self.entities[j]
+                    if b.type == 'enemy' then
+                        pushApart(self, a, b)
+                    end
                 end
             end
         end
@@ -685,8 +729,15 @@ function World:update(dt)
         end
     end
 
-    -- wave FSM runs after the sweep so kills count the same frame
-    self.waves:update(dt, self)
+    -- wave FSM runs after the sweep so kills count the same frame. Spawning
+    -- is host-only (every decision in there is a dice roll), but a client
+    -- still needs the banner and the ember tween, which Waves:updateRemote
+    -- runs off the wave + state the snapshot carries.
+    if self.authoritative then
+        self.waves:update(dt, self)
+    else
+        self.waves:updateRemote(dt, self)
+    end
 
     -- every player carries their own camera and room lock; the pan runs
     -- alongside the simulation instead of pausing it

@@ -41,6 +41,32 @@ function Bullet:new(x, y, angle, damage, muzzleOffset, lifetime, econ, maxHits, 
     return obj
 end
 
+-- Client: a bullet is a streak of light. It flies the same path, stops on the
+-- same walls and makes the same noise, but it never touches a zombie's health
+-- -- the host already decided what this shot hit before the client even drew
+-- it. Spawned by the fire event in net/replication.lua.
+function Bullet:updateRemote(dt, world)
+    local dist = (self.timer == 0) and 0 or self.speed * dt
+    self.timer = self.timer + dt
+    if self.animMuzzle then self.animMuzzle:update(dt) end
+
+    repeat
+        local step = math.min(dist, 8)
+        self.x = self.x + self.dx * step
+        self.y = self.y + self.dy * step
+        dist = dist - step
+        if world.map:isSolidAt(self.x, self.y) then
+            world:removeEntity(self)
+            world.vfx:wallHit(self.x, self.y, self.angle)
+            Audio.playAt('bullet_hit', self.x, self.y, 1, TUNE.audio.pitchJitter, world)
+        end
+    until dist <= 0 or self.toRemove
+
+    if not self.toRemove and self.timer >= self.lifetime then
+        world:removeEntity(self)
+    end
+end
+
 function Bullet:update(dt, world)
     -- The first update samples the spawn point (muzzle-touch kills keep
     -- working), plus a short tail BEHIND it (bullet.tailLen): the muzzle sits
@@ -117,9 +143,12 @@ function Bullet:checkZombieHits(world, px, py)
             local r = self.radius + e.radius
             if dx*dx + dy*dy < r*r then
                 self.hitEnemies[e] = true
+                e.lastHitAngle = self.angle -- so a kill event knows which way to spray
                 e:takeDamage(self.damage, world, self.econ, self.owner)
                 world.vfx:bloodSplatter(bx, by, self.angle)
                 Audio.playAt('flesh_hit', bx, by, 1, TUNE.audio.pitchJitter, world)
+                local Rep = require('net.replication')
+                if Rep.isHost() then Rep.event(Rep.EV.HIT, bx, by, self.angle) end
 
                 self.hitsLeft = self.hitsLeft - 1
                 if self.hitsLeft <= 0 then

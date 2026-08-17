@@ -13,7 +13,9 @@ local Protocol = {}
 
 -- bumped whenever a message layout changes; a mismatched client is rejected
 -- at HELLO rather than being allowed to misread every packet after it
-Protocol.VERSION = 1
+-- 2: gameplay replication (snapshots, events, chat) plus two new input
+--    buttons for the mouse wheel, which widened the button bitmask
+Protocol.VERSION = 2
 
 Protocol.MSG = {
     HELLO     = 1,  -- client -> host: version + name
@@ -67,7 +69,9 @@ end
 function Writer:u8(v)  return push(self, 'B',  math.floor(v) % 256) end
 function Writer:u16(v) return push(self, 'I2', math.floor(v) % 65536) end
 function Writer:i16(v) return push(self, 'i2', math.max(-32768, math.min(32767, math.floor(v)))) end
-function Writer:u32(v) return push(self, 'I4', math.floor(v)) end
+-- clamped, not wrapped: a negative here is always a bug upstream, and
+-- unclamped it throws out of the middle of building a packet
+function Writer:u32(v) return push(self, 'I4', math.max(0, math.min(4294967295, math.floor(v)))) end
 function Writer:f32(v) return push(self, 'f',  v) end
 function Writer:bool(v) return push(self, 'B', v and 1 or 0) end
 
@@ -127,8 +131,9 @@ end
 
 local Input = require('core.input')
 
--- 15 held buttons fit in two bytes, so an input packet is
--- id(1) + seq(4) + buttons(2) + typing(1) + aim(8) = 16 bytes.
+-- The button mask is a u32, not a u16: the wheel took the count to 17, and
+-- bit 17 of a u16 is silently the same as no bit at all. So an input packet
+-- is id(1) + seq(4) + buttons(4) + typing(1) + aim(8) = 18 bytes.
 function Protocol.packInput(inp)
     local w = Protocol.writer(Protocol.MSG.INPUT)
     local bits = 0
@@ -136,7 +141,7 @@ function Protocol.packInput(inp)
         if inp[b] then bits = bits + 2^(i - 1) end
     end
     w:u32(inp.seq or 0)
-    w:u16(bits)
+    w:u32(bits)
     w:bool(inp.typing)
     w:f32(inp.aimX or 0)
     w:f32(inp.aimY or 0)
@@ -148,7 +153,7 @@ function Protocol.unpackInput(data, inp)
     local r = Protocol.reader(data)
     r:u8() -- message id
     local seq = r:u32()
-    local bits = r:u16()
+    local bits = r:u32()
     local typing = r:bool()
     local aimX, aimY = r:f32(), r:f32()
     if not r:ok() then return nil end

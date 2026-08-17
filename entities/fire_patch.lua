@@ -90,6 +90,33 @@ function FirePatch:dying()
     return math.min(1, math.max(0, left / TUNE.molotov.flame.fadeTime))
 end
 
+-- Client: the fire is a light, a sound and some sprites. Everything it looks
+-- like derives from `age`, which the snapshot keeps in step, so all this has
+-- to do is run the same envelope without any of the burn damage.
+function FirePatch:updateRemote(dt, world)
+    local M = TUNE.molotov
+    self.age = self.age + dt
+
+    if not self.light then
+        local cx, cy = self:getCenter()
+        self.light = world.lighting:addPoint(cx, cy, 1, 0.55, 0.2,
+            M.blastRadius * 2.2)
+        self:spawnFlames(world)
+        self.sound = Audio.loopAt('fire_loop', cx, cy, 0)
+    end
+
+    local up = math.min(1, self.age / M.spreadTime)
+    local dying = self:dying()
+    if self.sound then Audio.setLoopGain(self.sound, M.fireGain * up * dying) end
+    if self.light then
+        self.light.baseRange = M.blastRadius * 2.2 * up * dying
+    end
+    if M.flame.emberFactor > 0 then
+        local cx, cy = self:getCenter()
+        world.vfx:fireBurst(cx, cy, self:currentRadius(), M.flame.emberFactor)
+    end
+end
+
 function FirePatch:update(dt, world)
     local M = TUNE.molotov
     self.age = self.age + dt

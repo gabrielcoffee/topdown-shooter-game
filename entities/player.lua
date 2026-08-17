@@ -469,6 +469,11 @@ function Player:update(dt, world)
         self.slotHeld[i] = down
     end
 
+    -- mouse wheel: one notch = one slot. Already edge-shaped by
+    -- core/input.lua, so no released-flag pairing needed.
+    if btn('slotnext') then self:scrollSlot(1) end
+    if btn('slotprev') then self:scrollSlot(-1) end
+
     -- Q: quick-knife toggle (knife <-> whatever was in hand)
     local qPressed = not typing and inp.quickknife
     if qPressed and self.qReleased then self:quickKnife() end
@@ -891,6 +896,97 @@ function Player:drawHud()
         love.graphics.print(prompt,
             SCREENWIDTH/2 - font:getWidth(prompt)/2, SCREENHEIGHT - 120)
         love.graphics.setColor(Color.white())
+    end
+end
+
+-- Networked client: every player in the world is a puppet, including this
+-- machine's own. Position, health, money, ammo and the downed state all
+-- arrive in the host's snapshot; what runs here is the presentation that
+-- would otherwise sit frozen, plus the local reads (aim, what is in reach)
+-- that only exist to draw a crosshair and a prompt.
+--
+-- Aim is deliberately still local for our own player: it costs nothing to be
+-- wrong and everything to feel laggy, and the host is deriving the same angle
+-- from the same input packet anyway.
+function Player:updateRemote(dt, world)
+    local inp = self.input
+    local mine = (self == world.player)
+
+    local pop = self.moneyPopup
+    if pop then
+        pop.t = pop.t + dt
+        if pop.t >= TUNE.hud.popupTime then self.moneyPopup = nil end
+    end
+    local dpop = self.damagePopup
+    if dpop then
+        dpop.t = dpop.t + dt
+        if dpop.t >= TUNE.hud.popupTime then self.damagePopup = nil end
+    end
+
+    -- the snapshot moves health, so the same diff that drives the hit cue on
+    -- the host drives it here, off replicated values
+    self.hurtCue = math.max(0, (self.hurtCue or 0) - dt)
+    if self.lastHealth and self.health < self.lastHealth then
+        if mine and (self.hurtCue <= 0 or self.health <= 0) then
+            require('ui.fx').damageVignette()
+            self.hurtCue = TUNE.player.hurtCueCooldown
+        end
+        local lost = self.lastHealth - self.health
+        if dpop then dpop.amount, dpop.t = dpop.amount + lost, 0
+        else self.damagePopup = { amount = lost, t = 0 } end
+    end
+    self.lastHealth = self.health
+
+    if self.flashTimer > 0 then self.flashTimer = self.flashTimer - dt end
+    if self.invulnTimer > 0 then self.invulnTimer = self.invulnTimer - dt end
+
+    if self.dead then return end
+    if self.downed then
+        self.animRun:update(dt * TUNE.revive.crawlSpeed)
+        return
+    end
+
+    -- animation follows replicated velocity rather than input: a remote
+    -- player's buttons never reach this machine
+    local moving = (self.vx * self.vx + self.vy * self.vy) > 400
+    if moving then
+        self.animRun:update(dt * (self.running and TUNE.player.runAnimMult or 1))
+        self.animState = 'running'
+    else
+        self.animRun:restart()
+        self.animState = 'idle'
+    end
+
+    -- what is in reach, for the prompt only: pressing E does nothing here,
+    -- it goes up in the input packet and the host acts on it
+    if mine then
+        self.touchingDowned = world:getNearbyDownedPlayer(self)
+        self.touchingChest = (not self.touchingDowned)
+            and world:getTouchingChest(self) or nil
+        self.touchingDroppedGun = (not self.touchingDowned and not self.touchingChest)
+            and world:getTouchingDroppedGun(self) or nil
+        self.touchingGunWall = (not self.touchingDowned and not self.touchingChest
+            and not self.touchingDroppedGun) and world:getTouchingGunWall(self) or nil
+        self.touchingDoor = (not self.touchingDowned and not self.touchingChest
+            and not self.touchingDroppedGun and not self.touchingGunWall)
+            and world:getTouchingDoor(self) or nil
+    end
+
+    -- item pose: our own follows the cursor, everyone else's follows the
+    -- facing the snapshot gave them
+    local pcx, pcy = self:getCenter()
+    local aimX, aimY
+    if mine then
+        aimX, aimY = inp.aimX, inp.aimY
+        self.facingLeft = aimX < pcx
+    else
+        aimX = pcx + (self.facingLeft and -64 or 64)
+        aimY = pcy
+    end
+    local held = self.items[self.itemIndex]
+    if held then held:update(dt, self.x, self.y, aimX, aimY) end
+    for i, item in pairs(self.items) do
+        if item.isGun and i ~= self.itemIndex then item:tickCooldowns(dt) end
     end
 end
 

@@ -12,11 +12,18 @@ local Keybinds = require('core.keybinds')
 
 local Input = {}
 
--- Held-button fields, in the order they pack onto the wire later
+-- Held-button fields, in the order they pack onto the wire later. Appending is
+-- safe; reordering or removing is not, and either way Protocol.VERSION has to
+-- go up with it (net/protocol.lua bit-packs this array by index).
 Input.buttons = {
     'up', 'down', 'left', 'right', 'sprint',
     'shoot', 'reload', 'interact', 'drop', 'quickknife',
     'slot1', 'slot2', 'slot3', 'slot4', 'slot5',
+    -- the mouse wheel, as two one-frame buttons. It used to call
+    -- Player:scrollSlot straight from the state, which was the one input in
+    -- the game that never reached this struct -- and therefore the one input
+    -- a networked client could not send.
+    'slotnext', 'slotprev',
 }
 
 -- Which action drives which field
@@ -37,10 +44,20 @@ end
 -- Fill `inp` from the local keyboard/mouse. camX/camY put the cursor into
 -- world space, which is what the host needs — it has no idea where this
 -- player's camera is looking.
+-- Wheel notches since the last poll, banked by love.wheelmoved. A notch is an
+-- event, not a held state, so it is accumulated and spent rather than read.
+local wheelPending = 0
+function Input.wheel(dy) wheelPending = wheelPending + dy end
+
 function Input.poll(inp, camX, camY, typing)
     for _, b in ipairs(Input.buttons) do
-        inp[b] = Keybinds.isDown(ACTION[b])
+        inp[b] = ACTION[b] and Keybinds.isDown(ACTION[b]) or false
     end
+
+    -- Minecraft direction: wheel up = previous slot
+    inp.slotprev = wheelPending > 0
+    inp.slotnext = wheelPending < 0
+    wheelPending = 0
 
     local mx, my = require('ui.screen').mouse()
     inp.aimX = mx / SCALE + camX

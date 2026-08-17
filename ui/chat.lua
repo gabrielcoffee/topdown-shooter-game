@@ -395,7 +395,17 @@ local function runLine(line)
 
     Chat.post('> ' .. line)
     local body = line:match('^/(.*)$')
-    if not body then return end -- no slash: plain chat line, echoed above
+    if not body then
+        -- no slash = an actual chat line. In a LAN run it goes to the host,
+        -- who attributes it to a slot and echoes it to everyone (including
+        -- back to us, which is why the local echo above is dropped).
+        local Session = require('net.session')
+        if not WEB and Session.active() then
+            table.remove(Chat.log) -- the '> ' echo; the networked copy replaces it
+            Session.say(line)
+        end
+        return
+    end -- no slash: plain chat line, echoed above
     local cmd, a1, a2 = body:match('^(%S+)%s*(%S*)%s*(%S*)')
     if not cmd then return end
     local c = commands[cmd]

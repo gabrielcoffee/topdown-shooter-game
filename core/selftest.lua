@@ -75,7 +75,7 @@ function Selftest.run()
     src.seq, src.aimX, src.aimY = 900001, -123.5, 4096.25
     src.up, src.shoot, src.slot3, src.typing = true, true, true, true
     local wire = Protocol.packInput(src)
-    ok(#wire == 16, ('input packet is 16 bytes, got %d'):format(#wire))
+    ok(#wire == 18, ('input packet is 18 bytes, got %d'):format(#wire))
     local got = Protocol.unpackInput(wire)
     ok(got ~= nil, 'input unpacked')
     ok(got.seq == src.seq, 'input: seq survives')
@@ -427,6 +427,128 @@ function Selftest.run()
     ok(not p1.dead and p1.health == p1.maxHealth, 'respawn puts them back up')
     ok(p1.money == 500, 'bleeding out costs the wave, not the wallet')
     ok(p1.items[2] == nil and p1.items[1] ~= nil, 'respawn is the starting loadout')
+
+    -- ------------------------------------------------------ replication
+    section("snapshot round-trip")
+    do
+        -- A host world, serialized, applied to a second world standing in for
+        -- a client. No sockets: this is the format and the apply, which is
+        -- where the bugs live -- the wire itself is covered by enet loopback.
+        local Rep = require('net.replication')
+        local Enemy = require('entities.enemy')
+
+        local host = freshWorld()
+        host.netRole, host.authoritative = 'host', true
+        local h1 = host.player
+        h1.netSlot = 1
+        host.netBySlot = { [1] = h1 }
+        local h2 = host:addPlayer(h1.x + 120, h1.y + 40)
+        h2.netSlot = 2
+        host.netBySlot[2] = h2
+
+        h1.money, h1.earnedTotal, h1.health = 1234, 5678, 73
+        h1.grenades, h1.medkits = 2, 1
+        h2.health = 0
+        h2.downed, h2.bleed = true, 21
+        h2.reviving = TUNE.revive.reviveTime * 0.5
+        host.kills = 42
+        host.buffs.instakill = 7.5
+        host.waves.wave, host.waves.state = 4, 'active'
+
+        local zs = {}
+        for i = 1, 12 do
+            local z = Enemy:newNormal(h1.x + 40 + i * 9, h1.y + 30, 4)
+            host:addEntity(z)
+            zs[#zs + 1] = z
+        end
+
+        local wire = Rep.buildSnapshot(host, true)
+        ok(#wire > 0, ('snapshot built, %d bytes for 2 players + 12 zombies'):format(#wire))
+        ok(#wire < 1400, 'a snapshot fits inside one datagram at this size')
+
+        -- stand up the receiving side
+        local client = require('core.world'):new({ role = 'client' })
+        ok(client.authoritative == false, 'a client world is not authoritative')
+        _G.world = client
+        client.player.netSlot = 1
+        client.netBySlot = { [1] = client.player }
+        local prevRole, prevTick, prevSlot = Rep.role, Rep.lastTick, Rep.slot
+        Rep.role, Rep.slot, Rep.lastTick = 'client', 1, nil
+
+        local rr = Protocol.reader(wire)
+        rr:u8() -- message id
+        Rep.applySnapshot(rr, client)
+
+        ok(client.kills == 42, ('kills replicated (%d)'):format(client.kills))
+        ok(math.abs(client.buffs.instakill - 7.5) < 0.01, 'buff timers replicated')
+        ok(client.waves.wave == 4 and client.waves.state == 'active',
+            'wave number and phase replicated')
+
+        local c1, c2 = client.netBySlot[1], client.netBySlot[2]
+        ok(c1 ~= nil and c2 ~= nil, 'both players exist on the client')
+        ok(#client.players == 2, 'the client did not double-add a player')
+        ok(math.abs(c1.x - h1.x) < 0.3 and math.abs(c1.y - h1.y) < 0.3,
+            ('player 1 position within a quarter pixel (%.2f vs %.2f)'):format(c1.x, h1.x))
+        ok(c1.money == 1234 and c1.earnedTotal == 5678, 'money and score replicated')
+        ok(c1.health == 73, ('health replicated (%d)'):format(c1.health))
+        ok(c1.grenades == 2 and c1.medkits == 1, 'consumable counts replicated')
+        ok(c2.downed == true, 'the downed flag replicated')
+        ok(math.abs(c2.bleed - 21) <= 1, ('bleed clock replicated (%s)'):format(tostring(c2.bleed)))
+        ok(c2.reviving and math.abs(c2.reviving - TUNE.revive.reviveTime * 0.5) < 0.05,
+            'revive progress replicated')
+
+        local zc = 0
+        for _, e in ipairs(client.entities) do
+            if e.type == 'enemy' and not e.toRemove then zc = zc + 1 end
+        end
+        ok(zc == 12, ('all 12 zombies arrived, got %d'):format(zc))
+        local hz, cz = zs[1], nil
+        for _, e in ipairs(client.entities) do
+            if e.netId == hz.netId then cz = e end
+        end
+        ok(cz ~= nil, 'a zombie is findable by the host netId')
+        ok(cz and math.abs(cz.x - hz.x) < 0.3, 'zombie position replicated')
+        ok(cz and cz.kind == hz.kind, 'zombie kind replicated')
+
+        -- kill half of them on the host; the next snapshot must clear them
+        for i = 1, 6 do zs[i].toRemove = true end
+        local wire2 = Rep.buildSnapshot(host, false)
+        local rr2 = Protocol.reader(wire2)
+        rr2:u8()
+        Rep.applySnapshot(rr2, client)
+        step(client, 1) -- the toRemove sweep
+        zc = 0
+        for _, e in ipairs(client.entities) do
+            if e.type == 'enemy' and not e.toRemove then zc = zc + 1 end
+        end
+        ok(zc == 6, ('zombies the host dropped are gone, %d left'):format(zc))
+
+        -- an out-of-order snapshot must not drag the world backwards. Build
+        -- the older one FIRST (lower tick), then the newer, then deliver them
+        -- the wrong way round -- which is what an unreliable channel does.
+        local oldX = h1.x
+        local older = Rep.buildSnapshot(host, false)
+        h1.x = h1.x + 500
+        local newer = Rep.buildSnapshot(host, false)
+
+        local rn = Protocol.reader(newer); rn:u8()
+        Rep.applySnapshot(rn, client)
+        ok(math.abs(client.netBySlot[1].x - h1.x) < 0.5, 'the newest snapshot applies')
+
+        local rs = Protocol.reader(older); rs:u8()
+        Rep.applySnapshot(rs, client)
+        ok(math.abs(client.netBySlot[1].x - h1.x) < 0.5,
+            ('a late snapshot is dropped instead of rewinding the world '
+             .. '(x %.1f, not %.1f)'):format(client.netBySlot[1].x, oldX))
+
+        -- a truncated snapshot must fail closed, exactly like any other packet
+        local cut = Protocol.reader(wire:sub(1, 20))
+        cut:u8()
+        local okCut = pcall(Rep.applySnapshot, cut, client)
+        ok(okCut, 'a truncated snapshot is ignored rather than throwing')
+
+        Rep.role, Rep.slot, Rep.lastTick = prevRole, prevSlot, prevTick
+    end
 
     -- ------------------------------------------------------- solo is intact
     section("solo death unchanged")

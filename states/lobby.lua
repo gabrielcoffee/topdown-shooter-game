@@ -22,7 +22,11 @@ function lobby:enter()
 
     -- the run begins for everyone the moment START lands
     Session.onStart = function()
-        State.fadeTo('playing', { multiplayer = true })
+        State.fadeTo('playing', {
+            multiplayer = true,
+            role = Session.isHost() and 'host' or 'client',
+            slot = Session.localSlot,
+        })
     end
 
     local items = {}

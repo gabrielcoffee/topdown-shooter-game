@@ -246,6 +246,9 @@ end
 -- must not overwrite a real save.
 function love.quit()
     if _autotest or _fps then return end
+    -- a LAN client's world belongs to the host; saving it would hand back a
+    -- run it cannot continue on its own
+    if require('net.replication').isClient() then return end
     if world and not world.gameOver and world.player and world.player.health > 0 then
         for _, s in ipairs(State.stack) do
             if s == require('states.playing') then

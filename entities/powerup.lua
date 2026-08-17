@@ -21,6 +21,12 @@ function Powerup:new(cx, cy, kind)
     return obj
 end
 
+-- Client: the bob and nothing else. Life and the walk-over pickup are the
+-- host's -- applying a power-up locally would double every nuke.
+function Powerup:updateRemote(dt, world)
+    self.bobTimer = self.bobTimer + dt
+end
+
 function Powerup:update(dt, world)
     self.bobTimer = self.bobTimer + dt
     self.life = self.life - dt
@@ -46,6 +52,13 @@ end
 function Powerup:apply(world, picker)
     local P = TUNE.powerups
     local player = picker or world.player
+
+    -- LAN: the buffs themselves ride the snapshot, but the banner and the
+    -- chime are instants, so they go out as an event
+    local Rep = require('net.replication')
+    if Rep.isHost() then
+        Rep.event(Rep.EV.POWERUP, self.kind, (picker and picker.netSlot) or 1)
+    end
 
     if self.kind == 'nuke' then
         -- kill every live zombie; nukedSilent skips the per-zombie death SFX

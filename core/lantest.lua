@@ -10,8 +10,14 @@
 
 local Session = require('net.session')
 local Discovery = require('net.discovery')
+local State = require('core.state')
 
 local Lantest = {}
+
+-- How many zombies the host plants once the run is up. The client asserts it
+-- sees exactly this many, which is the whole point of the exercise: a number
+-- that only exists on the other machine.
+local PLANTED = 5
 
 local function log(fmt, ...)
     io.stderr:write('LAN ' .. string.format(fmt, ...) .. '\n')
@@ -46,6 +52,40 @@ local function pump(seconds, done)
     return false
 end
 
+-- Same as pump, but also ticks the game state, so a live run actually
+-- simulates and net/replication.lua gets its per-frame turn.
+local function pumpRun(seconds, done, each)
+    local dt = 1/60
+    local deadline = love.timer.getTime() + seconds
+    while love.timer.getTime() < deadline do
+        Session.update(dt)
+        State.update(dt)
+        if each then each() end
+        if done and done() then return true end
+        love.timer.sleep(dt)
+    end
+    return false
+end
+
+local function countZombies()
+    local n = 0
+    for _, e in ipairs((world and world.entities) or {}) do
+        if e.type == 'enemy' and not e.toRemove then n = n + 1 end
+    end
+    return n
+end
+
+-- Both sides enter the run the same way the lobby does it.
+local function enterRun()
+    Session.onStart = function()
+        State.switch('playing', {
+            multiplayer = true,
+            role = Session.isHost() and 'host' or 'client',
+            slot = Session.localSlot,
+        })
+    end
+end
+
 function Lantest.host(seconds)
     seconds = seconds or 20
     local ok, err = Session.startHost()
@@ -69,10 +109,51 @@ function Lantest.host(seconds)
     log('CLIENT_READY name=%s slot=%d', Session.players[2].name, Session.players[2].slot)
 
     -- everyone ready -> start the run, then confirm we moved state
+    enterRun()
     Session.startRun()
     log('STARTED state=%s', Session.state)
-    pump(1) -- let START reach the client before we tear the socket down
 
+    -- the run is up on both machines now. Everything past here is testing
+    -- replication rather than the lobby.
+    pumpRun(1)
+    if not world then
+        log('FAIL host never built a world')
+        Session.leave()
+        os.exit(1)
+    end
+    if #world.players ~= 2 then
+        log('FAIL host world has %d players, expected 2', #world.players)
+        Session.leave()
+        os.exit(1)
+    end
+    log('HOST_WORLD players=%d slot=%d', #world.players, Session.localSlot)
+
+    -- plant a known number of zombies at known spots. The client has no way
+    -- to know about any of them except through a snapshot.
+    local Enemy = require('entities.enemy')
+    local px, py = world.player.x, world.player.y
+    for i = 1, PLANTED do
+        world:addEntity(Enemy:newSlow(px + 80 + i * 24, py + 40, 1))
+    end
+    log('PLANTED n=%d', PLANTED)
+
+    -- Move, so the client has a position CHANGE to follow rather than an
+    -- initial placement it could have guessed. Driving this through the input
+    -- struct does not work here: states/playing calls Input.poll every frame,
+    -- which reads a keyboard nobody is touching and clears the button again.
+    -- Walking the player directly is the same thing as far as the wire is
+    -- concerned -- a position that differs from one snapshot to the next.
+    local startX = world.player.x
+    pumpRun(2, nil, function() world.player.x = world.player.x + 1 end)
+    log('HOST_MOVED from=%.1f to=%.1f zombies=%d',
+        startX, world.player.x, countZombies())
+    if world.player.x - startX < 30 then
+        log('FAIL host player did not actually move')
+        Session.leave()
+        os.exit(1)
+    end
+
+    pumpRun(1)
     Session.leave()
     log('PASS host')
     os.exit(0)
@@ -123,6 +204,7 @@ function Lantest.join(ip, seconds)
     end
     log('SAW_HOST %s', tostring(sawHost))
 
+    enterRun()
     Session.setReady(true)
     log('READY_SENT')
 
@@ -134,6 +216,55 @@ function Lantest.join(ip, seconds)
         os.exit(1)
     end
     log('PLAYING voice=%s', Session.voiceMode)
+
+    -- ------------------------------------------------- replication proper
+    local built = pumpRun(5, function() return world ~= nil end)
+    if not built or not world then
+        log('FAIL client never built a world')
+        Session.leave()
+        os.exit(1)
+    end
+    if world.authoritative then
+        log('FAIL client world thinks it is authoritative')
+        Session.leave()
+        os.exit(1)
+    end
+    log('CLIENT_WORLD authoritative=%s slot=%d',
+        tostring(world.authoritative), Session.localSlot)
+
+    -- the host's player has to appear here, and it is not one we made
+    local sawHostPlayer = pumpRun(5, function() return #world.players >= 2 end)
+    if not sawHostPlayer then
+        log('FAIL only %d player(s) in the client world after 5s', #world.players)
+        Session.leave()
+        os.exit(1)
+    end
+    log('SYNCED_PLAYERS n=%d', #world.players)
+
+    -- and so do the zombies the host planted, which exist nowhere else
+    local sawZombies = pumpRun(6, function() return countZombies() >= PLANTED end)
+    log('SYNCED_ZOMBIES n=%d want=%d', countZombies(), PLANTED)
+    if not sawZombies then
+        log('FAIL zombies never replicated')
+        Session.leave()
+        os.exit(1)
+    end
+
+    -- follow the host's player moving: a position that changes over time is
+    -- proof the snapshots are still arriving, not just the first one
+    local other
+    for _, p in ipairs(world.players) do
+        if p ~= world.player then other = p end
+    end
+    local x0 = other and other.x or 0
+    pumpRun(2)
+    local x1 = other and other.x or 0
+    log('SYNCED_MOVE dx=%.1f', x1 - x0)
+    if math.abs(x1 - x0) < 8 then
+        log('FAIL the host player never moved on this machine')
+        Session.leave()
+        os.exit(1)
+    end
 
     Session.leave()
     log('PASS client')

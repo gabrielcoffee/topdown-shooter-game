@@ -277,7 +277,11 @@ function Waves:materialize(world, sp, t)
     world:addEntity(e)
 end
 
-function Waves:update(dt, world)
+-- The banner and its embers, which are pure presentation and have to run on
+-- every machine. Split out because a networked client runs ONLY this: every
+-- spawn decision in the FSM below is a dice roll, so the host owns all of it
+-- and the client takes wave/state/timer from the snapshot.
+function Waves:updateBanner(dt)
     -- menu embers behind the banner, NIGHTMARE waves only: fade in on the
     -- slam, fade out over the last beat of the intermission
     local fadeT = TUNE.fx.bannerEmberFade or 0.6
@@ -290,6 +294,16 @@ function Waves:update(dt, world)
         self.emberAlpha = math.max(target, self.emberAlpha - step)
     end
     if self.emberAlpha > 0 then Particles.update(dt) end
+end
+
+-- Client-side wave tick: cosmetics only. The banner slam itself is triggered
+-- by net/replication.lua when the snapshot shows the wave or state changed.
+function Waves:updateRemote(dt, world)
+    self:updateBanner(dt)
+end
+
+function Waves:update(dt, world)
+    self:updateBanner(dt)
 
     if self.state == 'pregame' then
         self.timer = self.timer - dt

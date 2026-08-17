@@ -101,6 +101,10 @@ function Crate:pushBy(axis, sign, penetration, dt, world, pusherSpeed, pusher)
     return math.abs(after - before) > 0.0001
 end
 
+-- Client: same tick as the host. Nothing in here costs anyone health or
+-- money, and the props section of the snapshot re-syncs the real state a
+-- few times a second, so letting the animation run locally is both
+-- cheaper and smoother than replicating every frame of it.
 function Crate:update(dt, world)
     -- pushTimer counts continuous contact (any face) and drives the push
     -- speed ramp; the grace window keeps it alive through 1-frame contact
@@ -143,5 +147,7 @@ function Crate:draw()
     end
     self.flash = false
 end
+
+Crate.updateRemote = Crate.update
 
 return Crate

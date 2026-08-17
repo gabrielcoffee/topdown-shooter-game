@@ -637,6 +637,15 @@ function Gun:fire(leftReleased)
                 )
             )
         end
+        -- LAN: one event per trigger pull. The other machines rebuild the
+        -- flash, the noise and the tracers from it; the damage stays here,
+        -- where the only real bullets are.
+        local Rep = require('net.replication')
+        if Rep.isHost() then
+            Rep.event(Rep.EV.SHOT, (self.owner and self.owner.netSlot) or 1,
+                self.x, self.y, shotAngle, self.id)
+        end
+
         self.recoil = math.min(self.recoilMax, self.recoil + self.recoilPerShot)
         self.sinceShot = 0
         self.kickPos = 1 -- slide-back kick on every gun

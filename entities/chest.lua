@@ -203,6 +203,10 @@ function Chest:interact(player, world)
     end
 end
 
+-- Client: same tick as the host. Nothing in here costs anyone health or
+-- money, and the props section of the snapshot re-syncs the real state a
+-- few times a second, so letting the animation run locally is both
+-- cheaper and smoother than replicating every frame of it.
 function Chest:update(dt, world)
     -- advance the lid open/close animation
     if self.lidDir ~= 0 then
@@ -391,5 +395,7 @@ function Chest:draw()
     love.graphics.setFont(font)
     love.graphics.setColor(Color.white())
 end
+
+Chest.updateRemote = Chest.update
 
 return Chest

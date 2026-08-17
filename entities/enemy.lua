@@ -368,6 +368,23 @@ function Enemy:followPlayer(dt, world)
     end
 end
 
+-- Networked client: this zombie is a puppet. Position, health and the fact it
+-- exists at all come from the host's snapshot; everything here is what would
+-- otherwise look frozen. No pathfinding, no damage, no attacks -- one machine
+-- decides who gets bitten, and it is not this one.
+function Enemy:updateRemote(dt, world)
+    if self.flashTimer and self.flashTimer > 0 then
+        self.flashTimer = self.flashTimer - dt
+    end
+    if world.buffs and world.buffs.freeze > 0 then return end -- statues hold their frame
+    if self.anim then
+        self.anim:update(dt)
+        if self.vx > 5 then self.faceX = 1
+        elseif self.vx < -5 then self.faceX = -1 end
+    end
+    self:updateGrowl(dt, world)
+end
+
 function Enemy:update(dt, world)
     -- hit flash runs on its own timer, before any early-out: a frozen or
     -- dying zombie still flashes white when it's shot
@@ -389,6 +406,12 @@ function Enemy:update(dt, world)
             if self.growlSrc then self.growlSrc:stop() end
             world.kills = (world.kills or 0) + 1 -- every death path lands here
             local dx, dy = self:getCenter()
+            -- LAN: the snapshot can only say this zombie is gone, which is
+            -- not enough to know where to put the blood
+            local Rep = require('net.replication')
+            if Rep.isHost() and not self.nukedSilent then
+                Rep.event(Rep.EV.KILL, dx, dy, self.lastHitAngle or 0)
+            end
             -- nukedSilent: a nuke wipe skips per-zombie SFX (audio pool
             -- flood) and carriers caught in it don't drop fresh power-ups
             if not self.nukedSilent then
@@ -492,16 +515,22 @@ function Enemy:update(dt, world)
         end
     end
 
-    -- occasional growl (positional — you hear which side it comes from)
+    self:updateGrowl(dt, world)
+end
+
+-- occasional growl (positional — you hear which side it comes from). Split
+-- out because a networked client runs it too: a room full of silent zombies
+-- is the one thing that gives away that they are puppets.
+function Enemy:updateGrowl(dt, world)
     self.growlTimer = self.growlTimer - dt
     if self.growlTimer <= 0 then
         self.growlTimer = TUNE.zombies.growlMin
             + love.math.random() * (TUNE.zombies.growlMax - TUNE.zombies.growlMin)
         -- growl group per kind: zombies/slow1.., normal1.., fast1..
         -- handle kept so the death path can cut a growl still playing
+        local cx, cy = self:getCenter()
         self.growlSrc = Audio.playAt(self.kind, cx, cy, 1, TUNE.audio.pitchJitter, world)
     end
-
 end
 
 -- Keeps the sprite's alpha shape, paints every pixel white (hit flash)

@@ -320,7 +320,7 @@ return {
         -- LAN round-trip is ~1ms against a 16.7ms frame, so everything runs at
         -- full rate: no interpolation, no client prediction, no rewind buffers.
         -- Budget at 4 players + 40 zombies is ~48 KB/s per client.
-        inputRate = 60,        -- Hz a client sends its input struct
+        inputRate = 60,        -- Hz a client sends its input struct (18 bytes)
         snapshotRate = 60,     -- Hz the host broadcasts world state
         timeout = 5,           -- secs of silence before a peer is dropped
         connectTimeout = 8,    -- secs to give up on joining a host
