@@ -4,7 +4,7 @@
 local Theme = {}
 
 Theme.gameTitle = 'ZOMBIE CHAMBER' -- menu + splash title. FINAL NAME — do not change.
-Theme.version = 'v1.0' -- shown bottom-right on the main menu
+Theme.version = 'v1.1' -- shown bottom-right on the main menu
 
 -- Font standard: title (big, wave banner) / item (menus) / hud (all info
 -- text). Nothing on screen renders smaller than the hud size — hint shares

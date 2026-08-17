@@ -168,6 +168,7 @@ return {
     ['net.voice_mode']    = 'VOZ',
     ['net.voice_global']  = 'TODOS OYEN',
     ['net.voice_proximity'] = 'SOLO CERCA',
+    ['net.coop_keys']     = 'MANTEN %s PARA HABLAR  -  %s MARCADOR  -  %s CHAT',
     ['net.your_ip']       = 'TU DIRECCION: %s',
     ['net.err_listen']    = 'NO SE PUDO CREAR (PUERTO OCUPADO?)',
     ['net.err_connect']   = 'NO SE PUDO ALCANZAR EL ANFITRION',

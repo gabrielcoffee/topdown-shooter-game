@@ -1,40 +1,40 @@
 # PROGRESS
 
-Ship date: **August 2, 2026**. A step is done only when built **and** playtested (note goes in the Playtest column). Details per step in PLAN.md.
+What has shipped, and what is built but not yet playtested. Build order lives
+in PLAN.md; player-visible detail per release lives in CHANGELOG.md.
 
-## 🚀 v1.0 LAUNCHED — 2026-08-06
+## 🚀 Releases
 
-**Zombie Chamber v1.0 is live on itch.io** (Windows + macOS + Linux). Post-launch work tracks against this baseline; changelog entry "1.0 — FIRST RELEASE" lists what shipped.
+| Version | Date | What |
+|---|---|---|
+| **1.1 — The Multiplayer Update** | 2026-08-17 | LAN co-op 4p, downed & revive, voice, scoreboard, free window resize. Desktop only. |
+| **1.0 web** | 2026-08-14 | Browser build live at 60fps, singleplayer, ships from `web-release` |
+| **1.0** | 2026-08-06 | First public release on itch.io (Windows / macOS / Linux) |
 
-## Phase 1 — Close the loop
-- [ ] Step 1: Player HP, contact damage, death, restart — **built 2026-07-20**, playtested: _no_
-- [ ] Step 2: Wave spawner — playtested: _no_
-- [ ] Step 3: Points on hit/kill — playtested: _no_
+itch.io: https://coffeebreak1.itch.io/zombiechamber
 
-## Phase 2 — Mystery box (was: shops)
-- [ ] Step 4: Starting loadout + reload — **built 2026-07-21** (USP + knife only), playtested: _no_
-- [ ] Step 5: 5-slot inventory + hotbar UI — **built 2026-07-21**, playtested: _no_
-- [ ] Step 6: Mystery box chest — **built 2026-07-21**, playtested: _no_
+## Built and shipped, never formally playtested
 
-## Phase 3 — Variety
-- [ ] Step 7: 3 zombie types — playtested: _no_
-- [ ] Step 8: Knife works — playtested: _no_
-- [ ] Step 9: Grenade works — **built 2026-07-21** (throw + blast, part of the box feature), playtested: _no_
-- [ ] Step 10: Arena bounds — playtested: _no_
+Everything through 1.0 was built, shipped and tuned by playing it, but the
+per-step playtest column was never filled in and is not worth reconstructing.
+Steps 1-14 in PLAN.md are all live in the released game.
 
-## Phase 4 — Ship
-- [ ] Step 11: Title + death/score screens — playtested: _no_
-- [ ] Step 12: Tuning pass (Gabriel) — playtested: _no_
-- [x] Step 13: Ship build on itch — **shipped 2026-08-06** (v1.0, win/mac/linux uploads)
+## 1.1 — needs playtesting with real people
 
-## Post-plan additions (2026-07-27)
-- [ ] Economy modes: kills (default) vs hits+kill-bonus, menu selector — **built 2026-07-27**, playtested: _no_
-- [ ] Gun wall-buys (GunWall LDtk entity) — **built 2026-07-27**, placed in map 2026-07-28 (shotgun Room_0, m4a1 Room_1, ak47 Room_2) + PlayerSpawn entity def/instance added to LDtk, playtested: _no_
-- [ ] Power-up drops from glowing runners (nuke/maxammo/instakill/freeze/doublepoints) — **built 2026-07-27**, playtested: _no_
-- [ ] Molotov + ground fire (slot 4 cycles with grenade) — **built 2026-07-27**, playtested: _no_
-- [ ] Pierce buff (pistol/shotgun 3, AK/M4 4) + economy rebalance — **built 2026-07-27**, playtested: _no_
-- [ ] Shared throwable pool (4), med kit stack (2) + heal hint, Q quick-knife, spawn/economy rebalance — **built 2026-07-29**, playtested: _no_
-- [ ] Scenery props: scattered grass/rocks/bushes with a wind shader + mirrored wall torches, one atlas row per map — **built 2026-08-01**, playtested: _no_
+This is the only open item that matters, and none of it can be checked alone:
+
+- [ ] **Co-op balance.** Wave quotas, zombie counts and prices are all still
+      the numbers a solo run was tuned against. Four players on a map built for
+      one is the obvious thing to be wrong.
+- [ ] **Revive timings.** `bleedOutTime` 30s, `reviveTime` 4s, `crawlSpeed`
+      0.35 — all guesses against BO2, none of them felt in a real fight yet.
+- [ ] Voice: whether nearby-only is fun or just annoying, and whether the
+      `proximityRange` of 420px is the right distance
+- [ ] Whether a wide monitor showing more of the room is an advantage worth
+      caring about in co-op
+- [ ] Drop-in join mid-wave: does landing next to the group feel right, or
+      should a joiner wait for the wave to end?
 
 ## Playtest notes log
+
 (append dated impressions here — these drive TUNE values)

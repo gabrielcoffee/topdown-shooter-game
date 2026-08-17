@@ -169,6 +169,7 @@ return {
     ['net.voice_mode']    = 'VOICE',
     ['net.voice_global']  = 'EVERYONE HEARS',
     ['net.voice_proximity'] = 'NEARBY ONLY',
+    ['net.coop_keys']     = 'HOLD %s TO TALK  -  HOLD %s FOR SCORES  -  %s TO CHAT',
     ['net.your_ip']       = 'YOUR ADDRESS: %s',
     ['net.err_listen']    = 'COULD NOT HOST (PORT IN USE?)',
     ['net.err_connect']   = 'COULD NOT REACH THAT HOST',

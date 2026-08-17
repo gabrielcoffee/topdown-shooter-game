@@ -14,16 +14,18 @@ Fontes: [itch.io blog oficial — "Make your game pages beautiful"](https://itch
 
 **Tagline (campo "short description"):**
 
-> The CoD Zombies loop, top-down: points, wall-buys, mystery box, endless waves.
+> The CoD Zombies loop, top-down: 4-player LAN co-op, wall-buys, mystery box, endless waves.
 
 **Descrição:**
 
-> Kill for cash. Spend it on wall guns, locked doors, or the mystery box — then hold on, because every 5th wave is a NIGHTMARE wave and the horde starts running.
+> Kill for cash. Spend it on wall guns, locked doors, or the mystery box — then hold on, because every 5th wave is a NIGHTMARE wave and the horde starts running. Bring up to three friends on your network.
 >
 > Zombie Chamber is a top-down zombie wave shooter built on the classic round-based survival loop: every hit pays, every door opens deeper into the map, and the waves never stop scaling. Aim matters — spread, recoil and counter-strafing work like a real shooter. Fire spreads. Shotguns pierce. The lights bend around the walls.
 >
 > **In the chamber:**
 >
+> - **4-player LAN co-op** — one world, per-player cash, voice chat, drop in mid-run
+> - **Go down, don't die** — bleed out on the floor while a teammate holds E to drag you back up
 > - 4 guns + knife, grenades and molotovs
 > - Mystery box with live odds — it leans toward guns the fuller your pockets get
 > - Wall-buys, paid doors, pushable crates
@@ -38,6 +40,8 @@ Fontes: [itch.io blog oficial — "Make your game pages beautiful"](https://itch
 > - WASD move · Shift sprint · mouse aim/shoot
 > - R reload · Q quick-knife · 1-5 / wheel swap items
 > - E buy & interact · G drop gun · Esc pause
+> - **Co-op:** hold E to revive · hold V to talk · hold TAB for scores · T to chat
+> - Every key is rebindable, and the window resizes to any shape you want
 >
 > **Tips for your first run:**
 >
@@ -45,11 +49,23 @@ Fontes: [itch.io blog oficial — "Make your game pages beautiful"](https://itch
 > - Sprinting means you can't shoot. The horde knows.
 > - A molotov thrown at a doorway is a wall that burns.
 
-**Tags:** action, zombies, top-down-shooter, arcade, singleplayer, pixel-art, 2d, survival
+**Tags:** action, zombies, top-down-shooter, arcade, co-op, local-multiplayer, pixel-art, 2d, survival
+
+**Notes for the page (1.1):**
+
+- Multiplayer is **LAN only** and **download only** — the browser build is
+  singleplayer, because a tab cannot open a UDP socket. Worth saying plainly on
+  the page so nobody buys expecting online co-op in the embed.
+- Both desktop builds are unsigned, so the first launch throws a security
+  warning on macOS (Privacy & Security → Open Anyway) and Windows (SmartScreen
+  → More info → Run anyway). The instructions ship inside each zip as
+  README.txt, and the itch.io app skips the warning entirely — worth one line
+  on the page saying so.
 
 ## Checklist visual da página (mais importante que o texto)
 
 - [ ] 3-5 GIFs: roll da mystery box, molotov derretendo horda, nuke wipe, nightmare wave começando (banner roxo), shotgun atravessando 3
+- [ ] **1.1: um GIF de co-op** — dois jogadores na tela, um caído sangrando e o outro segurando E para reanimar. É o argumento de venda da versão e não aparece em nenhuma imagem atual.
 - [ ] GIF de ação como primeira imagem, nunca logo/título
 - [ ] Thumbnail: momento de ação legível em miniatura, não arte escura
 - [ ] Cor de fundo da página puxada da paleta do jogo (CRT escuro + vermelho do título)

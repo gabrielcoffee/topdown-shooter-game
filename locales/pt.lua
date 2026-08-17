@@ -169,6 +169,7 @@ return {
     ['net.voice_mode']    = 'VOZ',
     ['net.voice_global']  = 'TODOS OUVEM',
     ['net.voice_proximity'] = 'SO PERTO',
+    ['net.coop_keys']     = 'SEGURE %s PARA FALAR  -  %s PARA O PLACAR  -  %s CHAT',
     ['net.your_ip']       = 'SEU ENDERECO: %s',
     ['net.err_listen']    = 'NAO FOI POSSIVEL CRIAR (PORTA OCUPADA?)',
     ['net.err_connect']   = 'NAO FOI POSSIVEL ALCANCAR O HOST',

@@ -99,9 +99,13 @@ push_web() {
 
 push_desktop() {
     ./build.sh
+    # Each of these is a payload folder holding the game AND its README.txt --
+    # the Gatekeeper / SmartScreen instructions have to travel with the
+    # download, because nobody goes back to the store page to look for them.
+    # The zips live in dist/, deliberately outside these folders.
     butler push "dist/windows/$NAME-win64" "$ITCH:windows" --userversion "$VERSION"
-    butler push "dist/mac/$NAME.app"       "$ITCH:osx"     --userversion "$VERSION"
-    butler push "dist/linux"               "$ITCH:linux"   --userversion "$VERSION"
+    butler push "dist/mac/$NAME-mac"       "$ITCH:osx"     --userversion "$VERSION"
+    butler push "dist/linux/$NAME-linux"   "$ITCH:linux"   --userversion "$VERSION"
 }
 
 case "$TARGET" in

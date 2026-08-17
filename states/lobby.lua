@@ -153,6 +153,15 @@ function lobby:draw()
     end
     love.graphics.setColor(1, 1, 1)
 
+    -- the co-op keys, spelled out here because the controls splash is a
+    -- singleplayer screen and nobody in a lobby has seen one
+    local Keybinds = require('core.keybinds')
+    local keys = T('net.coop_keys', Keybinds.label('voice'),
+        Keybinds.label('scoreboard'), Keybinds.label('chat'))
+    love.graphics.setColor(dim[1], dim[2], dim[3])
+    love.graphics.print(keys, SCREENWIDTH / 2 - fh:getWidth(keys) / 2, SCREENHEIGHT - 145)
+    love.graphics.setColor(1, 1, 1)
+
     if self.status then
         local c = Theme.colors.conflict
         love.graphics.setColor(c[1], c[2], c[3])

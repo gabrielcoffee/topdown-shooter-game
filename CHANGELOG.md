@@ -2,6 +2,54 @@
 
 One entry per completed PLAN.md step. Newest on top. Format: date — step — what changed, player-visible terms.
 
+## 1.1 — 2026-08-17 — THE MULTIPLAYER UPDATE
+
+**LAN co-op for up to 4 players, and the window finally resizes.** Download
+builds only — the browser version stays singleplayer, because a tab cannot
+open a UDP socket.
+
+### Multiplayer
+- **MULTIPLAYER on the main menu.** Hosts announce themselves on your network
+  once a second, so joining a friend normally needs no typing at all. Direct IP
+  is still there for networks that block broadcast.
+- Four-player lobby: names, ready flags, and the host's voice-mode toggle
+  (everyone hears / nearby only)
+- **Everyone plays in one world**: same zombies, same crates, same doors, same
+  wave. The host runs the game and everyone else follows it, 60 times a second
+- **Money is per player** — you buy your own wall gun, your own box roll. Doors
+  open for everybody once one of you pays
+- **Voice chat**: hold V to talk. Nearby-only mode makes a teammate two rooms
+  away fade out
+- **Chat**: press T and type. No slash needed any more
+- **Scoreboard**: hold TAB for names, health, score and cash, and a marker
+  next to whoever is talking
+- **Join a run in progress** — you drop in next to the group with the doors
+  they already bought open
+
+### Downed & revive (co-op only)
+- Hitting 0 HP puts you on the floor instead of ending the run: you crawl, you
+  bleed, and the screen closes in red as the clock runs down
+- A teammate holds E for 4 seconds to pick you up, and gets you back on full
+  health. Letting go early loses all the progress
+- 30 seconds to bleed out. If nobody reaches you, you sit out the rest of the
+  wave and come back on the next one with the starting pistol — your money is
+  safe
+- **Singleplayer is unchanged**: 0 HP is still death, exactly as in 1.0
+
+### The window
+- **Resize the window to any size you like**, by dragging its edge. The game
+  fills whatever shape you give it
+- Fixed: a blue band along the bottom of the screen on laptops (most MacBooks),
+  where the game was asked for a window taller than the screen could show
+- Wider than 4:3 now shows more of the room, rather than bars
+- Resolution list starts at NATIVE, so a first run fits the screen it lands on
+- Fixed: the game could open on a second monitor whether you had one or not
+
+### Notes
+- macOS and Windows builds now include a README explaining the first-launch
+  security warning and how to get past it (both are unsigned; installing
+  through the itch.io app skips it)
+
 ## 1.0 — 2026-08-06 — FIRST RELEASE
 
 **This is Zombie Chamber v1.0 — the first public release (itch.io).** Every entry below is part of it.

@@ -15,6 +15,7 @@
 # into RAM whole. See docs/web-build-plan.md.
 set -e
 cd "$(dirname "$0")"
+ROOTDIR="$(pwd)"
 
 NAME="ZombieChamber"
 TITLE="Zombie Chamber"
@@ -59,7 +60,7 @@ build_web() {
         --exclude '.git' --exclude '.gitignore' --exclude '.vscode' \
         --exclude 'dist' --exclude 'distribution' --exclude 'docs' \
         --exclude '*.md' --exclude '*.sh' --exclude '.DS_Store' \
-        --exclude 'info.txt' --exclude '*.ase' \
+        --exclude '*.ase' \
         --exclude 'assets/(outdated)' \
         --exclude 'node_modules' --exclude 'package.json' --exclude 'package-lock.json' \
         --exclude 'web' \
@@ -149,27 +150,73 @@ if [ "$1" = "web" ]; then
     exit 0
 fi
 
-mkdir -p dist/mac dist/windows dist/linux dist/.cache
-rm -rf "dist/$NAME.love" "dist/mac/$NAME.app" "dist/mac/$NAME-mac.zip" \
-       "dist/windows/$NAME-win64" "dist/windows/$NAME-win64.zip" \
-       "dist/linux/$NAME.love" "dist/linux/README.txt" "dist/linux/$NAME-linux.zip"
+# One payload folder per platform -- that folder, and nothing else, is what
+# butler pushes. The zips go in dist/ rather than inside those folders: a zip
+# sitting next to the app is a zip that gets uploaded inside the upload.
+MAC="dist/mac/$NAME-mac"
+WIN="dist/windows/$NAME-win64"
+LIN="dist/linux/$NAME-linux"
+
+rm -rf dist/mac dist/windows dist/linux \
+       "dist/$NAME.love" "dist/$NAME-mac.zip" "dist/$NAME-win64.zip" \
+       "dist/$NAME-linux.zip"
+mkdir -p "$MAC" "$WIN" "$LIN" dist/.cache
 
 # ----------------------------------------------------------------- .love
 zip -9 -r -q "dist/$NAME.love" . \
-    -x ".git/*" ".gitignore" "dist/*" "distribution/*" "docs/*" "*.md" "*.DS_Store" "info.txt" "*.sh" \
+    -x ".git/*" ".gitignore" "dist/*" "distribution/*" "docs/*" "*.md" "*.DS_Store" "*.sh" \
     -x "assets/(outdated)/*"
 
 # ----------------------------------------------------------------- macOS
-cp -R /Applications/love.app "dist/mac/$NAME.app"
-cp "dist/$NAME.love" "dist/mac/$NAME.app/Contents/Resources/"
+cp -R /Applications/love.app "$MAC/$NAME.app"
+cp "dist/$NAME.love" "$MAC/$NAME.app/Contents/Resources/"
 /usr/libexec/PlistBuddy \
     -c "Set :CFBundleName $TITLE" \
     -c "Set :CFBundleIdentifier com.gabrielcoffee.zombiechamber" \
-    "dist/mac/$NAME.app/Contents/Info.plist"
+    "$MAC/$NAME.app/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Delete :UTExportedTypeDeclarations" \
-    "dist/mac/$NAME.app/Contents/Info.plist" 2>/dev/null || true
-codesign --force --deep --sign - "dist/mac/$NAME.app"
-ditto -c -k --sequesterRsrc --keepParent "dist/mac/$NAME.app" "dist/mac/$NAME-mac.zip"
+    "$MAC/$NAME.app/Contents/Info.plist" 2>/dev/null || true
+codesign --force --deep --sign - "$MAC/$NAME.app"
+
+# The app is ad-hoc signed, never notarized (that needs a paid Apple Developer
+# ID). Gatekeeper therefore refuses it on first open, and since macOS 15 the
+# old right-click -> Open shortcut is gone: Privacy & Security is the only
+# route left. Nobody reads a store page after downloading, so the instructions
+# ship inside the zip.
+cat > "$MAC/README.txt" <<EOF
+$TITLE — macOS
+
+FIRST LAUNCH: macOS WILL REFUSE TO OPEN IT
+
+You will see "Apple could not verify $TITLE is free of malware" or
+"$TITLE cannot be opened". This is not a problem with the game. It happens to
+every app not signed with a paid Apple Developer certificate (\$99/year), and
+this one is not.
+
+To let it through, once:
+
+  1. Double-click $TITLE. Let macOS refuse, and click Done.
+  2. Open the Apple menu -> System Settings -> Privacy & Security.
+  3. Scroll down. There is a line saying "$TITLE was blocked to protect
+     your Mac", with an "Open Anyway" button. Click it.
+  4. Double-click $TITLE again, and click Open.
+
+macOS remembers after that, and it opens normally forever.
+
+If you prefer the terminal, this does the same thing in one line:
+
+  xattr -dr com.apple.quarantine "/path/to/$NAME.app"
+
+INSTALLING THROUGH THE ITCH.IO APP SKIPS ALL OF THIS.
+
+---
+
+Requires macOS 10.13 or newer, Intel or Apple Silicon.
+Multiplayer is local network (LAN) co-op for up to 4 players.
+EOF
+
+# ditto, not zip: a plain zip mangles the bundle and its ad-hoc signature
+ditto -c -k --sequesterRsrc --keepParent "$MAC" "dist/$NAME-mac.zip"
 
 # --------------------------------------------------------------- windows
 WINZIP="dist/.cache/love-11.5-win64.zip"
@@ -177,16 +224,46 @@ WINZIP="dist/.cache/love-11.5-win64.zip"
 rm -rf dist/.cache/win64
 unzip -q "$WINZIP" -d dist/.cache/win64
 SRC="dist/.cache/win64/love-11.5-win64"
-STAGE="dist/windows/$NAME-win64"
-mkdir -p "$STAGE"
-cat "$SRC/love.exe" "dist/$NAME.love" > "$STAGE/$NAME.exe"
-cp "$SRC"/*.dll "$STAGE/"
-cp "$SRC/license.txt" "$STAGE/love-license.txt"
-(cd dist/windows && zip -9 -r -q "$NAME-win64.zip" "$NAME-win64")
+cat "$SRC/love.exe" "dist/$NAME.love" > "$WIN/$NAME.exe"
+cp "$SRC"/*.dll "$WIN/"
+cp "$SRC/license.txt" "$WIN/love-license.txt"
+
+# The .exe is unsigned (a code-signing certificate is a paid, per-year thing),
+# so SmartScreen throws a full-screen warning the first time. Same reasoning as
+# the macOS note: the person who needs this has already left the store page.
+cat > "$WIN/README.txt" <<EOF
+$TITLE — Windows
+
+FIRST LAUNCH: WINDOWS WILL WARN YOU
+
+You will see a blue box saying "Windows protected your PC". This is not a
+problem with the game. SmartScreen shows it for any program without a paid
+code-signing certificate, and this one does not have one.
+
+To run it:
+
+  Click "More info", then "Run anyway".
+
+You can avoid the warning entirely by unblocking the download BEFORE you
+extract it: right-click the .zip -> Properties -> tick "Unblock" -> OK.
+
+INSTALLING THROUGH THE ITCH.IO APP SKIPS ALL OF THIS.
+
+---
+
+Requires 64-bit Windows. Everything needed is in this folder -- keep the DLLs
+next to $NAME.exe.
+Multiplayer is local network (LAN) co-op for up to 4 players.
+EOF
+
+(cd dist/windows && zip -9 -r -q "$ROOTDIR/dist/$NAME-win64.zip" "$NAME-win64")
 
 # ----------------------------------------------------------------- linux
-cp "dist/$NAME.love" "dist/linux/$NAME.love"
-cat > dist/linux/README.txt <<EOF
+cp "dist/$NAME.love" "$LIN/$NAME.love"
+
+# No Gatekeeper equivalent here -- the only thing a Linux player can be
+# missing is the runtime itself.
+cat > "$LIN/README.txt" <<EOF
 $TITLE — Linux
 
 Needs the LOVE 11.5 runtime (https://love2d.org):
@@ -196,11 +273,13 @@ Needs the LOVE 11.5 runtime (https://love2d.org):
 
 Run:
   love $NAME.love
+
+Multiplayer is local network (LAN) co-op for up to 4 players.
 EOF
-(cd dist/linux && zip -9 -q "$NAME-linux.zip" "$NAME.love" README.txt)
+(cd dist/linux && zip -9 -r -q "$ROOTDIR/dist/$NAME-linux.zip" "$NAME-linux")
 
 echo "Built:"
 echo "  dist/$NAME.love"
-echo "  dist/mac/$NAME.app  dist/mac/$NAME-mac.zip"
-echo "  dist/windows/$NAME-win64/  dist/windows/$NAME-win64.zip"
-echo "  dist/linux/$NAME.love  dist/linux/$NAME-linux.zip"
+echo "  $MAC/  -> dist/$NAME-mac.zip"
+echo "  $WIN/  -> dist/$NAME-win64.zip"
+echo "  $LIN/  -> dist/$NAME-linux.zip"
