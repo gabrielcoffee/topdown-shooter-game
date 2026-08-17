@@ -91,6 +91,18 @@ return {
     ['hud.spectating']    = 'Te desangraste - vuelves en la próxima oleada',
     ['hud.teammate']      = 'tu compañero',
 
+    -- co-op scoreboard (hold TAB)
+    ['score.player']   = 'JUGADOR',
+    ['score.state']    = 'ESTADO',
+    ['score.score']    = 'PUNTOS',
+    ['score.money']    = 'DINERO',
+    ['score.alive']    = '%d HP',
+    ['score.hurt']     = 'HERIDO %d HP',
+    ['score.downed']   = 'DERRIBADO',
+    ['score.dead']     = 'FUERA ESTA OLEADA',
+    ['score.unknown']  = 'JUGADOR',
+    ['score.footer']   = 'OLEADA %d  -  %d MUERTES',
+
     ['powerup.nuke']         = 'BOMBA',
     ['powerup.maxammo']      = 'MUNICIÓN MÁXIMA',
     ['powerup.instakill']    = 'MUERTE INSTANTÁNEA',

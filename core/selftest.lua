@@ -541,6 +541,30 @@ function Selftest.run()
             ('a late snapshot is dropped instead of rewinding the world '
              .. '(x %.1f, not %.1f)'):format(client.netBySlot[1].x, oldX))
 
+        -- drop-in join: a door bought before you arrived has to be open for
+        -- you too, which is why openedDoors rides the props section rather
+        -- than living only in the event that announced it
+        local hostDoor
+        for _, e in ipairs(host.entities) do
+            if e.type == 'door' and e.id then hostDoor = e break end
+        end
+        if hostDoor then
+            local id = hostDoor.id
+            host:openDoor(hostDoor)
+            local wire3 = Rep.buildSnapshot(host, true)
+            local rr3 = Protocol.reader(wire3); rr3:u8()
+            Rep.applySnapshot(rr3, client)
+            step(client, 1)
+            ok(client.openedDoors[id] == true, 'an opened door replicates as progression')
+            local stillThere = false
+            for _, e in ipairs(client.entities) do
+                if e.type == 'door' and e.id == id and not e.toRemove then
+                    stillThere = true
+                end
+            end
+            ok(not stillThere, 'the door entity is gone on the client too')
+        end
+
         -- a truncated snapshot must fail closed, exactly like any other packet
         local cut = Protocol.reader(wire:sub(1, 20))
         cut:u8()

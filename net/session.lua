@@ -314,6 +314,9 @@ local function hostHandle(event)
             Session.sayAs(p.slot, line)
         end
 
+    elseif id == Protocol.MSG.VOICE then
+        require('net.voice').handle(r, event, _G.world)
+
     elseif id == Protocol.MSG.BYE then
         local p = playerByPeer(event.peer)
         if p then
@@ -379,6 +382,9 @@ local function clientHandle(event)
         local slot = r:u8()
         local line = r:str()
         if r:ok() then Session.postChat(slot, line) end
+
+    elseif id == Protocol.MSG.VOICE then
+        require('net.voice').handle(r, event, _G.world)
 
     elseif id == Protocol.MSG.BYE then
         Session.errorKey = 'net.err_host_left'

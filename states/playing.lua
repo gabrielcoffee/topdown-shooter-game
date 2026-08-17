@@ -9,6 +9,8 @@ local Chat = require('ui.chat')
 local Audio = require('core.audio')
 local Input = require('core.input')
 local Rep = require('net.replication')
+local Voice = require('net.voice')
+local Scoreboard = require('ui.scoreboard')
 
 local playing = {}
 playing.fxMode = 'game'
@@ -22,6 +24,7 @@ function playing:enter(opts)
     -- machine agrees which body is whose. Everyone else is added by the first
     -- snapshot that mentions them (host side: as they connect).
     Rep.begin(opts.role, opts.slot)
+    if opts.role and not WEB then Voice.begin() end
     if opts.role then
         world.player.netSlot = opts.slot or 1
         world.netBySlot = { [world.player.netSlot] = world.player }
@@ -57,6 +60,7 @@ function playing:exit()
     Fx.setBleedout(0)
     Audio.setLowHealth(false)
     Rep.stop()
+    if not WEB then Voice.stop() end
 end
 
 function playing:update(dt)
@@ -75,6 +79,7 @@ function playing:update(dt)
     -- inputs up / snapshot down. After world:update so the host broadcasts
     -- the frame it just simulated rather than the one before it.
     Rep.update(dt, world)
+    if not WEB then Voice.update(dt, world) end
 
     -- Closing a browser tab never fires love.quit, so the desktop contract
     -- ("close the window mid-run, Continue picks it up") has to be a timer
@@ -97,6 +102,9 @@ end
 
 function playing:draw()
     world:draw()
+    -- held, not toggled, and drawn over a world that keeps running: a key
+    -- that paused a co-op game would be a way to grief one
+    if Scoreboard.visible() then Scoreboard.draw(world) end
     Chat.draw()
 
     -- run-start fade from black, in step with the audio fade

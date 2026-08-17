@@ -103,6 +103,30 @@ function love.load()
             p.bleed = TUNE.revive.bleedOutTime * 0.55
             mate.input.interact = true
             _G._autotest = { frames = 0, holdRevive = mate }
+        elseif a == 'autotest_score' then
+            -- the co-op scoreboard needs a session (it hides without one) and
+            -- more than one body to be worth drawing
+            State.switch('playing')
+            require('net.session').startHost()
+            local p = world.player
+            p.netSlot, p.netName = 1, 'coffeebreak'
+            p.earnedTotal, p.money = 4820, 1350
+            world.netBySlot = { [1] = p }
+            world.multiplayer = true
+            world.kills = 137
+            local names = { 'Notch', 'jeb_', 'dinnerbone' }
+            for i = 1, 3 do
+                local q = world:addPlayer(p.x + 30 * i, p.y)
+                q.netSlot, q.netName = i + 1, names[i]
+                q.earnedTotal, q.money = 5200 - i * 900, 400 * i
+                world.netBySlot[i + 1] = q
+                require('net.session').players[i + 1] =
+                    { slot = i + 1, name = names[i], ready = true }
+            end
+            world.players[2].health = 18          -- hurt
+            world.players[3]:goDown(world)        -- downed
+            world.players[4].dead = true          -- bled out
+            _G._autotest = { frames = 0, holdScoreboard = true }
         elseif a == 'autotest_keys' then
             State.switch('menu')
             State.push('options')

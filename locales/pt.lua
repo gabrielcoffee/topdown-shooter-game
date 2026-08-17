@@ -92,6 +92,18 @@ return {
     ['hud.spectating']    = 'Você sangrou até o fim - volta na próxima onda',
     ['hud.teammate']      = 'seu companheiro',
 
+    -- co-op scoreboard (hold TAB)
+    ['score.player']   = 'JOGADOR',
+    ['score.state']    = 'ESTADO',
+    ['score.score']    = 'PONTOS',
+    ['score.money']    = 'GRANA',
+    ['score.alive']    = '%d HP',
+    ['score.hurt']     = 'FERIDO %d HP',
+    ['score.downed']   = 'CAÍDO',
+    ['score.dead']     = 'FORA NESTA ONDA',
+    ['score.unknown']  = 'JOGADOR',
+    ['score.footer']   = 'ONDA %d  -  %d MORTES',
+
     ['powerup.nuke']         = 'BOMBA',
     ['powerup.maxammo']      = 'MUNIÇÃO MÁXIMA',
     ['powerup.instakill']    = 'MORTE INSTANTÂNEA',

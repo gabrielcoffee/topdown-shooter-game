@@ -241,6 +241,22 @@ local function writeProps(w, world)
         local cx, cy = e:getCenter()
         w:u16(e.netId); wpos(w, cx, cy); w:f32(e.age or 0)
     end
+
+    -- Shared progression, resent rather than event-only. The DOOR event is
+    -- what makes a door burst open in front of you; this is what makes it
+    -- already open for someone who joined after it happened. Six doors and a
+    -- handful of plugged tiles cost nothing to repeat ten times a second, and
+    -- repeating them is the entire drop-in-join story.
+    local doors = {}
+    for id in pairs(world.openedDoors) do doors[#doors + 1] = id end
+    w:u8(math.min(#doors, 255))
+    for i = 1, math.min(#doors, 255) do w:str(doors[i]) end
+
+    local plugged = world.pluggedTiles or {}
+    w:u8(math.min(#plugged, 255))
+    for i = 1, math.min(#plugged, 255) do
+        w:u16(plugged[i].col); w:u16(plugged[i].row)
+    end
 end
 
 -- Every snapshot carries a tick one higher than the last. Clients drop
@@ -541,6 +557,33 @@ local function applyProps(r, world)
             e.toRemove = true
             byNetId[e.netId] = nil
         end
+    end
+
+    -- doors already bought: silently gone, no burst and no sound. The event
+    -- handles the one that opens while you are watching.
+    local nd = r:u8() or 0
+    local open = {}
+    for _ = 1, nd do
+        local id = r:str()
+        if not r:ok() then return end
+        open[id] = true
+    end
+    if nd > 0 or next(world.openedDoors) then
+        world.openedDoors = open
+        for _, e in ipairs(world.entities) do
+            if e.type == 'door' and e.id and open[e.id] and not e.toRemove then
+                e.toRemove = true
+                world.adjacentCache = nil
+            end
+        end
+    end
+
+    -- holes a crate was pushed into are ground again
+    local nt = r:u8() or 0
+    for _ = 1, nt do
+        local col, row = r:u16(), r:u16()
+        if not r:ok() then return end
+        world.map:setTile(col, row, world.map.groundFillId)
     end
 end
 

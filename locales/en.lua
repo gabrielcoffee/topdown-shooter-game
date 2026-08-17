@@ -92,6 +92,18 @@ return {
     ['hud.spectating']    = 'You bled out - back next wave',
     ['hud.teammate']      = 'your teammate',
 
+    -- co-op scoreboard (hold TAB)
+    ['score.player']   = 'PLAYER',
+    ['score.state']    = 'STATE',
+    ['score.score']    = 'SCORE',
+    ['score.money']    = 'CASH',
+    ['score.alive']    = '%d HP',
+    ['score.hurt']     = 'HURT %d HP',
+    ['score.downed']   = 'DOWNED',
+    ['score.dead']     = 'OUT THIS WAVE',
+    ['score.unknown']  = 'PLAYER',
+    ['score.footer']   = 'WAVE %d  -  %d KILLS',
+
     ['powerup.nuke']         = 'NUKE',
     ['powerup.maxammo']      = 'MAX AMMO',
     ['powerup.instakill']    = 'INSTA-KILL',
