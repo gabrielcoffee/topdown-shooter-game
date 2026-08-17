@@ -91,6 +91,18 @@ function love.load()
                 os.exit(1)
             end
             require('core.selftest').run()
+        elseif a == 'autotest_downed' then
+            -- co-op down/revive is unreachable solo, so stand up a second
+            -- player next to the first, put ours on the floor, and hold the
+            -- teammate's E so the revive bar is mid-fill in the shot
+            State.switch('playing')
+            local p = world.player
+            local mate = world:addPlayer(p.x + 26, p.y)
+            world.multiplayer = true
+            p:goDown(world)
+            p.bleed = TUNE.revive.bleedOutTime * 0.55
+            mate.input.interact = true
+            _G._autotest = { frames = 0, holdRevive = mate }
         elseif a == 'autotest_keys' then
             State.switch('menu')
             State.push('options')
@@ -145,6 +157,9 @@ function love.update(dt)
     State.update(dt)
     if _autotest then
         _autotest.frames = _autotest.frames + 1
+        -- Input.poll only fills the LOCAL player's struct, so a scripted
+        -- teammate's held button has to be re-armed every frame
+        if _autotest.holdRevive then _autotest.holdRevive.input.interact = true end
         if _autotest_shotgun and _autotest.frames == 30 then
             local Gun = require('hand_items.gun')
             world.player:giveGun(Gun.newById('shotgun'))

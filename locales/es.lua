@@ -83,6 +83,14 @@ return {
     ['hud.wallbuy_full']  = 'Munición de %s llena',
     ['hud.round']         = 'R: %d',
 
+    -- co-op: derribado y reanimacion
+    ['hud.revive_prompt'] = 'Mantén E para reanimar a %s',
+    ['hud.bleeding_out']  = 'DESANGRANDO - %d',
+    ['hud.downed_wait']   = 'Espera a que un compañero te reanime',
+    ['hud.being_revived'] = '%s te está reanimando',
+    ['hud.spectating']    = 'Te desangraste - vuelves en la próxima oleada',
+    ['hud.teammate']      = 'tu compañero',
+
     ['powerup.nuke']         = 'BOMBA',
     ['powerup.maxammo']      = 'MUNICIÓN MÁXIMA',
     ['powerup.instakill']    = 'MUERTE INSTANTÁNEA',

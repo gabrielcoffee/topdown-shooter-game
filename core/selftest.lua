@@ -331,15 +331,112 @@ function Selftest.run()
 
     -- ------------------------------------------------------ run-over rule
     section("run-over rule")
+    -- Co-op: 0 HP is a down, not a death, so the run outlives it. It only
+    -- ends once nobody is left who could still be picked up.
     ok(world:anyoneAlive(), 'both alive')
     p1.health = 0
     step(world, 2)
+    ok(p1.downed, 'co-op: 0 HP goes down instead of dying')
     ok(world:anyoneAlive(), 'one player down is not a game over')
     ok(not world.gameOver, 'gameOver stays false with a survivor')
     ok(world:nearestPlayer(c1x, c1y) == p2, 'a downed player is not a target')
+    ok(#world:upPlayers() == 1, 'only the standing player counts as up')
+
     p2.health = 0
     step(world, 2)
-    ok(world.gameOver, 'last player down ends the run')
+    ok(p2.downed, 'the second player goes down too')
+    ok(not world.gameOver, 'both down is still not over - either can be saved')
+
+    -- run the bleed clock out on both
+    p1.bleed, p2.bleed = 0.05, 0.05
+    step(world, 8)
+    ok(p1.dead and p2.dead, 'the clock running out kills for real')
+    ok(world.gameOver, 'the run ends once the last one has bled out')
+
+    -- ----------------------------------------------------- downed / revive
+    section("downed/revive")
+    world = freshWorld()
+    p1 = world.player
+    p2 = world:addPlayer(p1.x + 24, p1.y) -- inside TUNE.revive.range
+    local inp1, inp2 = p1.input, p2.input
+
+    p1.health = 0
+    step(world, 2)
+    ok(p1.downed and not p1.dead, 'p1 is downed, not dead')
+    ok(p1.health == 0, 'a downed player sits at 0 HP')
+    ok(p1.bleed > TUNE.revive.bleedOutTime - 1, 'the bleed clock started full')
+
+    -- the downed player cannot act
+    local clip0 = p1.items[1] and p1.items[1].curClip
+    inp1.shoot = true
+    inp1.aimX, inp1.aimY = p1.x + 200, p1.y
+    step(world, 6)
+    ok(p1.items[1].curClip == clip0, 'a downed player cannot shoot')
+    inp1.shoot = false
+
+    -- ...but can crawl, slowly
+    local x0 = p1.x
+    inp1.right = true
+    step(world, 30)
+    inp1.right = false
+    local crawled = p1.x - x0
+    ok(crawled > 0, ('a downed player can crawl (moved %.1fpx)'):format(crawled))
+    ok(crawled < TUNE.player.baseSpeed * 0.5,
+        ('crawling is slower than walking (%.1fpx in 0.5s)'):format(crawled))
+
+    -- the teammate holds E
+    ok(world:getNearbyDownedPlayer(p2) == p1, 'p2 sees the downed teammate')
+    inp2.interact = true
+    step(world, 30) -- 0.5s, well short of reviveTime
+    ok(p1.downed, 'half a hold does not revive')
+    ok(p1.reviving and p1.reviving > 0, 'the hold is banking time')
+    ok(p1.reviver == p2, 'the downed player knows who is reviving them')
+
+    -- letting go throws the progress away
+    inp2.interact = false
+    step(world, 4)
+    ok(p1.reviving == nil, 'letting go loses the progress')
+
+    -- and a full hold brings them back
+    inp2.interact = true
+    step(world, math.ceil(TUNE.revive.reviveTime * 60) + 6)
+    inp2.interact = false
+    ok(not p1.downed, 'a full hold revives')
+    ok(p1.health == math.min(p1.maxHealth, TUNE.revive.reviveHealth),
+        ('revived to %d HP'):format(p1.health))
+    ok(world:nearestPlayer(c1x, c1y) ~= nil, 'a revived player is a target again')
+
+    -- out of range does nothing
+    p1.health = 0
+    step(world, 2)
+    p2.x = p1.x + TUNE.revive.range * 4
+    step(world, 2)
+    ok(world:getNearbyDownedPlayer(p2) == nil, 'out of range sees nobody')
+    inp2.interact = true
+    step(world, math.ceil(TUNE.revive.reviveTime * 60) + 6)
+    inp2.interact = false
+    ok(p1.downed, 'holding E across the room revives nobody')
+
+    -- bleeding out, then coming back with the next wave
+    p1.bleed = 0.05
+    step(world, 8)
+    ok(p1.dead and not p1.downed, 'the clock running out kills')
+    ok(not world.gameOver, 'one dead player with a survivor is not over')
+    p1.money = 500
+    p1:respawn(world)
+    ok(not p1.dead and p1.health == p1.maxHealth, 'respawn puts them back up')
+    ok(p1.money == 500, 'bleeding out costs the wave, not the wallet')
+    ok(p1.items[2] == nil and p1.items[1] ~= nil, 'respawn is the starting loadout')
+
+    -- ------------------------------------------------------- solo is intact
+    section("solo death unchanged")
+    world = freshWorld()
+    local solo = world.player
+    ok(not world:isMultiplayer(), 'one player is not a co-op run')
+    solo.health = 0
+    step(world, 2)
+    ok(not solo.downed, 'solo does not go down')
+    ok(world.gameOver, 'solo still dies outright at 0 HP')
 
     -- --------------------------------------------------- money goes to the
     section("money attribution")

@@ -65,7 +65,7 @@ local zombieFactories = {
 }
 
 local commandNames = { 'money', 'give', 'god', 'heal', 'ammo',
-                       'wave', 'spawn', 'powerup', 'help', 'clear' }
+                       'wave', 'spawn', 'powerup', 'down', 'help', 'clear' }
 
 -- run(arg) -> log text, isError
 local commands = {
@@ -112,8 +112,36 @@ local commands = {
         return 'usage: /god [on|off]', true
     end },
     heal = { cheat = true, run = function()
-        world.player.health = world.player.maxHealth
-        return 'healed to ' .. world.player.maxHealth
+        local p = world.player
+        -- also the way out of a down you gave yourself with /down
+        if p.downed or p.dead then
+            p:reviveFrom(world)
+            return 'back on your feet'
+        end
+        p.health = p.maxHealth
+        return 'healed to ' .. p.maxHealth
+    end },
+    -- co-op down/revive is unreachable solo by design, so this is the only
+    -- way to look at it without a second machine
+    down = { cheat = true, argKind = 'down', run = function(arg)
+        local p = world.player
+        if arg == 'other' then
+            for _, q in ipairs(world.players) do
+                if q ~= p and q:isUp() then
+                    q:goDown(world)
+                    return 'put a teammate down'
+                end
+            end
+            return 'no other player is up', true
+        end
+        if p.downed or p.dead then return 'already down', true end
+        if not world:isMultiplayer() then
+            -- solo dies outright, so pretend there is a co-op run on
+            world.multiplayer = true
+        end
+        p.godMode = false
+        p:goDown(world)
+        return ('down - %ds to bleed out, /heal to get up'):format(TUNE.revive.bleedOutTime)
     end },
     ammo = { cheat = true, run = function()
         for i = 1, 2 do
@@ -199,6 +227,7 @@ local argOptions = {
     zombie = { 'slow_zombie', 'normal_zombie', 'fast_zombie' },
     wave = { 'skip' },
     god = { 'on', 'off' },
+    down = { 'other' },
     powerup = { 'nuke', 'maxammo', 'instakill', 'freeze', 'doublepoints',
                 'firesale', 'carpenter' },
 }

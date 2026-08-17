@@ -356,6 +356,13 @@ function Waves:update(dt, world)
     elseif self.state == 'wave_end' then
         self.timer = self.timer - dt
         if self.timer <= 0 then
+            -- co-op: anyone who bled out sits the wave out and comes back
+            -- for the next one, on the starting loadout (see Player:respawn).
+            -- Done before startWave so they are on their feet in time to be
+            -- counted as a spawn anchor.
+            for _, p in ipairs(world.players) do
+                if p.dead then p:respawn(world) end
+            end
             self:startWave(self.wave + 1)
         end
     end

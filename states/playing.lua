@@ -37,6 +37,7 @@ end
 -- leaving the run: critical-health overlay + heartbeat must not follow us out
 function playing:exit()
     Fx.setLowHealth(false)
+    Fx.setBleedout(0)
     Audio.setLowHealth(false)
 end
 

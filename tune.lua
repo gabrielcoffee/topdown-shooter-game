@@ -205,6 +205,23 @@ return {
                    useTime = 2.5 }, -- secs the patch-up takes (bar over the hotbar;
                                     -- swapping the kit away cancels, running is fine)
 
+    -- CO-OP ONLY (world:isMultiplayer()). Solo still dies outright at 0 HP --
+    -- that is the game that shipped and it stays balanced the way it was.
+    -- Drop to 0 in co-op and you go down instead: crawling, bleeding, red
+    -- rim closing in, until a teammate holds E long enough or the clock runs
+    -- out. Bleed all the way out and you sit the rest of the wave out, then
+    -- come back at the next one with the starting loadout (BO2's rule) --
+    -- without that, one player dying out of reach just ends the run.
+    revive = { bleedOutTime = 30,  -- secs on the floor before you die for real
+               bleedTick = 1,      -- secs between blood drip + labored breath
+               reviveTime = 4,     -- secs a teammate must hold E, uninterrupted
+               range = 48,         -- px around the downed body where E works
+               crawlSpeed = 0.35,  -- multiple of walk speed while downed
+               reviveHealth = 100, -- HP you come back with (BO2 revives to full)
+               respawnKeepsMoney = true, -- bleeding out costs the wave, not the wallet
+               vignetteMin = 0.35, -- red rim the moment you go down
+               vignetteMax = 0.92 }, -- ...and at the last second before you die
+
     -- CoD-style wall buys (GunWall entities placed in LDtk; gun + optional price)
     wallbuy = { interactPad = 4,
                 ammoFactor = 0.6, -- ammo refill price = gun price x this
@@ -284,7 +301,9 @@ return {
     -- medkitBar* : the patch-up progress bar centered above the hotbar
     hud = { popupTime = 1.0, popupRise = 18,
             reloadBarW = 70, reloadBarH = 8, reloadBarGap = 14,
-            medkitBarW = 90, medkitBarH = 10, medkitBarGap = 14 },
+            medkitBarW = 90, medkitBarH = 10, medkitBarGap = 14,
+            -- world-space, over a downed body (bleed clock + revive hold)
+            reviveBarW = 44, reviveBarGap = 8 },
 
     dev = { enabled = true,     -- master switch for the chat console (T)
             flySpeedMult = 2 }, -- god-mode fly (shift held): speed vs base walk

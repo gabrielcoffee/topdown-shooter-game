@@ -146,31 +146,43 @@ function World:removePlayer(p)
     p.toRemove = true
 end
 
--- Players still standing. Zombies chase these, waves spawn around these, and
--- the run only ends when this comes back empty.
-function World:livePlayers(out)
+-- Two different questions, and co-op made them stop having the same answer.
+--
+--   "up"    = on their feet and able to act. Zombies chase these, waves spawn
+--             around these, power-ups and the nightmare bonus pay these.
+--   "alive" = up OR bleeding out on the floor. The run ends when this is
+--             empty, because a downed player can still be saved.
+--
+-- Solo, and for anyone who never goes down, the two are identical.
+local function isUp(p)
+    return not p.toRemove and p.health > 0 and not p.downed and not p.dead
+end
+
+function World:upPlayers(out)
     out = out or {}
     for i = #out, 1, -1 do out[i] = nil end
     for _, p in ipairs(self.players) do
-        if p.health > 0 and not p.toRemove then table.insert(out, p) end
+        if isUp(p) then table.insert(out, p) end
     end
     return out
 end
+World.livePlayers = World.upPlayers -- old name, same question
 
 function World:anyoneAlive()
     for _, p in ipairs(self.players) do
-        if p.health > 0 and not p.toRemove then return true end
+        if not p.toRemove and (isUp(p) or p.downed) then return true end
     end
     return false
 end
 
--- Closest live player to a world point, plus the distance to them. Zombie
+-- Closest player still on their feet, plus the distance to them. Zombie
 -- targeting and contact damage both run off this; solo it always answers
--- with the only player there is.
+-- with the only player there is. A downed player is deliberately not a
+-- target — the horde walking off a body is what makes a revive possible.
 function World:nearestPlayer(x, y)
     local best, bestD2
     for _, p in ipairs(self.players) do
-        if p.health > 0 and not p.toRemove then
+        if isUp(p) then
             local px, py = p:getCenter()
             local dx, dy = px - x, py - y
             local d2 = dx*dx + dy*dy
@@ -180,11 +192,32 @@ function World:nearestPlayer(x, y)
     return best, bestD2 and math.sqrt(bestD2) or nil
 end
 
--- A live player picked at random (surprise spawns pick who to appear near)
+-- A player on their feet picked at random (surprise spawns pick who to
+-- appear near)
 function World:randomLivePlayer()
-    local live = self:livePlayers()
+    local live = self:upPlayers()
     if #live == 0 then return nil end
     return live[love.math.random(#live)]
+end
+
+-- A downed teammate within reach of `player`, for the revive hold. Same
+-- padded-box shape as the getTouchingX helpers, using TUNE.revive.range.
+function World:getNearbyDownedPlayer(player)
+    if not player:isUp() then return nil end
+    local pad = TUNE.revive.range
+    local best, bestD2
+    for _, p in ipairs(self.players) do
+        if p ~= player and p.downed and not p.toRemove then
+            local px, py = p:getCenter()
+            local qx, qy = player:getCenter()
+            local dx, dy = px - qx, py - qy
+            local d2 = dx*dx + dy*dy
+            if d2 <= pad*pad and (not bestD2 or d2 < bestD2) then
+                best, bestD2 = p, d2
+            end
+        end
+    end
+    return best
 end
 
 -- Camera centered on (px,py), clamped inside a room; rooms smaller than the
@@ -630,7 +663,9 @@ function World:update(dt)
         local a = self.entities[i]
         if a.type == 'enemy' then
             for _, p in ipairs(self.players) do
-                if not p.falling and p.health > 0 then
+                -- a downed player is still a body in the way; only a dead
+                -- one (spectating until the next wave) stops colliding
+                if not p.falling and (p:isUp() or p.downed) then
                     pushApart(self, p, a)
                 end
             end
@@ -674,18 +709,30 @@ function World:update(dt)
     local lx, ly = self.player:getCenter()
     Audio.setListener(lx, ly, self)
 
-    -- the run ends when the last player standing goes down (solo: the only
-    -- one). Phase 4 puts the downed/revive window in front of this.
+    -- The run ends when nobody is left who could still be saved. Solo that
+    -- is death at 0 HP; in co-op a player on the floor still counts, so the
+    -- run only ends once the last of them has bled all the way out.
     if not self:anyoneAlive() then
         self.gameOver = true
     end
 
     -- critical health: world ducks, heartbeat runs, red rim stays on screen
     -- (all off again on death or heal)
-    local critical = self.player.health > 0
-        and self.player.health <= TUNE.player.lowHealthThreshold
-    Audio.setLowHealth(critical)
-    require('ui.fx').setLowHealth(critical)
+    local me = self.player
+    local critical = me.health > 0
+        and me.health <= TUNE.player.lowHealthThreshold
+    Audio.setLowHealth(critical or me.downed)
+    local Fx = require('ui.fx')
+    Fx.setLowHealth(critical)
+    -- bleeding out: the rim closes in as the clock runs down, on top of
+    -- whatever the hit pulse is doing
+    if me.downed then
+        local R = TUNE.revive
+        local k = 1 - math.max(0, math.min(1, me.bleed / R.bleedOutTime))
+        Fx.setBleedout(R.vignetteMin + (R.vignetteMax - R.vignetteMin) * k)
+    else
+        Fx.setBleedout(0)
+    end
 end
 
 -- Black out everything outside the room the local player is in.

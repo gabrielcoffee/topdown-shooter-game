@@ -75,6 +75,14 @@ function Player:new(x, y, width, height)
     obj.throwTimer = 0    -- secs until the next throw is allowed (stacked grenades)
     obj.healing = nil     -- secs left on the med kit patch-up (nil = not healing)
 
+    -- co-op down state (see TUNE.revive). Solo never enters any of it.
+    obj.downed = false     -- on the floor, crawling, bleeding out
+    obj.bleed = 0          -- secs left before downed turns into dead
+    obj.bleedCue = 0       -- counts down to the next drip + breath
+    obj.reviving = nil     -- secs of hold banked INTO this player by a teammate
+    obj.reviver = nil      -- who is holding E over us (for the bar + prompt)
+    obj.dead = false       -- bled out: spectating until the next wave starts
+
     obj.animState = 'idle'
     obj.animRun = Animation:new(Assets.quads.player, 2, 4, 0.1)
 
@@ -286,6 +294,18 @@ function Player:update(dt, world)
         end
     end
     self.lastHealth = self.health
+
+    -- CO-OP: 0 HP puts you on the floor instead of ending the run. Solo skips
+    -- all of this and dies the way it always did (World:update ends the run).
+    if self.health <= 0 and not self.downed and not self.dead
+        and world:isMultiplayer() and not self.godMode then
+        self:goDown(world)
+    end
+    if self.dead then return end   -- bled out: spectating until the next wave
+    if self.downed then
+        self:updateDowned(dt, world)
+        return
+    end
 
     -- FALLING INTO A HOLE: no input until back on ground
     if self.falling then
@@ -517,16 +537,32 @@ function Player:update(dt, world)
     end
     self.rReleased = not rPressed
 
-    -- E interactions: chest > dropped gun > wall buy > door when touching several
-    self.touchingChest = world:getTouchingChest(self)
-    self.touchingDroppedGun = (not self.touchingChest)
+    -- E interactions: downed teammate > chest > dropped gun > wall buy > door
+    -- when touching several. A body on the floor outranks everything.
+    self.touchingDowned = world:getNearbyDownedPlayer(self)
+    self.touchingChest = (not self.touchingDowned)
+        and world:getTouchingChest(self) or nil
+    self.touchingDroppedGun = (not self.touchingDowned and not self.touchingChest)
         and world:getTouchingDroppedGun(self) or nil
-    self.touchingGunWall = (not self.touchingChest and not self.touchingDroppedGun)
-        and world:getTouchingGunWall(self) or nil
-    self.touchingDoor = (not self.touchingChest and not self.touchingDroppedGun
-        and not self.touchingGunWall) and world:getTouchingDoor(self) or nil
+    self.touchingGunWall = (not self.touchingDowned and not self.touchingChest
+        and not self.touchingDroppedGun) and world:getTouchingGunWall(self) or nil
+    self.touchingDoor = (not self.touchingDowned and not self.touchingChest
+        and not self.touchingDroppedGun and not self.touchingGunWall)
+        and world:getTouchingDoor(self) or nil
     local ePressed = not typing and inp.interact
-    if ePressed and self.eReleased then
+
+    -- REVIVE is the one hold-to-act in the game: every other interaction is
+    -- edge-gated on the press, this one banks time for as long as E stays
+    -- down. Letting go loses all of it (see Player:updateDowned).
+    if self.touchingDowned and ePressed and not self.lockedInputs.interact then
+        local t = self.touchingDowned
+        t.reviving = (t.reviving or 0) + dt
+        t.reviver = self
+        t.reviveTouched = true
+        if t.reviving >= TUNE.revive.reviveTime then t:reviveFrom(world) end
+    end
+
+    if ePressed and self.eReleased and not self.touchingDowned then
         if self.touchingChest then
             self.touchingChest:interact(self, world)
         elseif self.touchingGunWall then
@@ -613,6 +649,27 @@ end
 function Player:draw()
     local facingLeft = self.facingLeft
 
+    -- bled out: the body is out of the fight entirely until the next wave
+    if self.dead then return end
+
+    -- downed: no downed sprite exists, so the standing one is laid on its
+    -- side. Reads instantly as "on the floor" from across the room, which is
+    -- the whole job — you have to be able to spot a teammate to reach them.
+    if self.downed then
+        local cx, cy = self:getCenter()
+        love.graphics.setColor(0.85, 0.5, 0.5) -- blood-drained
+        love.graphics.draw(
+            Assets.spritesheet, Assets.quads.player[1],
+            math.floor(cx), math.floor(cy) + 4,
+            (facingLeft and -1 or 1) * math.pi / 2,
+            1, 1,
+            self.width / 2, self.height / 2
+        )
+        love.graphics.setColor(Color.white())
+        self:drawReviveBar()
+        return
+    end
+
     -- falling: sprite shrinks into the hole
     if self.falling then
         local s = math.max(0, 1 - self.fallTimer / TUNE.player.fallTime)
@@ -664,9 +721,86 @@ function Player:draw()
     end
 end
 
+-- World-space bar over a downed body: the bleed clock draining, and the
+-- revive hold filling over the top of it once someone starts. Same 3px shape
+-- the mystery box uses for its take window, so it reads the same way.
+function Player:drawReviveBar()
+    local R = TUNE.revive
+    local w = TUNE.hud.reviveBarW
+    local cx = math.floor(self.x + self.width / 2 - w / 2)
+    local top = math.floor(self.y) - TUNE.hud.reviveBarGap
+
+    -- bleed clock, draining. Always there while down, so a teammate across
+    -- the room can see how long they have.
+    local bleedFrac = math.max(0, math.min(1, self.bleed / R.bleedOutTime))
+    love.graphics.setColor(0, 0, 0, 0.65)
+    love.graphics.rectangle('fill', cx, top, w, 3)
+    love.graphics.setColor(0.9, 0.15, 0.15)
+    love.graphics.rectangle('fill', cx, top, w * bleedFrac, 3)
+
+    -- hold progress, filling, stacked above it
+    if self.reviving then
+        local k = math.max(0, math.min(1, self.reviving / R.reviveTime))
+        love.graphics.setColor(0, 0, 0, 0.65)
+        love.graphics.rectangle('fill', cx, top - 5, w, 3)
+        love.graphics.setColor(0.55, 0.95, 0.55)
+        love.graphics.rectangle('fill', cx, top - 5, w * k, 3)
+    end
+    love.graphics.setColor(Color.white())
+end
+
 function Player:drawHud()
     -- /recording footage mode: no HUD at all
     if world and world.recordingMode then return end
+
+    -- World:draw calls drawHud on every entity, and in co-op every player is
+    -- one of them — without this the other players' HP, money, hotbar and
+    -- prompts all draw on top of ours at the same coordinates.
+    if world and world.player and self ~= world.player then return end
+
+    -- DOWNED: the hotbar and ammo readout are meaningless on the floor. The
+    -- clock and what to do about it replace them.
+    if self.downed then
+        local R = TUNE.revive
+        local secs = math.max(0, math.ceil(self.bleed))
+        local title = T('hud.bleeding_out', secs)
+        love.graphics.setColor(Color.red())
+        love.graphics.print(title,
+            SCREENWIDTH/2 - font:getWidth(title)/2, SCREENHEIGHT - 150)
+        love.graphics.setColor(Color.white())
+
+        local sub = self.reviver
+            and T('hud.being_revived', self.reviver.netName or T('hud.teammate'))
+            or T('hud.downed_wait')
+        love.graphics.print(sub,
+            SCREENWIDTH/2 - font:getWidth(sub)/2, SCREENHEIGHT - 120)
+
+        -- the hold bar again, screen-space this time: the person who needs to
+        -- see it most is lying under their own sprite
+        if self.reviving then
+            local H = TUNE.hud
+            local k = math.max(0, math.min(1, self.reviving / R.reviveTime))
+            local bx = math.floor((SCREENWIDTH - H.medkitBarW) / 2)
+            local by = SCREENHEIGHT - 96
+            love.graphics.setColor(0, 0, 0, 0.6)
+            love.graphics.rectangle('fill', bx, by, H.medkitBarW, H.medkitBarH, 2, 2)
+            love.graphics.setColor(0.55, 0.95, 0.55)
+            love.graphics.rectangle('fill', bx + 1, by + 1,
+                (H.medkitBarW - 2) * k, H.medkitBarH - 2, 2, 2)
+            love.graphics.setColor(Color.white())
+        end
+        return
+    end
+
+    -- BLED OUT: spectating until the next wave puts them back on their feet
+    if self.dead then
+        local txt = T('hud.spectating')
+        love.graphics.setColor(0.7, 0.7, 0.7)
+        love.graphics.print(txt,
+            SCREENWIDTH/2 - font:getWidth(txt)/2, SCREENHEIGHT - 120)
+        love.graphics.setColor(Color.white())
+        return
+    end
 
     self.items[self.itemIndex]:drawHud(self) -- bottom-left: held item + ammo
 
@@ -703,7 +837,10 @@ function Player:drawHud()
     Hotbar.draw(self)
 
     local prompt, red
-    if self.touchingChest then
+    if self.touchingDowned then
+        local t = self.touchingDowned
+        prompt = T('hud.revive_prompt', t.netName or T('hud.teammate'))
+    elseif self.touchingChest then
         local c = self.touchingChest
         if c.state == 'idle' then
             local cost = c:currentCost() -- fire sale discounts it
@@ -755,6 +892,129 @@ function Player:drawHud()
             SCREENWIDTH/2 - font:getWidth(prompt)/2, SCREENHEIGHT - 120)
         love.graphics.setColor(Color.white())
     end
+end
+
+-- ---------------------------------------------------------------- downed
+
+-- 0 HP in co-op. Everything in hand is dropped out of play (nothing is spent
+-- or lost, it just can't be used), and the bleed-out clock starts.
+function Player:goDown(world)
+    self.downed = true
+    self.health = 0
+    self.bleed = TUNE.revive.bleedOutTime
+    self.bleedCue = 0        -- first drip lands immediately
+    self.reviving, self.reviver, self.reviveTouched = nil, nil, false
+    self.healing = nil       -- a med kit mid-channel is cancelled, not spent
+    self.running, self.flying = false, false
+    self.vx, self.vy = 0, 0
+    -- whatever was held going down must be released before it works again,
+    -- or the revive would be interrupted by the same key that is still down
+    self.lockedInputs = {}
+    for _, k in ipairs({'shoot', 'interact', 'reload', 'drop'}) do
+        if self.input[k] then self.lockedInputs[k] = true end
+    end
+    local cx, cy = self:getCenter()
+    world.decals:add(cx, cy)
+    Audio.playAt('player_dead', cx, cy, 0.9, TUNE.audio.pitchJitter, world)
+end
+
+-- On the floor: crawl, bleed, wait. Called instead of the rest of update.
+function Player:updateDowned(dt, world)
+    local inp = self.input
+    local R = TUNE.revive
+
+    self.bleed = self.bleed - dt
+
+    -- a drip and a labored breath on a fixed beat, so the clock is audible
+    -- even looking away from the countdown
+    self.bleedCue = self.bleedCue - dt
+    if self.bleedCue <= 0 then
+        self.bleedCue = R.bleedTick
+        local cx, cy = self:getCenter()
+        world.decals:add(cx + love.math.random(-6, 6), cy + love.math.random(-4, 8))
+        Audio.playAt('player_damage', cx, cy, 0.35, TUNE.audio.pitchJitter, world)
+    end
+
+    -- crawl: movement and nothing else, at a fraction of walk speed
+    local typing = inp.typing
+    local function held(k) return (not typing) and inp[k] and not self.lockedInputs[k] end
+    for k in pairs(self.lockedInputs) do
+        if not inp[k] then self.lockedInputs[k] = nil end
+    end
+    local mx = (held('right') and 1 or 0) - (held('left') and 1 or 0)
+    local my = (held('down') and 1 or 0) - (held('up') and 1 or 0)
+    if mx ~= 0 and my ~= 0 then
+        local inv = 1 / math.sqrt(2)
+        mx, my = mx * inv, my * inv
+    end
+    self.maxSpeed = self.speed * R.crawlSpeed
+    self:accelToward(dt, mx, my, world, false)
+    self:moveAndCollide(dt, world)
+    self.animState = (mx ~= 0 or my ~= 0) and 'running' or 'idle'
+    self.animRun:update(dt * R.crawlSpeed)
+
+    -- the reviver re-arms this every frame it holds E in range. One frame
+    -- without it (they let go, walked off, or went down themselves) and the
+    -- progress is gone — no partial credit, same as BO2.
+    if not self.reviveTouched then
+        self.reviving, self.reviver = nil, nil
+    end
+    self.reviveTouched = false
+
+    if self.bleed <= 0 then self:bleedOut(world) end
+end
+
+-- A teammate finished the hold.
+function Player:reviveFrom(world)
+    self.downed, self.dead = false, false
+    self.health = math.min(self.maxHealth, TUNE.revive.reviveHealth)
+    self.lastHealth = self.health -- or the jump reads as damage next frame
+    self.bleed, self.reviving, self.reviver = 0, nil, nil
+    self.invulnTimer = TUNE.player.holeInvulnTime -- a breath before the horde
+    local cx, cy = self:getCenter()
+    world.vfx:healBurst(cx, cy)
+    Audio.playAt('medkit_heal', cx, cy, 0.9, TUNE.audio.pitchJitter, world)
+end
+
+-- Nobody got there in time. Out for the rest of this wave; core/waves.lua
+-- puts them back on their feet when the next one starts.
+function Player:bleedOut(world)
+    self.downed, self.dead = false, true
+    self.bleed, self.reviving, self.reviver = 0, nil, nil
+    self.vx, self.vy = 0, 0
+    local cx, cy = self:getCenter()
+    world.decals:add(cx, cy)
+    Audio.playAt('player_dead', cx, cy, 1, 0, world)
+end
+
+-- Back in the fight at the start of a wave, stripped to the starting loadout
+-- (BO2's rule: bleeding out costs your guns, not your wallet).
+function Player:respawn(world)
+    local live = world:upPlayers()
+    local anchor = live[1] or world.players[1]
+    if anchor and anchor ~= self then
+        self.x, self.y = anchor.x, anchor.y
+        self.currentRoom = anchor.currentRoom
+        world:snapCamera(self)
+    end
+    self.dead, self.downed = false, false
+    self.health = self.maxHealth
+    self.lastHealth = self.health
+    self.invulnTimer = TUNE.player.holeInvulnTime
+    self.items[1] = Gun:newUSP()
+    self.items[1].owner = self
+    self.items[2] = nil
+    self.grenades, self.molotovs, self.medkits = 0, 0, 0
+    if not TUNE.revive.respawnKeepsMoney then self.money = 0 end
+    self:selectSlot(1)
+    local cx, cy = self:getCenter()
+    world.vfx:healBurst(cx, cy)
+end
+
+-- True when this player can still act — the test zombies, the run-over rule
+-- and the revive prompt all want, and NOT the same as health > 0.
+function Player:isUp()
+    return not self.downed and not self.dead and self.health > 0
 end
 
 -- Left click or E with the kit in hand starts the patch-up channel; the

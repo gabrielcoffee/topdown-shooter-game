@@ -107,10 +107,19 @@ function Fx.setLowHealth(on)
     lowHealth = on
 end
 
+-- Bleeding out on the floor in co-op: 0 = not down, 1 = about to die. Driven
+-- by World:update from the bleed clock, and independent of the two above so
+-- the strongest source wins rather than them fighting.
+local bleedout = 0
+function Fx.setBleedout(k)
+    bleedout = k or 0
+end
+
 -- Drawn on top of the shader chain (flash stays undistorted)
 function Fx.drawOverlays()
     -- red rim: constant floor while at critical health, hit pulse on top
     local a = lowHealth and TUNE.fx.lowHealthVignetteOpacity or 0
+    if bleedout > 0 then a = math.max(a, bleedout) end
     if dmg.t > 0 then
         a = math.max(a, (dmg.t / TUNE.fx.damageVignetteTime) * TUNE.fx.damageVignetteOpacity)
     end

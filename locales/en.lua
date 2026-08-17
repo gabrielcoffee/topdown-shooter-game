@@ -84,6 +84,14 @@ return {
     ['hud.wallbuy_full']  = '%s ammo full',
     ['hud.round']         = 'R: %d',
 
+    -- co-op down & revive
+    ['hud.revive_prompt'] = 'Hold E to revive %s',
+    ['hud.bleeding_out']  = 'BLEEDING OUT - %d',
+    ['hud.downed_wait']   = 'Wait for a teammate to revive you',
+    ['hud.being_revived'] = '%s is reviving you',
+    ['hud.spectating']    = 'You bled out - back next wave',
+    ['hud.teammate']      = 'your teammate',
+
     ['powerup.nuke']         = 'NUKE',
     ['powerup.maxammo']      = 'MAX AMMO',
     ['powerup.instakill']    = 'INSTA-KILL',
