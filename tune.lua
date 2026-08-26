@@ -303,7 +303,14 @@ return {
             reloadBarW = 70, reloadBarH = 8, reloadBarGap = 14,
             medkitBarW = 90, medkitBarH = 10, medkitBarGap = 14,
             -- world-space, over a downed body (bleed clock + revive hold)
-            reviveBarW = 44, reviveBarGap = 8 },
+            reviveBarW = 44, reviveBarGap = 8,
+            -- co-op name tags, world-space over a teammate's head. Long names
+            -- are cut rather than shrunk: the tag has to stay the same size
+            -- as every other world label or it stops reading as one.
+            nameTagGap = 6, nameTagChars = 10,
+            nameTagNear = 220,      -- px: full brightness inside this
+            nameTagFar = 620,       -- px: faded to nameTagMinAlpha by here
+            nameTagMinAlpha = 0.35 },
 
     dev = { enabled = true,     -- master switch for the chat console (T)
             flySpeedMult = 2 }, -- god-mode fly (shift held): speed vs base walk
@@ -324,6 +331,19 @@ return {
         snapshotRate = 60,     -- Hz the host broadcasts world state
         timeout = 5,           -- secs of silence before a peer is dropped
         connectTimeout = 8,    -- secs to give up on joining a host
+
+        -- Remote bodies (other players, every zombie) are drawn from
+        -- snapshots rather than simulated. Writing each snapshot straight
+        -- onto x/y makes them jump once per packet, which reads as stutter
+        -- the moment packets stop arriving on a perfect beat. So a snapshot
+        -- moves a TARGET instead: the target keeps coasting on the velocity
+        -- that came with it, and the body eases toward the target every
+        -- frame. Free on a LAN, and the difference between smooth and
+        -- unwatchable over anything with jitter.
+        smoothTime = 0.055,     -- secs to close ~63% of the gap to the target
+        selfSmoothTime = 0.02,  -- our own body: shorter, own lag is felt
+        snapDist = 96,          -- px of error that means "teleported", not "late"
+        extrapolate = 0.2,      -- secs a target coasts with no new snapshot
 
         -- voice: raw PCM, no codec (a LAN has bandwidth to burn and Opus would
         -- be a native dependency for no gain). 25ms chunks stay under MTU.

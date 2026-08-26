@@ -15,7 +15,9 @@ local Protocol = {}
 -- at HELLO rather than being allowed to misread every packet after it
 -- 2: gameplay replication (snapshots, events, chat) plus two new input
 --    buttons for the mouse wheel, which widened the button bitmask
-Protocol.VERSION = 2
+-- 3: RELOAD joined the event kinds, so an older client would read the byte
+--    after it as the next event and desync the rest of the packet
+Protocol.VERSION = 3
 
 Protocol.MSG = {
     HELLO     = 1,  -- client -> host: version + name

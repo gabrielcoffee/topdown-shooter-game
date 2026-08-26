@@ -74,7 +74,8 @@ local ZIDX, GIDX, PIDX, WIDX = indexOf(ZKIND), indexOf(GUNID),
                                indexOf(PUKIND), indexOf(WSTATE)
 
 -- cosmetic one-shots
-Rep.EV = { SHOT = 1, KILL = 2, HIT = 3, DOOR = 4, POWERUP = 5, MELEE = 6 }
+Rep.EV = { SHOT = 1, KILL = 2, HIT = 3, DOOR = 4, POWERUP = 5, MELEE = 6,
+           RELOAD = 7 }
 
 -- ------------------------------------------------------------------ helpers
 
@@ -104,6 +105,53 @@ end
 
 local function bit(v, i) return math.floor(v / 2 ^ (i - 1)) % 2 == 1 end
 
+-- ---------------------------------------------------------------- smoothing
+
+-- A snapshot does not move a remote body. It moves that body's TARGET, and
+-- the body chases the target every frame -- so a packet that lands late, or
+-- early, or not at all stops being a visible jerk. Between packets the target
+-- keeps coasting on the velocity the snapshot carried, which is right far
+-- more often than standing still would be: a zombie walking at you is still
+-- walking at you 30ms later.
+--
+-- Two guards, both load-bearing:
+--   * a target with no fresh snapshot stops coasting after `extrapolate`
+--     seconds, or a body the host quietly dropped would walk off forever
+--   * an error bigger than `snapDist` is a teleport, not lag -- a respawn, a
+--     hole, a drop-in join -- and has to land on the frame it arrives rather
+--     than sliding across the room to get there
+--
+-- Our own body eases on a much shorter constant: smoothing something you are
+-- steering yourself is felt as input lag, smoothing someone else is not.
+function Rep.setTarget(e, x, y, vx, vy)
+    if e.netX == nil then e.x, e.y = x, y end -- first sight: appear, don't slide in
+    e.netX, e.netY, e.netAge = x, y, 0
+    e.vx, e.vy = vx, vy
+end
+
+function Rep.smooth(e, dt, mine)
+    if e.netX == nil then return end
+    local N = TUNE.net
+
+    local age = e.netAge or 0
+    local coast = math.min(dt, math.max(0, (N.extrapolate or 0) - age))
+    if coast > 0 then
+        e.netX = e.netX + (e.vx or 0) * coast
+        e.netY = e.netY + (e.vy or 0) * coast
+    end
+    e.netAge = age + dt
+
+    local dx, dy = e.netX - e.x, e.netY - e.y
+    local snap = N.snapDist or 96
+    if dx * dx + dy * dy > snap * snap then
+        e.x, e.y = e.netX, e.netY
+        return
+    end
+    local tau = mine and (N.selfSmoothTime or 0.02) or (N.smoothTime or 0.055)
+    local k = (tau > 0) and (1 - math.exp(-dt / tau)) or 1
+    e.x, e.y = e.x + dx * k, e.y + dy * k
+end
+
 -- ------------------------------------------------------------------ session
 
 function Rep.begin(role, slot)
@@ -127,8 +175,11 @@ function Rep.event(kind, ...)
     eventBuf[#eventBuf + 1] = { kind = kind, n = select('#', ...), ... }
 end
 
-local function flushEvents()
-    if #eventBuf == 0 then return end
+-- Drain the queue into one packet. Split from the send so the format has
+-- something to be tested against without a socket in the way -- everything
+-- below is write-once-read-once and silently wrong if the two sides drift.
+function Rep.buildEvents()
+    if #eventBuf == 0 then return nil end
     local w = Protocol.writer(Protocol.MSG.EVENT)
     w:u8(math.min(#eventBuf, 255))
     for i = 1, math.min(#eventBuf, 255) do
@@ -150,10 +201,19 @@ local function flushEvents()
         elseif e.kind == Rep.EV.MELEE then
             wpos(w, e[1], e[2])
             w:f32(e[3])
+        elseif e.kind == Rep.EV.RELOAD then
+            w:u8(e[1])            -- slot
+            wpos(w, e[2], e[3])   -- where the gun is, so the sound lands there
+            w:u8(GIDX[e[4]] or 0) -- gun id, so a stale snapshot can't replay
         end
     end
     for i = #eventBuf, 1, -1 do eventBuf[i] = nil end
-    Session().send(Transport.CHAN.EVENT, w:build(), 'reliable')
+    return w:build()
+end
+
+local function flushEvents()
+    local data = Rep.buildEvents()
+    if data then Session().send(Transport.CHAN.EVENT, data, 'reliable') end
 end
 
 -- ---------------------------------------------------------- host: snapshot
@@ -378,7 +438,7 @@ local function applyPlayer(r, world)
         p.netName = s and s.name or nil
     end
 
-    p.x, p.y, p.vx, p.vy = x, y, vx, vy
+    Rep.setTarget(p, x, y, vx, vy)
     p.health = health
     p.facingLeft = bit(fl, 1)
     p.running    = bit(fl, 2)
@@ -437,7 +497,7 @@ local function applyZombies(r, world)
             world:addEntity(e)
             byNetId[netId] = e
         end
-        e.x, e.y, e.vx, e.vy = x, y, vx, vy
+        Rep.setTarget(e, x, y, vx, vy)
         e.health = health
         e.carrier = carrier
     end
@@ -643,6 +703,11 @@ function Rep.applyEvent(r, world)
             if gunId then
                 local p = world.netBySlot and world.netBySlot[slot]
                 local proto = Gun.newById(gunId)
+                -- the shooter's own gun kicks, racks and throws a casing --
+                -- without this a teammate emptying a magazine next to you is
+                -- a noise and a light with a perfectly still gun under it
+                local held = p and p.items[p.itemIndex]
+                if held and held.isGun and held.id == gunId then held:shootFx() end
                 Audio.playAt(gunId .. '_shot', x, y, 1, TUNE.audio.pitchJitter, world)
                 world.vfx:muzzleSparks(x, y, angle)
                 local mb = TUNE.lighting.muzzleBright
@@ -684,6 +749,23 @@ function Rep.applyEvent(r, world)
             if not r:ok() then return end
             world.vfx:bloodSplatter(x, y, angle)
             Audio.playAt('knife_hit', x, y, 1, TUNE.audio.pitchJitter, world)
+
+        elseif kind == Rep.EV.RELOAD then
+            local slot = r:u8()
+            local x, y = rpos(r)
+            local gunId = GUNID[r:u8() or 0]
+            if not r:ok() then return end
+            local p = world.netBySlot and world.netBySlot[slot]
+            local g = p and p.items[p.itemIndex]
+            -- Only replay it if the gun in hand IS the gun that reloaded: the
+            -- snapshot that carries a weapon swap and this event race, and
+            -- playing an AK reload out of a pistol is worse than silence.
+            -- The ammo is not touched here -- that arrives in the snapshot,
+            -- where the only real magazine is.
+            if g and g.isGun and g.id == gunId and not g.reloading then
+                g.x, g.y = x, y
+                g:beginReloadFx()
+            end
 
         elseif kind == Rep.EV.DOOR then
             local id = r:str()

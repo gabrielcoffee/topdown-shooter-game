@@ -2,6 +2,22 @@
 
 One entry per completed PLAN.md step. Newest on top. Format: date — step — what changed, player-visible terms.
 
+## Unreleased — co-op presence
+
+Everything here is about what a teammate looks and sounds like from the other
+side of the room. Nothing changes solo.
+
+- **Other players move smoothly.** They used to jump from one network update to
+  the next, which looked fine on a fast LAN and terrible on anything else.
+  Now every remote body — teammates and zombies both — glides toward where the
+  host says it is, and keeps moving on its last known speed between updates.
+- **Names float over your teammates**, colored per player, fading with distance
+- **You hear teammates reload**, and see the reload, from wherever they are
+- **Their guns kick, rack and throw casings** when they fire, instead of firing
+  a noise and a muzzle flash with a motionless gun underneath
+- Picking things up stays silent to everyone else — a room full of other
+  people's inventory clicks is noise, not information
+
 ## 1.1 — 2026-08-17 — THE MULTIPLAYER UPDATE
 
 **LAN co-op for up to 4 players, and the window finally resizes.** Download

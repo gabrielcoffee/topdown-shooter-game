@@ -326,10 +326,31 @@ function Gun:update(dt, px, py, mx, my)
     end
 end
 
-function Gun:reload()
-    if self.reloading or self.curClip >= self.maxClip or self.bulletsLeft <= 0 then
-        return
+-- Everything a shot does that is not a bullet: the kick, the spread, the
+-- casing. Split out for the same reason beginReloadFx is -- a networked
+-- client is told this gun fired and has to look like it did, without owning
+-- a round of ammunition or a point of damage.
+function Gun:shootFx()
+    self.recoil = math.min(self.recoilMax, self.recoil + self.recoilPerShot)
+    self.sinceShot = 0
+    self.kickPos = 1 -- slide-back kick on every gun
+    if self.type ~= GUNTYPE.auto then -- muzzle-rise only on pistol + shotgun, not ak/m4
+        self.kickAng = 1
     end
+
+    -- casing eject: shotgun throws it on the pump beat, others auto-eject now
+    if self.type == GUNTYPE.shotgun then
+        self:pump(true)
+    else
+        self:ejectShell()
+    end
+end
+
+-- The presentation half of a reload: the pose, the gif and the noise, with
+-- no decision in it. Split out because a networked client has to run exactly
+-- this and nothing else — it is told a reload started, and the rounds it
+-- would otherwise count arrive in the next snapshot.
+function Gun:beginReloadFx()
     self.drawingIn = false -- reload pose takes over from a mid-draw animation
     self:cutPick() -- gun goes down: no pick clack (playing or queued) survives
     self.reloading = true
@@ -349,6 +370,22 @@ function Gun:reload()
             self.pickPending = true
             self.pickWaitSrc = self.reloadSrc
         end
+    end
+end
+
+function Gun:reload()
+    if self.reloading or self.curClip >= self.maxClip or self.bulletsLeft <= 0 then
+        return
+    end
+    self:beginReloadFx()
+    -- LAN: a teammate reloading is something you hear across a room and plan
+    -- around, so it goes out the same way the shot does. Pickups and weapon
+    -- swaps deliberately do not — a room full of other people's inventory
+    -- clicks is noise, not information.
+    local Rep = require('net.replication')
+    if Rep.isHost() then
+        Rep.event(Rep.EV.RELOAD, (self.owner and self.owner.netSlot) or 1,
+            self.x, self.y, self.id)
     end
 end
 
@@ -646,20 +683,8 @@ function Gun:fire(leftReleased)
                 self.x, self.y, shotAngle, self.id)
         end
 
-        self.recoil = math.min(self.recoilMax, self.recoil + self.recoilPerShot)
-        self.sinceShot = 0
-        self.kickPos = 1 -- slide-back kick on every gun
-        if self.type ~= GUNTYPE.auto then -- muzzle-rise only on pistol + shotgun, not ak/m4
-            self.kickAng = 1
-        end
+        self:shootFx()
         self.curClip = self.curClip - 1
-
-        -- casing eject: shotgun throws it on the pump beat, others auto-eject now
-        if self.type == GUNTYPE.shotgun then
-            self:pump(true)
-        else
-            self:ejectShell()
-        end
 
         -- shotgun: barrels empty -> break open and reload right away
         if self.shellSfx and self.curClip <= 0 and self.bulletsLeft > 0 then

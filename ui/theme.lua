@@ -16,6 +16,21 @@ Theme.fonts = {
     hud   = love.graphics.newFont('assets/fonts/PressStart2P-Regular.ttf', 14),
 }
 
+-- One color per lobby slot, for anywhere a player has to be told from another
+-- at a glance. Picked to stay apart at name-tag size and under the game's
+-- warm torchlight, and to avoid blood red, which already means "selected"
+-- in menus and "hurt" everywhere else.
+Theme.slotColors = {
+    { 1.00, 0.85, 0.35 }, -- 1  amber
+    { 0.45, 0.80, 1.00 }, -- 2  sky
+    { 0.55, 0.95, 0.55 }, -- 3  green
+    { 1.00, 0.55, 0.85 }, -- 4  pink
+}
+
+function Theme.slotColor(slot)
+    return Theme.slotColors[((slot or 1) - 1) % #Theme.slotColors + 1]
+end
+
 Theme.colors = {
     blood    = {0.78, 0.08, 0.10},
     nightmare = {0.62, 0.14, 0.80}, -- purple wave banner on nightmare waves

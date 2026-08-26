@@ -373,6 +373,9 @@ end
 -- otherwise look frozen. No pathfinding, no damage, no attacks -- one machine
 -- decides who gets bitten, and it is not this one.
 function Enemy:updateRemote(dt, world)
+    -- ease toward the snapshot rather than snapping onto it: sixty of these
+    -- jumping at once is what a laggy wave actually looks like
+    require('net.replication').smooth(self, dt)
     if self.flashTimer and self.flashTimer > 0 then
         self.flashTimer = self.flashTimer - dt
     end

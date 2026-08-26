@@ -31,7 +31,7 @@ save dir and quits:
 
     autotest  autotest_downed  autotest_score  autotest_controls
     autotest_menu  autotest_options  autotest_mp  autotest_lobby
-    autotest_keys  autotest_splash
+    autotest_keys  autotest_splash  autotest_names
 
 Add-on args: `shot<N>` screenshots at frame N instead of 90, and
 `win<W>x<H>` forces a window size first (`love . autotest win1280x700` — odd

@@ -127,6 +127,26 @@ function love.load()
             world.players[3]:goDown(world)        -- downed
             world.players[4].dead = true          -- bled out
             _G._autotest = { frames = 0, holdScoreboard = true }
+        elseif a == 'autotest_names' then
+            -- co-op name tags: four bodies at spreading distances, so the
+            -- shot covers the tag itself, the slot colors, the distance fade
+            -- and the tag over a downed teammate all at once
+            State.switch('playing')
+            require('net.session').startHost()
+            local p = world.player
+            p.netSlot, p.netName = 1, 'coffeebreak'
+            world.netBySlot = { [1] = p }
+            world.multiplayer = true
+            local names = { 'Notch', 'dinnerbone', 'jeb_' }
+            for i = 1, 3 do
+                local q = world:addPlayer(p.x + 70 * i, p.y - 20 * i)
+                q.netSlot, q.netName = i + 1, names[i]
+                world.netBySlot[i + 1] = q
+                require('net.session').players[i + 1] =
+                    { slot = i + 1, name = names[i], ready = true }
+            end
+            world.players[3]:goDown(world)
+            _G._autotest = { frames = 0 }
         elseif a == 'autotest_keys' then
             State.switch('menu')
             State.push('options')

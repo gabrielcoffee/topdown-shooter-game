@@ -7,6 +7,7 @@ local HandItem = require('hand_items.hand_item')
 local ThrownGrenade = require('entities.thrown_grenade')
 local Hotbar = require('ui.hotbar')
 local Audio = require('core.audio')
+local Theme = require('ui.theme')
 
 local Player = {}
 Player.__index = Player
@@ -651,6 +652,49 @@ function Player:onFellInHole(world)
 end
 
 
+-- Co-op name tag: which of the four bodies in the room is which person.
+-- World space and smallFont, exactly like the chest and wall-buy labels, so
+-- it reads as part of the same signage rather than as HUD stuck over the
+-- world. Fades with distance instead of disappearing -- a teammate you can
+-- barely see is still a teammate you want to be able to name.
+--
+-- Never drawn over our own body: we know who we are, and the tag would sit
+-- on top of the thing the crosshair is trying to look at.
+function Player:drawNameTag(world)
+    if self == world.player or self.dead then return end
+    local name = self.netName
+    if not name or name == '' then return end
+
+    local H = TUNE.hud
+    local cx, cy = self:getCenter()
+    local mx, my = world.player:getCenter()
+    local dx, dy = cx - mx, cy - my
+    local dist = math.sqrt(dx * dx + dy * dy)
+    local a = 1
+    if dist > H.nameTagNear then
+        a = 1 - (dist - H.nameTagNear) / (H.nameTagFar - H.nameTagNear)
+        a = math.max(H.nameTagMinAlpha, math.min(1, a))
+    end
+
+    local label = name
+    if #label > H.nameTagChars then label = label:sub(1, H.nameTagChars) end
+
+    local prev = love.graphics.getFont()
+    love.graphics.setFont(smallFont)
+    local x = math.floor(cx - smallFont:getWidth(label) / 2)
+    -- above the head, and above the bleed bar when there is one
+    local top = math.floor(self.y) - H.nameTagGap - smallFont:getHeight()
+    if self.downed then top = top - H.reviveBarGap - 10 end
+
+    love.graphics.setColor(0, 0, 0, 0.8 * a)
+    love.graphics.print(label, x + 1, top + 1)
+    local c = Theme.slotColor(self.netSlot)
+    love.graphics.setColor(c[1], c[2], c[3], a)
+    love.graphics.print(label, x, top)
+    love.graphics.setColor(Color.white())
+    love.graphics.setFont(prev)
+end
+
 function Player:draw()
     local facingLeft = self.facingLeft
 
@@ -911,6 +955,10 @@ end
 function Player:updateRemote(dt, world)
     local inp = self.input
     local mine = (self == world.player)
+
+    -- chase the position the snapshot asked for instead of teleporting onto
+    -- it; see the note over Rep.smooth
+    require('net.replication').smooth(self, dt, mine)
 
     local pop = self.moneyPopup
     if pop then

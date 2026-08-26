@@ -886,6 +886,22 @@ function World:draw()
         end
     end)
 
+    -- Teammate name tags, drawn after the lighting pass so a player standing
+    -- in an unlit corner is still identifiable, but BEFORE the room mask, so
+    -- a name cannot float in the void of a room you are not supposed to be
+    -- seeing into.
+    if self:isMultiplayer() then
+        -- outside the lighting closure the canvas is back in screen space, so
+        -- put the camera transform back on by hand to draw in world coords
+        love.graphics.push()
+        love.graphics.scale(SCALE, SCALE)
+        love.graphics.translate(-camX, -camY)
+        for _, p in ipairs(self.players) do
+            p:drawNameTag(self)
+        end
+        love.graphics.pop()
+    end
+
     -- On a window wider than 4:3 the view is wider than some rooms, so without
     -- this you would see straight into the room next door through its wall.
     self:drawRoomMask()

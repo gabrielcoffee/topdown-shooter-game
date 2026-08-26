@@ -533,10 +533,14 @@ function Selftest.run()
 
         local rn = Protocol.reader(newer); rn:u8()
         Rep.applySnapshot(rn, client)
-        ok(math.abs(client.netBySlot[1].x - h1.x) < 0.5, 'the newest snapshot applies')
+        step(client, 1) -- a snapshot moves the target; the frame moves the body
+        ok(math.abs(client.netBySlot[1].x - h1.x) < 0.5,
+            ('the newest snapshot applies (500px is a teleport, so it lands '
+             .. 'in one frame: x %.1f)'):format(client.netBySlot[1].x))
 
         local rs = Protocol.reader(older); rs:u8()
         Rep.applySnapshot(rs, client)
+        step(client, 1)
         ok(math.abs(client.netBySlot[1].x - h1.x) < 0.5,
             ('a late snapshot is dropped instead of rewinding the world '
              .. '(x %.1f, not %.1f)'):format(client.netBySlot[1].x, oldX))
@@ -563,6 +567,83 @@ function Selftest.run()
                 end
             end
             ok(not stillThere, 'the door entity is gone on the client too')
+        end
+
+        -- ------------------------------------------------- smoothing
+        -- A snapshot inside snapDist must not teleport the body onto it: the
+        -- whole point is that it slides, and that it gets there.
+        local before = client.netBySlot[1].x
+        h1.x, h1.vx = h1.x + 40, 0
+        local near = Rep.buildSnapshot(host, false)
+        local rnear = Protocol.reader(near); rnear:u8()
+        Rep.applySnapshot(rnear, client)
+        local c1x = client.netBySlot[1]
+        ok(math.abs(c1x.netX - h1.x) < 0.3, 'the snapshot moved the target')
+        ok(math.abs(c1x.x - before) < 0.3,
+            'a 40px correction does not land on the frame it arrives')
+        step(client, 20) -- a third of a second of frames
+        ok(math.abs(c1x.x - h1.x) < 1.5,
+            ('the body catches up to the target (%.1f vs %.1f)'):format(c1x.x, h1.x))
+
+        -- With no new snapshot the target coasts on the velocity it was given,
+        -- then stops -- a body the host dropped must not walk away forever.
+        h1.vx = 60
+        local moving = Rep.buildSnapshot(host, false)
+        local rmov = Protocol.reader(moving); rmov:u8()
+        Rep.applySnapshot(rmov, client)
+        local tx = c1x.netX
+        step(client, 60) -- a full second, far longer than TUNE.net.extrapolate
+        local coasted = c1x.netX - tx
+        ok(coasted > 0, ('the target coasts on replicated velocity (%.1fpx)'):format(coasted))
+        ok(coasted <= 60 * TUNE.net.extrapolate + 2,
+            ('coasting stops at extrapolate seconds, not forever (%.1fpx)'):format(coasted))
+        h1.vx = 0
+
+        -- ------------------------------------------------- event wire
+        -- Nothing tested the event packet until now, and it is the channel
+        -- every one-shot cue rides: shots, kills, doors, reloads.
+        Rep.role = 'host'
+        local hostGun = h1.items[1]
+        hostGun.curClip, hostGun.bulletsLeft = 0, 30
+        h1.itemIndex = 1
+        hostGun:reload()
+        ok(hostGun.reloading, 'the host gun actually started reloading')
+
+        local evData = Rep.buildEvents()
+        ok(evData ~= nil, 'the reload queued an event')
+        Rep.role = 'client'
+        local cgun = client.netBySlot[1].items[1]
+        client.netBySlot[1].itemIndex = 1
+        cgun.reloading = false
+        local rev = Protocol.reader(evData); rev:u8()
+        Rep.applyEvent(rev, client)
+        ok(cgun.reloading == true,
+            'a teammate reloading replays the reload on the other machine')
+
+        -- and the door event, which is what makes a door burst open in front
+        -- of you rather than quietly being gone the next time props land
+        local evDoor
+        for _, e in ipairs(host.entities) do
+            if e.type == 'door' and e.id and not e.toRemove then evDoor = e break end
+        end
+        if evDoor then
+            local id = evDoor.id
+            Rep.role = 'host'
+            host:openDoor(evDoor)
+            local dData = Rep.buildEvents()
+            Rep.role = 'client'
+            local cdoor
+            for _, e in ipairs(client.entities) do
+                if e.type == 'door' and e.id == id and not e.toRemove then cdoor = e end
+            end
+            if cdoor and dData then
+                local rd = Protocol.reader(dData); rd:u8()
+                Rep.applyEvent(rd, client)
+                ok(cdoor.toRemove == true,
+                    'a door opened by someone else opens here too, live')
+                ok(client.openedDoors[id] == true,
+                    'and is recorded as progression, not just removed')
+            end
         end
 
         -- a truncated snapshot must fail closed, exactly like any other packet
