@@ -7,6 +7,7 @@ in PLAN.md; player-visible detail per release lives in CHANGELOG.md.
 
 | Version | Date | What |
 |---|---|---|
+| **1.2 — The Teammate Update** | 2026-08-26 | Smooth remote players, name tags, teammate shot/reload audio, scoreboard counts kills. Desktop only. |
 | **1.1 — The Multiplayer Update** | 2026-08-17 | LAN co-op 4p, downed & revive, voice, scoreboard, free window resize. Desktop only. |
 | **1.0 web** | 2026-08-14 | Browser build live at 60fps, singleplayer, ships from `web-release` |
 | **1.0** | 2026-08-06 | First public release on itch.io (Windows / macOS / Linux) |

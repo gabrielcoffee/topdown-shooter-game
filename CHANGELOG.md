@@ -2,10 +2,13 @@
 
 One entry per completed PLAN.md step. Newest on top. Format: date — step — what changed, player-visible terms.
 
-## Unreleased — co-op presence
+## 1.2 — 2026-08-26 — THE TEAMMATE UPDATE
 
-Everything here is about what a teammate looks and sounds like from the other
-side of the room. Nothing changes solo.
+**Everything about what a teammate looks and sounds like from the other side
+of the room.** Nothing here changes a solo run.
+
+> Everyone has to be on 1.2 to play together — 1.1 and 1.2 cannot join each
+> other.
 
 - **Other players move smoothly.** They used to jump from one network update to
   the next, which looked fine on a fast LAN and terrible on anything else.
