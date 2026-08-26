@@ -446,7 +446,7 @@ function Selftest.run()
         h2.netSlot = 2
         host.netBySlot[2] = h2
 
-        h1.money, h1.earnedTotal, h1.health = 1234, 5678, 73
+        h1.money, h1.kills, h1.health = 1234, 57, 73
         h1.grenades, h1.medkits = 2, 1
         h2.health = 0
         h2.downed, h2.bleed = true, 21
@@ -489,7 +489,7 @@ function Selftest.run()
         ok(#client.players == 2, 'the client did not double-add a player')
         ok(math.abs(c1.x - h1.x) < 0.3 and math.abs(c1.y - h1.y) < 0.3,
             ('player 1 position within a quarter pixel (%.2f vs %.2f)'):format(c1.x, h1.x))
-        ok(c1.money == 1234 and c1.earnedTotal == 5678, 'money and score replicated')
+        ok(c1.money == 1234 and c1.kills == 57, 'money and kill count replicated')
         ok(c1.health == 73, ('health replicated (%d)'):format(c1.health))
         ok(c1.grenades == 2 and c1.medkits == 1, 'consumable counts replicated')
         ok(c2.downed == true, 'the downed flag replicated')
@@ -677,6 +677,18 @@ function Selftest.run()
     z:takeDamage(1, world, { hitReward = 10, killBonus = 0 }, p2)
     ok(p2.money == m2 + 10, ('shooter was paid (%d -> %d)'):format(m2, p2.money))
     ok(p1.money == m1, 'the other player was not paid')
+
+    -- the scoreboard's KILLS column: credited to whoever landed the last hit,
+    -- on the same rule the money follows
+    local k1, k2 = p1.kills, p2.kills
+    local z2 = Enemy:newSlow(p2.x + 60, p2.y, 1)
+    world:addEntity(z2)
+    z2:takeDamage(9999, world, { hitReward = 10, killBonus = 90 }, p2)
+    ok(p2.kills == k2 + 1, ('the killer got the kill (%d -> %d)'):format(k2, p2.kills))
+    ok(p1.kills == k1, 'the other player did not')
+    -- and a second hit on a corpse must not count twice
+    z2:takeDamage(10, world, { hitReward = 10, killBonus = 90 }, p2)
+    ok(p2.kills == k2 + 1, 'shooting a body again does not re-count it')
 
     -- a nil attacker still pays someone (solo, environmental)
     z:takeDamage(1, world, { hitReward = 5, killBonus = 0 }, nil)

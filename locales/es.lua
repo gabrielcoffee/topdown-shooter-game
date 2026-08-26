@@ -93,11 +93,9 @@ return {
 
     -- co-op scoreboard (hold TAB)
     ['score.player']   = 'JUGADOR',
-    ['score.state']    = 'ESTADO',
-    ['score.score']    = 'PUNTOS',
+    ['score.hp']       = 'VIDA',
+    ['score.kills']    = 'BAJAS',
     ['score.money']    = 'DINERO',
-    ['score.alive']    = '%d HP',
-    ['score.hurt']     = 'HERIDO %d HP',
     ['score.downed']   = 'DERRIBADO',
     ['score.dead']     = 'FUERA ESTA OLEADA',
     ['score.unknown']  = 'JUGADOR',

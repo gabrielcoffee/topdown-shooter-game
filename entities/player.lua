@@ -51,7 +51,7 @@ function Player:new(x, y, width, height)
 
     obj.speed = TUNE.player.baseSpeed
     obj.money = TUNE.player.startMoney
-    obj.earnedTotal = 0 -- lifetime run earnings = the score (spending doesn't shrink it)
+    obj.kills = 0 -- zombies this player put down, for the co-op scoreboard
     obj.isPlayer = true
     obj.lastGroundX, obj.lastGroundY = x, y
     obj.leftReleased = true
@@ -1194,7 +1194,6 @@ function Player:addMoney(n)
     -- earn shows on its own -- a new one replaces the old, never adds up
     local gained = self.money - before
     if gained > 0 then
-        self.earnedTotal = self.earnedTotal + gained
         self.moneyPopup = { amount = gained, t = 0 }
     end
 end
@@ -1274,7 +1273,7 @@ function Player:serialize()
         y = self.y,
         health = self.health,
         money = self.money,
-        earnedTotal = self.earnedTotal,
+        kills = self.kills,
         itemIndex = self.itemIndex,
         lastGunSlot = self.lastGunSlot,
         grenades = self.grenades,
@@ -1293,7 +1292,7 @@ function Player:restore(data)
     end
     self.health = data.health or self.health
     self.money = math.max(0, math.min(data.money or self.money, TUNE.player.maxMoney))
-    self.earnedTotal = data.earnedTotal or self.money -- old saves: money is the best guess
+    self.kills = data.kills or 0 -- pre-1.2 saves never counted them
 
     -- pre-hotbar saves only carry health/money; keep the default loadout
     if not data.gunSlots then return end

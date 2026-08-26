@@ -17,7 +17,9 @@ local Protocol = {}
 --    buttons for the mouse wheel, which widened the button bitmask
 -- 3: RELOAD joined the event kinds, so an older client would read the byte
 --    after it as the next event and desync the rest of the packet
-Protocol.VERSION = 3
+-- 4: the scoreboard counts kills per player instead of lifetime earnings, so
+--    the player record carries a u16 where it used to carry a u32
+Protocol.VERSION = 4
 
 Protocol.MSG = {
     HELLO     = 1,  -- client -> host: version + name

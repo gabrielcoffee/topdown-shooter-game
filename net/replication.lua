@@ -242,7 +242,7 @@ local function writePlayer(w, p, slot)
     local rk = p.reviving and (p.reviving / TUNE.revive.reviveTime) or 0
     w:u8(math.max(0, math.min(255, math.floor(rk * 255))))
     w:u32(math.max(0, math.floor(p.money or 0)))
-    w:u32(math.max(0, math.floor(p.earnedTotal or 0)))
+    w:u16(math.max(0, math.min(65535, math.floor(p.kills or 0))))
     w:u8(p.itemIndex or 1)
     w:u8(p.grenades or 0)
     w:u8(p.molotovs or 0)
@@ -412,7 +412,7 @@ local function applyPlayer(r, world)
     local fl = r:u8()
     local bleed = r:u8()
     local revive = r:u8()
-    local money, earned = r:u32(), r:u32()
+    local money, kills = r:u32(), r:u16()
     local itemIndex = r:u8()
     local grenades, molotovs, medkits, throwable = r:u8(), r:u8(), r:u8(), r:u8()
     local guns = {}
@@ -450,7 +450,7 @@ local function applyPlayer(r, world)
     p.healing    = bit(fl, 8) and (p.healing or TUNE.healthpack.useTime) or nil
     p.bleed = bleed
     p.reviving = revive > 0 and (revive / 255) * TUNE.revive.reviveTime or nil
-    p.money, p.earnedTotal = money, earned
+    p.money, p.kills = money, kills
     p.grenades, p.molotovs, p.medkits = grenades, molotovs, medkits
     p.throwableType = (throwable == 2) and 'molotov' or 'grenade'
 

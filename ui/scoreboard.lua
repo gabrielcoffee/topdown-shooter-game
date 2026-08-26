@@ -18,8 +18,9 @@ local PAD = 16
 
 -- one column per thing worth knowing, laid out from a single width table so
 -- the header and the rows can never drift apart
--- state is the widest because it carries the longest string in any language
--- ("OUT THIS WAVE" / "FUERA ESTA OLEADA"), and it sits left of a
+-- the HP column is mostly a two- or three-digit number, but still the widest
+-- of the three: it carries the longest string in any language when someone is
+-- out ("OUT THIS WAVE" / "FUERA ESTA OLEADA"), and it sits left of a
 -- right-aligned number, so an overrun collides rather than just looking tight
 local COLS = {
     { key = 'name',  w = 200, align = 'left' },
@@ -34,14 +35,17 @@ local function totalWidth()
     return w
 end
 
--- What this player is doing, in two words, most urgent first.
+-- What this player is doing, most urgent first. Under an HP header a healthy
+-- player is just a number -- the color carries "hurt" without spending a word
+-- on it -- but being on the floor or out of the wave is not a health reading
+-- and says so.
 local function stateOf(p)
     if p.dead then return T('score.dead'), { 0.55, 0.55, 0.55 } end
     if p.downed then return T('score.downed'), { 1, 0.3, 0.3 } end
     if p.health <= TUNE.player.lowHealthThreshold then
-        return T('score.hurt', math.floor(p.health)), { 1, 0.65, 0.2 }
+        return tostring(math.floor(p.health)), { 1, 0.65, 0.2 }
     end
-    return T('score.alive', math.floor(p.health)), { 0.7, 0.9, 0.7 }
+    return tostring(math.floor(p.health)), { 0.7, 0.9, 0.7 }
 end
 
 function Scoreboard.visible()
@@ -54,15 +58,15 @@ end
 function Scoreboard.draw(world)
     if not world or not world.players then return end
 
-    -- sort by score, highest first, so the board answers "who is winning"
+    -- sort by kills, highest first, so the board answers "who is carrying"
     -- without anyone reading four numbers
     local rows = {}
     for _, p in ipairs(world.players) do rows[#rows + 1] = p end
     table.sort(rows, function(a, b)
-        if (a.earnedTotal or 0) == (b.earnedTotal or 0) then
+        if (a.kills or 0) == (b.kills or 0) then
             return (a.netSlot or 0) < (b.netSlot or 0)
         end
-        return (a.earnedTotal or 0) > (b.earnedTotal or 0)
+        return (a.kills or 0) > (b.kills or 0)
     end)
 
     local w = totalWidth()
@@ -84,8 +88,8 @@ function Scoreboard.draw(world)
 
     -- header
     local hx, hy = x + PAD, y + PAD
-    local head = { name = T('score.player'), state = T('score.state'),
-                   score = T('score.score'), money = T('score.money') }
+    local head = { name = T('score.player'), state = T('score.hp'),
+                   score = T('score.kills'), money = T('score.money') }
     for _, c in ipairs(COLS) do
         cell(c, hx, hy, head[c.key], { 0.6, 0.6, 0.6 })
         hx = hx + c.w
@@ -114,7 +118,7 @@ function Scoreboard.draw(world)
             elseif c.key == 'state' then
                 text, color = stateText, stateColor
             elseif c.key == 'score' then
-                text, color = T('hud.money', math.floor(p.earnedTotal or 0)), { 1, 0.85, 0.3 }
+                text, color = tostring(math.floor(p.kills or 0)), { 1, 0.85, 0.3 }
             else
                 text, color = T('hud.money', math.floor(p.money or 0)), { 0.8, 0.8, 0.8 }
             end

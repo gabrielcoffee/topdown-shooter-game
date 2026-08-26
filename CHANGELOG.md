@@ -17,6 +17,10 @@ side of the room. Nothing changes solo.
   a noise and a muzzle flash with a motionless gun underneath
 - Picking things up stays silent to everyone else — a room full of other
   people's inventory clicks is noise, not information
+- **The scoreboard counts kills.** It used to rank you by lifetime earnings,
+  which is really just "who opened the box least". Columns are now
+  PLAYER / HP / KILLS / CASH, sorted by kills. A nuke belongs to nobody, so
+  the four columns are allowed to add up to less than the run total
 
 ## 1.1 — 2026-08-17 — THE MULTIPLAYER UPDATE
 

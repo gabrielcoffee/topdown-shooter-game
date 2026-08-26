@@ -110,7 +110,7 @@ function love.load()
             require('net.session').startHost()
             local p = world.player
             p.netSlot, p.netName = 1, 'coffeebreak'
-            p.earnedTotal, p.money = 4820, 1350
+            p.kills, p.money = 52, 1350
             world.netBySlot = { [1] = p }
             world.multiplayer = true
             world.kills = 137
@@ -118,7 +118,7 @@ function love.load()
             for i = 1, 3 do
                 local q = world:addPlayer(p.x + 30 * i, p.y)
                 q.netSlot, q.netName = i + 1, names[i]
-                q.earnedTotal, q.money = 5200 - i * 900, 400 * i
+                q.kills, q.money = 39 - (i - 1) * 11, 400 * i
                 world.netBySlot[i + 1] = q
                 require('net.session').players[i + 1] =
                     { slot = i + 1, name = names[i], ready = true }
@@ -172,7 +172,7 @@ function love.load()
 
             local p = world.player
             p.netSlot, p.netName = 1, 'coffeebreak'
-            p.money, p.earnedTotal = 2150, 18400
+            p.money, p.kills = 2150, 96
             world.netBySlot = { [1] = p }
 
             -- names stay inside TUNE.hud.nameTagChars so none of them is cut
@@ -185,7 +185,7 @@ function love.load()
                 local q = world:addPlayer(p.x + m.dx, p.y + m.dy)
                 q.netSlot, q.netName = i + 1, m.name
                 q.money = 900 + i * 640
-                q.earnedTotal = 21000 - i * 4300
+                q.kills = 83 - (i - 1) * 21
                 q:giveGun(Gun.newById(m.gun))
                 q.itemIndex = q.lastGunSlot or 2
                 world.netBySlot[i + 1] = q
@@ -331,7 +331,7 @@ function love.update(dt)
         local shotFrame = _autotest.shotFrame or 90
         if _autotest.frames == shotFrame then
             love.graphics.captureScreenshot('autotest.png')
-        elseif _autotest.frames > shotFrame + 3 then
+        elseif _autotest.frames > shotFrame + 10 then -- let the capture flush
             love.event.quit()
         end
     end

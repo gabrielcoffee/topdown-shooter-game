@@ -172,6 +172,16 @@ function Enemy:takeDamage(amount, world, econ, attacker)
         if paid then paid:addMoney(n) end
     end
 
+    -- Whose kill it was, for the scoreboard. Credited here rather than on the
+    -- death path in update() because this is the only place that knows who
+    -- fired: bullets, the knife, grenades and molotov fire all pass an owner
+    -- through. A nuke has nobody to credit and deliberately credits nobody --
+    -- world.kills still counts it, so the run total and the sum of the
+    -- players' columns are allowed to differ, and should.
+    if killed and attacker and attacker.type == 'player' then
+        attacker.kills = (attacker.kills or 0) + 1
+    end
+
     -- blood decal on the floor: sometimes on a hit, usually on the kill;
     -- landed somewhere on the body, never on a wall (Decals checks)
     if world.decals then
