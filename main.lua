@@ -147,6 +147,103 @@ function love.load()
             end
             world.players[3]:goDown(world)
             _G._autotest = { frames = 0 }
+        elseif a:match('^promo_') then
+            -- Staged co-op shots for the itch page and posts. A real run, not
+            -- a mock-up: real players, real wave scaling, real lighting. The
+            -- camera sits on player 1, whose own tag is hidden -- exactly what
+            -- the game looks like from a seat, which is the point of a
+            -- screenshot. Each writes autotest.png; tools/promo.sh files them.
+            --
+            --   promo_squad   the group holding a room, tags legible
+            --   promo_fight   mid-firefight, muzzle flashes lighting the walls
+            --   promo_revive  someone on the floor, a teammate holding E
+            --   promo_board   the scoreboard, deep into a run
+            local Gun = require('hand_items.gun')
+            local Enemy = require('entities.enemy')
+            local Session = require('net.session')
+            State.switch('playing')
+            Session.startHost()
+
+            local WAVE = 14
+            world.multiplayer = true
+            world.waves.wave, world.waves.state = WAVE, 'active'
+            world.waves.remaining = 23
+            world.kills = 291
+
+            local p = world.player
+            p.netSlot, p.netName = 1, 'coffeebreak'
+            p.money, p.earnedTotal = 2150, 18400
+            world.netBySlot = { [1] = p }
+
+            -- names stay inside TUNE.hud.nameTagChars so none of them is cut
+            local mates = {
+                { name = 'lucia',   dx =  84, dy = -46, gun = 'm4a1'    },
+                { name = 'mrbones', dx = -78, dy =  38, gun = 'shotgun' },
+                { name = 'vex',     dx =  46, dy =  64, gun = 'ak47'    },
+            }
+            for i, m in ipairs(mates) do
+                local q = world:addPlayer(p.x + m.dx, p.y + m.dy)
+                q.netSlot, q.netName = i + 1, m.name
+                q.money = 900 + i * 640
+                q.earnedTotal = 21000 - i * 4300
+                q:giveGun(Gun.newById(m.gun))
+                q.itemIndex = q.lastGunSlot or 2
+                world.netBySlot[i + 1] = q
+                Session.players[i + 1] = { slot = i + 1, name = m.name, ready = true }
+            end
+            p:giveGun(Gun.newById('ak47'))
+            p.itemIndex = p.lastGunSlot or 2
+
+            -- a wave already on top of them, ringed so nobody is safe in any
+            -- direction -- a screenshot of four people shooting one zombie
+            -- sells nothing
+            local ring = {
+                { 300, -40, 'normal' }, { 285, 110, 'fast'   },
+                { 175, -175, 'normal' }, {  20, -205, 'slow'  },
+                { -215, -155, 'normal' }, { -300,  15, 'fast' },
+                { -245, 165, 'slow'   }, { -55,  205, 'normal' },
+                { 130,  200, 'fast'   }, { 335,   95, 'normal' },
+                { -135, -215, 'fast'  }, { 230, -190, 'slow'  },
+            }
+            -- Spawned late rather than now: the lighting rig needs ~90 frames
+            -- to settle into its contrast, and a wave dropped in at frame 0
+            -- has walked into the group's laps by then. So the room gets its
+            -- run-up and the horde arrives six frames before the shutter.
+            _G._autotest = { frames = 0, shotFrame = 90,
+                             promoRing = ring, promoRingAt = 84,
+                             promoOx = p.x, promoOy = p.y, promoWave = WAVE }
+
+            if a == 'promo_fight' then
+                -- Everyone opens up right on the shutter, so the flashes, the
+                -- casings and the recoil are all still live in the frame
+                -- rather than having decayed out of it. Triggers are pulled
+                -- on the gun directly rather than through input.shoot:
+                -- Input.poll owns player 1's struct and clears it every frame,
+                -- so his would be the one gun in the shot not firing.
+                _G._autotest.promoFireFrom = 86
+                _G._autotest.promoShoot = {}
+                for _, q in ipairs(world.players) do
+                    _G._autotest.promoShoot[#_G._autotest.promoShoot + 1] = q
+                    q.input.aimX = q.x + (q.netSlot % 2 == 0 and 300 or -300)
+                    q.input.aimY = q.y + (q.netSlot > 2 and 120 or -110)
+                end
+                -- player 1 aims with the real mouse, so pin it: an unposed
+                -- crosshair in a promo shot points wherever the cursor
+                -- happened to be sitting when the run started
+                love.mouse.setPosition(SCREENWIDTH * 0.30, SCREENHEIGHT * 0.28)
+            elseif a == 'promo_revive' then
+                local down = world.players[3]     -- mrbones goes down
+                local mate = world.players[2]     -- lucia comes for him
+                down:goDown(world)
+                down.bleed = TUNE.revive.bleedOutTime * 0.42
+                mate.x, mate.y = down.x + 40, down.y + 18 -- inside TUNE.revive.range, tags clear
+                _G._autotest.holdRevive = mate
+                _G._autotest.shotFrame = 110     -- let the revive bar fill
+            elseif a == 'promo_board' then
+                world.players[2].health = 34      -- hurt
+                world.players[4]:goDown(world)    -- downed
+                _G._autotest.holdScoreboard = true
+            end
         elseif a == 'autotest_keys' then
             State.switch('menu')
             State.push('options')
@@ -204,6 +301,21 @@ function love.update(dt)
         -- Input.poll only fills the LOCAL player's struct, so a scripted
         -- teammate's held button has to be re-armed every frame
         if _autotest.holdRevive then _autotest.holdRevive.input.interact = true end
+        if _autotest.promoRing and _autotest.frames == _autotest.promoRingAt then
+            local Enemy = require('entities.enemy')
+            for _, z in ipairs(_autotest.promoRing) do
+                local ctor = (z[3] == 'fast' and Enemy.newFast)
+                    or (z[3] == 'slow' and Enemy.newSlow) or Enemy.newNormal
+                world:addEntity(ctor(Enemy, _autotest.promoOx + z[1],
+                    _autotest.promoOy + z[2], _autotest.promoWave))
+            end
+        end
+        if _autotest.promoShoot and _autotest.frames >= (_autotest.promoFireFrom or 0) then
+            for _, q in ipairs(_autotest.promoShoot) do
+                local held = q.items[q.itemIndex]
+                if held and held.isGun then held:fire(true) end
+            end
+        end
         if _autotest_shotgun and _autotest.frames == 30 then
             local Gun = require('hand_items.gun')
             world.player:giveGun(Gun.newById('shotgun'))

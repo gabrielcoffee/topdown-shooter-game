@@ -33,6 +33,17 @@ save dir and quits:
     autotest_menu  autotest_options  autotest_mp  autotest_lobby
     autotest_keys  autotest_splash  autotest_names
 
+Promo screenshots for the itch page and posts:
+
+```sh
+bash tools/promo.sh          # all four into dist/promo/
+bash tools/promo.sh fight    # just one
+```
+
+Four staged 4-player runs — `squad`, `fight`, `revive`, `board`. The names,
+wave number and money are set in `main.lua` under the `promo_` args; edit them
+there. Shots come out at the window size, so they are capped by the display.
+
 Add-on args: `shot<N>` screenshots at frame N instead of 90, and
 `win<W>x<H>` forces a window size first (`love . autotest win1280x700` — odd
 window shapes are what the resize code gets wrong).

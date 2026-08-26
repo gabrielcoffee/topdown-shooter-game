@@ -890,7 +890,9 @@ function World:draw()
     -- in an unlit corner is still identifiable, but BEFORE the room mask, so
     -- a name cannot float in the void of a room you are not supposed to be
     -- seeing into.
-    if self:isMultiplayer() then
+    -- The scoreboard names everyone in a legible table, so leaving the tags
+    -- on underneath it is clutter showing through a translucent panel.
+    if self:isMultiplayer() and not require('ui.scoreboard').visible() then
         -- outside the lighting closure the canvas is back in screen space, so
         -- put the camera transform back on by hand to draw in world coords
         love.graphics.push()

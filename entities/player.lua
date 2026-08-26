@@ -275,13 +275,23 @@ function Player:update(dt, world)
         -- the killing drop always cues — death must never go silent just
         -- because a hit half a second earlier used up the cooldown
         if self.hurtCue <= 0 or self.health <= 0 then
-            require('ui.fx').damageVignette()
+            -- CO-OP: the host simulates everybody, so this runs for teammates
+            -- too. Only OUR body is allowed to redden the screen or shout in
+            -- our ears -- someone else being bitten is a sound coming from
+            -- where they are standing, which is how you know to go help.
+            local mine = (world == nil) or (self == world.player)
+            local cx, cy = self:getCenter()
+            local function cue(name)
+                if mine then Audio.play(name, 0.9)
+                else Audio.playAt(name, cx, cy, 0.9, TUNE.audio.pitchJitter, world) end
+            end
+            if mine then require('ui.fx').damageVignette() end
             if self.health <= 0 then
-                Audio.play('player_dead', 0.9) -- death: only this, no damage grunt
-            elseif love.math.random() < TUNE.audio.motherFuckerChance then
-                Audio.play('mother_fucker', 0.9) -- rare easter egg on a hit
+                cue('player_dead') -- death: only this, no damage grunt
+            elseif mine and love.math.random() < TUNE.audio.motherFuckerChance then
+                cue('mother_fucker') -- rare easter egg, ours only
             else
-                Audio.play('player_damage', 0.9)
+                cue('player_damage')
             end
             self.hurtCue = TUNE.player.hurtCueCooldown
         end
