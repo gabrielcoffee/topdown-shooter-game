@@ -163,8 +163,15 @@ rm -rf dist/mac dist/windows dist/linux \
 mkdir -p "$MAC" "$WIN" "$LIN" dist/.cache
 
 # ----------------------------------------------------------------- .love
+# Keep this list in step with the web build's rsync excludes above. It drifted
+# once already: node_modules is 42MB of love.js tooling and was going into
+# every desktop download, roughly doubling it, because only the web path
+# filtered it out.
 zip -9 -r -q "dist/$NAME.love" . \
-    -x ".git/*" ".gitignore" "dist/*" "distribution/*" "docs/*" "*.md" "*.DS_Store" "*.sh" \
+    -x ".git/*" ".gitignore" ".vscode/*" "dist/*" "distribution/*" "docs/*" \
+    -x "*.md" "*.DS_Store" "*.sh" "*.ase" \
+    -x "node_modules/*" "package.json" "package-lock.json" \
+    -x "web/*" "tools/*" \
     -x "assets/(outdated)/*"
 
 # ----------------------------------------------------------------- macOS
